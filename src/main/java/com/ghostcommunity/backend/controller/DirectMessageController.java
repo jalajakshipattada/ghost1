@@ -245,11 +245,11 @@ public class DirectMessageController {
     }
 
     // DELETE /api/dm/{partnerId}/clear?mode=DIRECT|GHOST&forEveryone=true|false
+    // DELETE /api/dm/{partnerId}/clear?mode=DIRECT|GHOST
     @DeleteMapping("/{partnerId}/clear")
     public ResponseEntity<?> clearChat(
             @PathVariable Long partnerId,
-            @RequestParam(defaultValue = "DIRECT") String mode,
-            @RequestParam(defaultValue = "false") boolean forEveryone) {
+            @RequestParam(defaultValue = "DIRECT") String mode) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -257,44 +257,32 @@ public class DirectMessageController {
 
         List<DirectMessage> messages = dmRepository.findAllMessagesBetweenUsers(myId, partnerId, mode);
 
-        if (forEveryone) {
-            // Clear for everyone: delete all messages between these 2 users in this mode
-            dmRepository.deleteAll(messages);
+        // Always Clear for me only: mark all as deleted for current user
+        List<DirectMessage> toDelete = new ArrayList<>();
+        List<DirectMessage> toUpdate = new ArrayList<>();
 
-            // Broadcast CLEAR_CHAT event to both users
-            String clearJson = "{\"action\":\"CLEAR_CHAT\",\"partnerId\":" + myId + "}";
-            messagingTemplate.convertAndSend("/topic/user/" + partnerId, (Object) clearJson);
-            messagingTemplate.convertAndSend("/topic/user/" + myId, (Object) clearJson);
-
-            return ResponseEntity.ok(Map.of("message", "Chat cleared for everyone."));
-        } else {
-            // Clear for me: mark all as deleted for current user
-            List<DirectMessage> toDelete = new ArrayList<>();
-            List<DirectMessage> toUpdate = new ArrayList<>();
-
-            for (DirectMessage m : messages) {
-                if (m.getSender().getId().equals(myId)) {
-                    m.setDeletedBySender(true);
-                }
-                if (m.getReceiver().getId().equals(myId)) {
-                    m.setDeletedByReceiver(true);
-                }
-
-                if (Boolean.TRUE.equals(m.getDeletedBySender()) && Boolean.TRUE.equals(m.getDeletedByReceiver())) {
-                    toDelete.add(m);
-                } else {
-                    toUpdate.add(m);
-                }
+        for (DirectMessage m : messages) {
+            if (m.getSender().getId().equals(myId)) {
+                m.setDeletedBySender(true);
+            }
+            if (m.getReceiver().getId().equals(myId)) {
+                m.setDeletedByReceiver(true);
             }
 
-            if (!toDelete.isEmpty()) {
-                dmRepository.deleteAll(toDelete);
+            if (Boolean.TRUE.equals(m.getDeletedBySender()) && Boolean.TRUE.equals(m.getDeletedByReceiver())) {
+                toDelete.add(m);
+            } else {
+                toUpdate.add(m);
             }
-            if (!toUpdate.isEmpty()) {
-                dmRepository.saveAll(toUpdate);
-            }
-
-            return ResponseEntity.ok(Map.of("message", "Chat cleared for me."));
         }
+
+        if (!toDelete.isEmpty()) {
+            dmRepository.deleteAll(toDelete);
+        }
+        if (!toUpdate.isEmpty()) {
+            dmRepository.saveAll(toUpdate);
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Chat cleared for you successfully."));
     }
 }

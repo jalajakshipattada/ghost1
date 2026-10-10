@@ -16,14 +16,17 @@ public class UserDetailsImpl implements UserDetails {
     private String email;
     private String password;
     private UserStatus status;
+    private Long sectionId;
     private Collection<? extends GrantedAuthority> authorities;
 
     public static UserDetailsImpl build(User user) {
+        Long sectionId = user.getPrimarySection() != null ? user.getPrimarySection().getId() : null;
         return new UserDetailsImpl(
                 user.getId(),
                 user.getEmail(),
                 user.getPasswordHash(),
                 user.getStatus(),
+                sectionId,
                 Collections.emptyList()
         );
     }

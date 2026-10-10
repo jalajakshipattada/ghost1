@@ -21,6 +21,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
+    @Autowired
+    private com.ghostcommunity.backend.service.PresenceService presenceService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -30,6 +33,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 String email = jwtUtils.getUserNameFromJwtToken(jwt);
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+                if (userDetails instanceof UserDetailsImpl udi) {
+                    presenceService.updateActivity(udi.getId(), udi.getSectionId());
+                }
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,

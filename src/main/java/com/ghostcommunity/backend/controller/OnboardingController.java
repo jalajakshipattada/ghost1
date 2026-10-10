@@ -28,10 +28,11 @@ public class OnboardingController {
     private final CollegeRepository collegeRepository;
     private final SectionRepository sectionRepository;
     private final com.ghostcommunity.backend.repository.MessageRepository messageRepository;
+    private final com.ghostcommunity.backend.service.PresenceService presenceService;
 
     // Lightweight DTOs to send to the mobile app
     record CollegeDto(Long id, String name) {}
-    record SectionDto(Long id, String name, long totalMessages) {}
+    record SectionDto(Long id, String name, long totalMessages, long memberCount, long onlineCount) {}
 
     @GetMapping("/colleges")
     public ResponseEntity<List<CollegeDto>> getAllColleges() {
@@ -47,7 +48,9 @@ public class OnboardingController {
                 .map(s -> new SectionDto(
                         s.getId(),
                         s.getName(),
-                        messageRepository.countByDestinationSectionId(s.getId())
+                        messageRepository.countByDestinationSectionId(s.getId()),
+                        userRepository.countByPrimarySectionIdAndStatus(s.getId(), UserStatus.ACTIVE),
+                        presenceService.getOnlineCountForSection(s.getId())
                 ))
                 .toList();
         return ResponseEntity.ok(sections);
@@ -102,6 +105,7 @@ public class OnboardingController {
         user.setStatus(UserStatus.ACTIVE); // Unlock the app features
 
         userRepository.save(user);
+        presenceService.updateActivity(user.getId(), section.getId());
 
         return ResponseEntity.ok(new MessageResponse("Identity locked successfully! Welcome to Ghost Community."));
     }

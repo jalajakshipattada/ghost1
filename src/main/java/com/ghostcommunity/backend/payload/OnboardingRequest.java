@@ -10,7 +10,6 @@ public class OnboardingRequest {
     @NotNull
     private Long collegeId;
 
-    @NotNull
     private Long sectionId;
 
     @NotBlank

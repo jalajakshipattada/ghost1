@@ -71,12 +71,20 @@ public class OnboardingController {
         College college = collegeRepository.findById(request.getCollegeId())
                 .orElseThrow(() -> new RuntimeException("Error: College not found."));
 
-        // 4. Verify Section exists and belongs to this College
-        Section section = sectionRepository.findById(request.getSectionId())
-                .orElseThrow(() -> new RuntimeException("Error: Section not found."));
-                
-        if (!section.getCollege().getId().equals(college.getId())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Security Violation - Section does not belong to the selected college."));
+        // 4. Verify Section exists and belongs to this College (or assign default section)
+        Section section;
+        if (request.getSectionId() != null) {
+            section = sectionRepository.findById(request.getSectionId())
+                    .orElseThrow(() -> new RuntimeException("Error: Section not found."));
+            if (!section.getCollege().getId().equals(college.getId())) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: Security Violation - Section does not belong to the selected college."));
+            }
+        } else {
+            List<Section> sections = sectionRepository.findByCollegeId(college.getId());
+            if (sections.isEmpty()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Error: No sections found for the college."));
+            }
+            section = sections.get(0);
         }
 
         // 5. Ensure Ghost Name is unique within the College

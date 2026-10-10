@@ -29,6 +29,14 @@ public class DirectMessage {
     @Column(length = 10)
     private String chatMode; // "DIRECT" (real name shown) or "GHOST" (anonymous)
 
+    @Column(name = "deleted_by_sender")
+    @Builder.Default
+    private Boolean deletedBySender = false;
+
+    @Column(name = "deleted_by_receiver")
+    @Builder.Default
+    private Boolean deletedByReceiver = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -37,5 +45,7 @@ public class DirectMessage {
         createdAt = LocalDateTime.now();
         if (messageType == null) messageType = "TEXT";
         if (chatMode == null) chatMode = "DIRECT";
+        if (deletedBySender == null) deletedBySender = false;
+        if (deletedByReceiver == null) deletedByReceiver = false;
     }
 }

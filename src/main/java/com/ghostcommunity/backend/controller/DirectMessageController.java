@@ -186,4 +186,115 @@ public class DirectMessageController {
 
         return ResponseEntity.ok(payload);
     }
+
+    // DELETE /api/dm/message/{messageId}?forEveryone=true|false
+    @DeleteMapping("/message/{messageId}")
+    public ResponseEntity<?> deleteMessage(
+            @PathVariable Long messageId,
+            @RequestParam(defaultValue = "false") boolean forEveryone) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        Long myId = userDetails.getId();
+
+        DirectMessage m = dmRepository.findById(messageId).orElse(null);
+        if (m == null) {
+            return ResponseEntity.ok(Map.of("message", "Message already deleted"));
+        }
+
+        boolean isSender = m.getSender().getId().equals(myId);
+        boolean isReceiver = m.getReceiver().getId().equals(myId);
+
+        if (!isSender && !isReceiver) {
+            return ResponseEntity.status(403).body("Error: Not authorized to delete this message.");
+        }
+
+        Long partnerId = isSender ? m.getReceiver().getId() : m.getSender().getId();
+
+        if (forEveryone) {
+            // WhatsApp rule: Only sender can delete for everyone
+            if (!isSender) {
+                return ResponseEntity.badRequest().body("Error: Only the sender can delete for everyone.");
+            }
+            dmRepository.delete(m);
+
+            // Broadcast DELETE event via WebSocket to both sender and receiver
+            String deleteJson = "{\"action\":\"DELETE\",\"messageId\":" + messageId + "}";
+            messagingTemplate.convertAndSend("/topic/user/" + myId, (Object) deleteJson);
+            messagingTemplate.convertAndSend("/topic/user/" + partnerId, (Object) deleteJson);
+
+            return ResponseEntity.ok(Map.of("message", "Deleted for everyone."));
+        } else {
+            // Delete for me
+            if (isSender) {
+                m.setDeletedBySender(true);
+            }
+            if (isReceiver) {
+                m.setDeletedByReceiver(true);
+            }
+
+            // If both users deleted it, purge it completely from DB
+            if (Boolean.TRUE.equals(m.getDeletedBySender()) && Boolean.TRUE.equals(m.getDeletedByReceiver())) {
+                dmRepository.delete(m);
+            } else {
+                dmRepository.save(m);
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Deleted for me."));
+        }
+    }
+
+    // DELETE /api/dm/{partnerId}/clear?mode=DIRECT|GHOST&forEveryone=true|false
+    @DeleteMapping("/{partnerId}/clear")
+    public ResponseEntity<?> clearChat(
+            @PathVariable Long partnerId,
+            @RequestParam(defaultValue = "DIRECT") String mode,
+            @RequestParam(defaultValue = "false") boolean forEveryone) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        Long myId = userDetails.getId();
+
+        List<DirectMessage> messages = dmRepository.findAllMessagesBetweenUsers(myId, partnerId, mode);
+
+        if (forEveryone) {
+            // Clear for everyone: delete all messages between these 2 users in this mode
+            dmRepository.deleteAll(messages);
+
+            // Broadcast CLEAR_CHAT event to both users
+            String clearJson = "{\"action\":\"CLEAR_CHAT\",\"partnerId\":" + myId + "}";
+            messagingTemplate.convertAndSend("/topic/user/" + partnerId, (Object) clearJson);
+            messagingTemplate.convertAndSend("/topic/user/" + myId, (Object) clearJson);
+
+            return ResponseEntity.ok(Map.of("message", "Chat cleared for everyone."));
+        } else {
+            // Clear for me: mark all as deleted for current user
+            List<DirectMessage> toDelete = new ArrayList<>();
+            List<DirectMessage> toUpdate = new ArrayList<>();
+
+            for (DirectMessage m : messages) {
+                if (m.getSender().getId().equals(myId)) {
+                    m.setDeletedBySender(true);
+                }
+                if (m.getReceiver().getId().equals(myId)) {
+                    m.setDeletedByReceiver(true);
+                }
+
+                if (Boolean.TRUE.equals(m.getDeletedBySender()) && Boolean.TRUE.equals(m.getDeletedByReceiver())) {
+                    toDelete.add(m);
+                } else {
+                    toUpdate.add(m);
+                }
+            }
+
+            if (!toDelete.isEmpty()) {
+                dmRepository.deleteAll(toDelete);
+            }
+            if (!toUpdate.isEmpty()) {
+                dmRepository.saveAll(toUpdate);
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Chat cleared for me."));
+        }
+    }
 }

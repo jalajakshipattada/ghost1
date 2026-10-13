@@ -232,8 +232,11 @@ public class AuthController {
                 + "<h2 style=\"color:#10b981;margin:0 0 10px 0;\">Password Reset Successfully!</h2>"
                 + "<p style=\"color:#9ca3af;font-size:14px;line-height:1.5;\">Your Ghost Community password has been updated. You can now return to the Ghost mobile app and log in with your new password.</p>"
                 + "<div style=\"margin-top:28px;\">"
-                + "<a href=\"ghost://login\" style=\"background:linear-gradient(135deg,#8b5cf6,#a855f7);color:#fff;text-decoration:none;padding:14px 28px;border-radius:24px;font-weight:bold;font-size:14px;display:inline-block;\">Open Ghost App &rarr;</a>"
+                + "<a href=\"ghost://login\" id=\"redirectBtn\" style=\"background:linear-gradient(135deg,#8b5cf6,#a855f7);color:#fff;text-decoration:none;padding:14px 28px;border-radius:24px;font-weight:bold;font-size:14px;display:inline-block;\">Open Ghost App &rarr;</a>"
                 + "</div>"
+                + "<script>"
+                + "setTimeout(function() { window.location.href = 'ghost://login'; }, 1200);"
+                + "</script>"
                 + "</div></body></html>";
 
         return ResponseEntity.ok(successHtml);

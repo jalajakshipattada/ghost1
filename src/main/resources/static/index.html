@@ -9,51 +9,67 @@
       console.error('JS Error: ' + msg + ' on line ' + line);
     };
   </script>
+  <!-- Three.js + OrbitControls + Tween.js (Local or CDN fallback) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #07070d; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #05050a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
     #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; outline: none; }
     
     /* HUD Overlays */
     .hud-layer { position: absolute; z-index: 10; pointer-events: none; width: 100%; height: 100%; }
     .interactive { pointer-events: auto; }
 
-    /* Compact Top Header Bar */
+    /* Top Navigation Bar */
     .top-header {
       position: absolute; top: 10px; left: 10px; right: 10px;
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
     .campus-badge-btn {
-      background: rgba(18, 16, 32, 0.88); backdrop-filter: blur(12px);
-      border: 1px solid rgba(162, 48, 237, 0.5); border-radius: 20px;
+      background: rgba(18, 16, 32, 0.9); backdrop-filter: blur(12px);
+      border: 1px solid rgba(162, 48, 237, 0.55); border-radius: 20px;
       padding: 6px 14px; display: flex; align-items: center; gap: 8px;
-      cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     }
     .campus-badge-name { font-size: 13px; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
     .campus-badge-tag { font-size: 9px; padding: 2px 6px; border-radius: 6px; font-weight: 700; background: rgba(16, 185, 129, 0.25); color: #10b981; border: 1px solid #10b981; }
     
-    .stats-pill-group { display: flex; gap: 6px; }
+    .stats-pill-group { display: flex; gap: 6px; align-items: center; }
     .stat-chip {
-      background: rgba(18, 16, 32, 0.88); backdrop-filter: blur(12px);
+      background: rgba(18, 16, 32, 0.9); backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px;
       padding: 6px 10px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
     }
     .stat-chip.pts { color: #f59e0b; border-color: rgba(245, 158, 11, 0.4); }
     .stat-chip.bld { color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); }
 
+    .sound-toggle-btn {
+      background: rgba(18, 16, 32, 0.9); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px;
+    }
+
+    /* Minimap Radar Widget (Top Right below bar) */
+    .radar-widget {
+      position: absolute; top: 54px; right: 10px; width: 75px; height: 75px;
+      background: rgba(10, 9, 20, 0.85); backdrop-filter: blur(8px);
+      border: 1px solid rgba(162, 48, 237, 0.4); border-radius: 50%;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5); overflow: hidden; pointer-events: auto;
+    }
+    .radar-canvas { width: 100%; height: 100%; }
+
     /* Dropdown Modal for Switching Campuses */
     .campus-modal {
-      position: absolute; top: 56px; left: 10px; width: 260px;
-      background: rgba(14, 13, 26, 0.95); backdrop-filter: blur(16px);
+      position: absolute; top: 52px; left: 10px; width: 260px;
+      background: rgba(14, 13, 26, 0.96); backdrop-filter: blur(16px);
       border: 1px solid rgba(162, 48, 237, 0.6); border-radius: 16px;
-      padding: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      padding: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.85);
       display: none; flex-direction: column; gap: 8px; z-index: 20;
     }
     .campus-modal.open { display: flex; }
-    .modal-title { font-size: 11px; text-transform: uppercase; color: #a230ed; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 2px; }
+    .modal-title { font-size: 11px; text-transform: uppercase; color: #c084fc; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 2px; }
     .campus-opt-btn {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,0.06);
@@ -65,19 +81,21 @@
       border: 1px solid #6366f1; color: #a5b4fc; font-size: 11px; font-weight: 800; text-align: center; cursor: pointer; text-transform: uppercase;
     }
 
-    /* Help Floating Badge (Center Top Hint) */
-    .hint-banner {
-      position: absolute; top: 58px; left: 50%; transform: translateX(-50%);
-      background: rgba(10, 10, 20, 0.7); backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;
-      padding: 4px 12px; font-size: 11px; color: #94a3b8; pointer-events: none;
-      display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    /* Quick View Controls Floating Pill (Left side) */
+    .view-controls {
+      position: absolute; top: 54px; left: 10px; display: flex; gap: 6px;
     }
+    .view-btn {
+      background: rgba(18, 16, 32, 0.85); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 4px 8px; font-size: 10px; font-weight: 700; color: #94a3b8;
+      cursor: pointer; display: flex; align-items: center; gap: 4px;
+    }
+    .view-btn:active { background: rgba(162, 48, 237, 0.3); color: #fff; }
 
     /* Bottom Action Controls (Compact Mobile Dock) */
     .bottom-dock {
-      position: absolute; bottom: 12px; left: 10px; right: 10px;
-      display: flex; flex-direction: column; gap: 8px;
+      position: absolute; bottom: 10px; left: 10px; right: 10px;
+      display: flex; flex-direction: column; gap: 6px;
     }
     .msg-btn {
       width: 100%; padding: 10px 14px; border-radius: 14px;
@@ -90,7 +108,7 @@
 
     .weapon-dock-row {
       display: flex; gap: 6px; align-items: center; justify-content: space-between;
-      background: rgba(14, 13, 26, 0.9); backdrop-filter: blur(14px);
+      background: rgba(14, 13, 26, 0.92); backdrop-filter: blur(14px);
       padding: 8px 10px; border-radius: 16px; border: 1px solid rgba(162, 48, 237, 0.35);
     }
     .weapon-chip {
@@ -116,9 +134,9 @@
     /* Slide-Up Building Inspector Sheet */
     .inspector-sheet {
       position: absolute; bottom: 120px; left: 10px; right: 10px; max-width: 360px; margin: 0 auto;
-      background: rgba(14, 13, 26, 0.95); backdrop-filter: blur(16px);
+      background: rgba(14, 13, 26, 0.96); backdrop-filter: blur(16px);
       border: 1px solid rgba(162, 48, 237, 0.5); border-radius: 18px;
-      padding: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: none;
+      padding: 14px; box-shadow: 0 10px 40px rgba(0,0,0,0.85); display: none;
     }
     .inspector-sheet.open { display: block; }
     .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -137,9 +155,9 @@
 
     /* Subtle Notification Ticker */
     .ticker {
-      position: absolute; bottom: 85px; left: 14px; right: 14px;
+      position: absolute; bottom: 82px; left: 14px; right: 14px;
       text-align: center; font-size: 11px; color: #94a3b8; pointer-events: none;
-      background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 8px;
+      background: rgba(0,0,0,0.45); padding: 4px 8px; border-radius: 8px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
   </style>
@@ -157,32 +175,40 @@
       </div>
 
       <div class="stats-pill-group">
-        <div class="stat-chip pts" title="Personal Points">
+        <div class="stat-chip pts" title="Personal Balance">
           <span>💰</span>
           <span id="hud-pts">100 PTS</span>
         </div>
-        <div class="stat-chip bld" title="Shared Construction">
+        <div class="stat-chip bld" title="Shared Construction Progress">
           <span>🧱</span>
           <span id="hud-units">18 UNITS</span>
         </div>
+        <button class="sound-toggle-btn" id="btn-sound" title="Sound FX">🔊</button>
       </div>
+    </div>
+
+    <!-- Quick View Controls -->
+    <div class="view-controls interactive">
+      <button class="view-btn" id="btn-my-campus">🏛️ My Base</button>
+      <button class="view-btn" id="btn-quick-world">🌐 World</button>
+      <button class="view-btn" id="btn-tour">🔄 Orbit</button>
+    </div>
+
+    <!-- Minimap Radar Widget -->
+    <div class="radar-widget interactive" id="radar-widget" title="Tactical Radar">
+      <canvas class="radar-canvas" id="radar-canvas" width="75" height="75"></canvas>
     </div>
 
     <!-- Campus Dropdown Selector Modal (Hidden by default!) -->
     <div class="campus-modal interactive" id="campus-modal">
-      <div class="modal-title">Select Collegiate Territory</div>
+      <div class="modal-title">Collegiate Territory Radar</div>
       <div id="modal-campus-options" style="display: flex; flex-direction: column; gap: 6px;"></div>
-      <div class="world-view-btn" id="modal-world-btn">🌐 Complete World Overview</div>
-    </div>
-
-    <!-- Center Hint -->
-    <div class="hint-banner">
-      <span>👆 Drag to Orbit • Pinch to Zoom • Tap Building to Target</span>
+      <div class="world-view-btn" id="modal-world-btn">🌐 View Entire Realm</div>
     </div>
 
     <!-- Live Event Ticker -->
     <div class="ticker" id="event-ticker">
-      ✨ Continuous 3D world ready. Tap buildings or send messages to build!
+      ✨ 3D Continuous World active. Drag to orbit, pinch to zoom!
     </div>
 
     <!-- Building Inspector Bottom Sheet -->
@@ -196,7 +222,7 @@
         <div class="hp-bar-fill" id="insp-hp-bar"></div>
       </div>
       <div class="hp-row">
-        <span>Integrity</span>
+        <span>Structural Integrity</span>
         <span id="insp-hp-text">100 / 100 HP</span>
       </div>
       <div id="insp-action-slot"></div>
@@ -236,7 +262,84 @@
 
   <script>
     // =========================================================================
-    // 1. DATA CONFIGURATION
+    // 1. PROCEDURAL SOUND SYNTHESIS (Zero External Audio Assets!)
+    // =========================================================================
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+      if (type === 'click') {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+        g.gain.setValueAtTime(0.2, now);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.05);
+      } else if (type === 'launch') {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(480, now + 0.8);
+        g.gain.setValueAtTime(0.3, now);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.8);
+      } else if (type === 'explosion') {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(100, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.6);
+        g.gain.setValueAtTime(0.6, now);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.6);
+      } else if (type === 'build') {
+        const notes = [440, 554, 659, 880];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          g.gain.setValueAtTime(0.15, now + idx * 0.08);
+          g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.15);
+          osc.connect(g); g.connect(audioCtx.destination);
+          osc.start(now + idx * 0.08); osc.stop(now + idx * 0.08 + 0.15);
+        });
+      } else if (type === 'repair') {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(900, now + 0.35);
+        g.gain.setValueAtTime(0.25, now);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 0.35);
+      }
+    }
+
+    document.getElementById('btn-sound').onclick = () => {
+      soundEnabled = !soundEnabled;
+      document.getElementById('btn-sound').innerText = soundEnabled ? '🔊' : '🔇';
+    };
+
+    // =========================================================================
+    // 2. DATA & CAMPUS CONFIGURATION
     // =========================================================================
     let userPoints = 100;
     const mySectionId = "CSE-1";
@@ -248,8 +351,8 @@
     ];
 
     const TEMPLATES = [
-      { key: "MAIN_HALL", name: "Genesis Academic Citadel", maxHp: 100, req: 8, x: 0, z: 0, size: [16, 12, 14], type: 'hall' },
-      { key: "LIBRARY", name: "Tech Clock Tower", maxHp: 80, req: 6, x: 13, z: -8, size: [8, 22, 8], type: 'tower' },
+      { key: "MAIN_HALL", name: "Genesis Academic Citadel", maxHp: 100, req: 8, x: 0, z: 0, size: [16, 13, 14], type: 'hall' },
+      { key: "LIBRARY", name: "Tech Clock Tower", maxHp: 80, req: 6, x: 13, z: -8, size: [8, 24, 8], type: 'tower' },
       { key: "CANTEEN", name: "Rogue Bar Canteen", maxHp: 60, req: 6, x: -13, z: -8, size: [12, 7, 12], type: 'canteen' },
       { key: "LAB", name: "Cyber AI Innovation Lab", maxHp: 80, req: 6, x: -11, z: 11, size: [10, 8, 10], type: 'lab' },
       { key: "GARDEN", name: "Courtyard & Fountain", maxHp: 40, req: 4, x: 11, z: 11, size: [10, 3, 10], type: 'garden' },
@@ -276,26 +379,29 @@
           }
           return { ...t, status, hp, placed, mesh: null };
         }),
-        group: null
+        group: null,
+        shieldMesh: null
       };
     });
 
     let currentCampusId = "CSE-1";
     let selectedBuilding = null;
     let selectedWeapon = { type: 'GUN', cost: 50, dmg: 30 };
+    let isAutoTour = false;
 
     // =========================================================================
-    // 2. THREE.JS INITIALIZATION
+    // 3. THREE.JS 3D SCENE SETUP
     // =========================================================================
     const canvas = document.getElementById('webgl-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x06060c);
-    scene.fog = new THREE.FogExp2(0x06060c, 0.0035);
+    scene.background = new THREE.Color(0x05050a);
+    scene.fog = new THREE.FogExp2(0x05050a, 0.0035);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1500);
 
@@ -306,43 +412,58 @@
     controls.minDistance = 20;
     controls.maxDistance = 350;
 
-    // Starfield Background
+    // Starfield Atmosphere
     const starsGeo = new THREE.BufferGeometry();
     const starCoords = [];
-    for (let i = 0; i < 1500; i++) {
-      starCoords.push((Math.random() - 0.5) * 1000, Math.random() * 500 + 40, (Math.random() - 0.5) * 1000);
+    for (let i = 0; i < 2000; i++) {
+      starCoords.push((Math.random() - 0.5) * 1200, Math.random() * 600 + 40, (Math.random() - 0.5) * 1200);
     }
     starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
-    scene.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0x818cf8, size: 1.5 })));
+    scene.add(new THREE.Points(starsGeo, new THREE.PointsMaterial({ color: 0x93c5fd, size: 1.4 })));
 
-    // Lighting
-    scene.add(new THREE.AmbientLight(0x383854, 2.0));
-    const sun = new THREE.DirectionalLight(0xd8b4fe, 2.5);
-    sun.position.set(80, 160, 80);
+    // Dynamic Lighting
+    scene.add(new THREE.AmbientLight(0x403d5c, 2.2));
+    const sun = new THREE.DirectionalLight(0xe0e7ff, 2.5);
+    sun.position.set(90, 180, 90);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 1024;
+    sun.shadow.mapSize.height = 1024;
     scene.add(sun);
 
-    // Central Monument Hub
+    // =========================================================================
+    // 4. CENTRAL CITADEL HUB
+    // =========================================================================
     const hub = new THREE.Group();
     const pillar = new THREE.Mesh(
-      new THREE.CylinderGeometry(12, 16, 18, 16),
-      new THREE.MeshStandardMaterial({ color: 0x161528, roughness: 0.3 })
+      new THREE.CylinderGeometry(14, 18, 20, 16),
+      new THREE.MeshStandardMaterial({ color: 0x161528, roughness: 0.3, metalness: 0.6 })
     );
-    pillar.position.y = -9;
+    pillar.position.y = -10;
     hub.add(pillar);
 
     const orb = new THREE.Mesh(
-      new THREE.SphereGeometry(5, 32, 32),
-      new THREE.MeshStandardMaterial({ color: 0xa230ed, emissive: 0xa230ed, emissiveIntensity: 0.8 })
+      new THREE.SphereGeometry(6, 32, 32),
+      new THREE.MeshStandardMaterial({ color: 0xa230ed, emissive: 0xa230ed, emissiveIntensity: 0.8, roughness: 0.2 })
     );
     orb.position.y = 8;
     hub.add(orb);
+
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(11, 0.6, 16, 64),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+    );
+    ring.position.y = 8;
+    ring.rotation.x = Math.PI / 2.3;
+    hub.add(ring);
+    hub.userData.ring = ring;
     scene.add(hub);
 
     // =========================================================================
-    // 3. BUILD SECTION ISLANDS
+    // 5. DETAILED ARCHITECTURAL GENERATION & ENHANCED ISLANDS
     // =========================================================================
     const clickables = [];
     const activeParticles = [];
+    const activeShuttles = [];
 
     function buildCampuses() {
       SECTIONS.forEach(s => {
@@ -354,30 +475,53 @@
         const posZ = Math.sin(s.angle) * s.distance;
         group.position.set(posX, 0, posZ);
 
-        // Island Foundation
-        const island = new THREE.Mesh(
-          new THREE.CylinderGeometry(27, 23, 10, 6),
-          new THREE.MeshStandardMaterial({ color: 0x121124, metalness: 0.5, roughness: 0.4 })
+        // Island Foundation (Upper stone platform + Lower tech hull)
+        const islandTop = new THREE.Mesh(
+          new THREE.CylinderGeometry(28, 25, 6, 6),
+          new THREE.MeshStandardMaterial({ color: 0x181829, metalness: 0.5, roughness: 0.35 })
         );
-        island.position.y = -5;
-        group.add(island);
+        islandTop.position.y = -3;
+        islandTop.receiveShadow = true;
+        group.add(islandTop);
+
+        const islandHull = new THREE.Mesh(
+          new THREE.CylinderGeometry(25, 8, 12, 6),
+          new THREE.MeshStandardMaterial({ color: 0x0f0e1a, metalness: 0.7, roughness: 0.3 })
+        );
+        islandHull.position.y = -12;
+        group.add(islandHull);
+
+        // Glowing Anti-Gravity Thruster Ring underneath
+        const thruster = new THREE.Mesh(
+          new THREE.TorusGeometry(12, 0.8, 16, 32),
+          new THREE.MeshBasicMaterial({ color: s.color })
+        );
+        thruster.position.y = -9;
+        thruster.rotation.x = Math.PI / 2;
+        group.add(thruster);
 
         // Glowing Trim
         const trim = new THREE.Mesh(
-          new THREE.CylinderGeometry(27.3, 27.3, 0.7, 6),
+          new THREE.CylinderGeometry(28.3, 28.3, 0.6, 6),
           new THREE.MeshBasicMaterial({ color: s.color })
         );
-        trim.position.y = 0.2;
+        trim.position.y = 0.1;
         group.add(trim);
 
-        // Shield Dome
+        // Translucent Energy Forcefield Shield Dome
         const shield = new THREE.Mesh(
-          new THREE.SphereGeometry(28, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
-          new THREE.MeshBasicMaterial({ color: s.color, wireframe: true, transparent: true, opacity: 0.12 })
+          new THREE.SphereGeometry(30, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: s.color, wireframe: true, transparent: true, opacity: 0.14 })
         );
         group.add(shield);
+        cData.shieldMesh = shield;
 
-        // Island Buildings
+        // Paved Walkways (Intersecting Cross)
+        const road1 = new THREE.Mesh(new THREE.PlaneGeometry(6, 44), new THREE.MeshStandardMaterial({ color: 0x27273a, roughness: 0.8 }));
+        road1.rotation.x = -Math.PI / 2; road1.position.y = 0.05; group.add(road1);
+        const road2 = road1.clone(); road2.rotation.z = Math.PI / 2; group.add(road2);
+
+        // Buildings
         cData.structures.forEach(st => {
           const bMesh = createBldg(st, s.color);
           bMesh.position.set(st.x, 0, st.z);
@@ -404,9 +548,7 @@
           new THREE.PlaneGeometry(st.size[0], st.size[2]),
           new THREE.MeshBasicMaterial({ color: 0x475569, wireframe: true })
         );
-        grid.rotation.x = -Math.PI / 2;
-        grid.position.y = 0.1;
-        g.add(grid);
+        grid.rotation.x = -Math.PI / 2; grid.position.y = 0.1; g.add(grid);
         return g;
       }
 
@@ -415,16 +557,21 @@
           new THREE.BoxGeometry(st.size[0], st.size[1], st.size[2]),
           new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.6 })
         );
-        scaf.position.y = st.size[1] / 2;
-        g.add(scaf);
+        scaf.position.y = st.size[1] / 2; g.add(scaf);
 
         const curH = st.size[1] * (st.placed / st.req);
         const core = new THREE.Mesh(
           new THREE.BoxGeometry(st.size[0] * 0.9, Math.max(1, curH), st.size[2] * 0.9),
           new THREE.MeshStandardMaterial({ color: 0x334155 })
         );
-        core.position.y = curH / 2;
-        g.add(core);
+        core.position.y = curH / 2; g.add(core);
+
+        // Laser scan beam
+        const beam = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.2, 0.2, st.size[1]),
+          new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+        );
+        beam.position.set(0, st.size[1] / 2, 0); g.add(beam);
         return g;
       }
 
@@ -434,35 +581,54 @@
       const wallCol = isDes ? 0x27272a : (isDam ? 0x475569 : 0x1e1b4b);
       const winCol = isDes ? 0x18181b : (isDam ? 0xef4444 : 0x38bdf8);
 
+      // Base Structure
       const main = new THREE.Mesh(
         new THREE.BoxGeometry(st.size[0], st.size[1], st.size[2]),
-        new THREE.MeshStandardMaterial({ color: wallCol, metalness: 0.5, roughness: 0.3 })
+        new THREE.MeshStandardMaterial({ color: wallCol, metalness: 0.45, roughness: 0.35 })
       );
-      main.position.y = st.size[1] / 2;
+      main.position.y = st.size[1] / 2; main.castShadow = true; main.receiveShadow = true;
       g.add(main);
 
+      // Emissive Windows
       const win = new THREE.Mesh(
-        new THREE.BoxGeometry(st.size[0] * 1.02, st.size[1] * 0.4, st.size[2] * 0.8),
-        new THREE.MeshStandardMaterial({ color: winCol, emissive: winCol, emissiveIntensity: isDes ? 0 : 0.6 })
+        new THREE.BoxGeometry(st.size[0] * 1.02, st.size[1] * 0.45, st.size[2] * 0.8),
+        new THREE.MeshStandardMaterial({ color: winCol, emissive: winCol, emissiveIntensity: isDes ? 0 : 0.65 })
       );
-      win.position.y = st.size[1] * 0.6;
-      g.add(win);
+      win.position.y = st.size[1] * 0.6; g.add(win);
 
+      // Unique Architectural Landmarks
       if (st.type === 'tower') {
         const roof = new THREE.Mesh(
-          new THREE.ConeGeometry(5, 7, 4),
-          new THREE.MeshStandardMaterial({ color: col })
+          new THREE.ConeGeometry(5, 8, 4),
+          new THREE.MeshStandardMaterial({ color: col, metalness: 0.6 })
         );
-        roof.position.y = st.size[1] + 3.5;
-        roof.rotation.y = Math.PI / 4;
-        g.add(roof);
+        roof.position.y = st.size[1] + 4; roof.rotation.y = Math.PI / 4; g.add(roof);
+
+        // Digital Clock Face on 4 sides
+        const clockOrb = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 3), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        clockOrb.position.y = st.size[1] - 2; g.add(clockOrb);
       } else if (st.type === 'hall') {
         const dome = new THREE.Mesh(
-          new THREE.SphereGeometry(4, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2),
-          new THREE.MeshStandardMaterial({ color: 0x6366f1 })
+          new THREE.SphereGeometry(4.5, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+          new THREE.MeshStandardMaterial({ color: 0x6366f1, roughness: 0.2 })
         );
-        dome.position.y = st.size[1];
-        g.add(dome);
+        dome.position.y = st.size[1]; g.add(dome);
+
+        // Rotating Holographic Emblem
+        const holo = new THREE.Mesh(new THREE.OctahedronGeometry(1.6), new THREE.MeshBasicMaterial({ color: 0xa230ed, wireframe: true }));
+        holo.position.y = st.size[1] + 6; g.add(holo);
+        g.userData.holo = holo;
+      } else if (st.type === 'canteen') {
+        const canopy = new THREE.Mesh(new THREE.BoxGeometry(st.size[0] + 4, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0xf59e0b }));
+        canopy.position.set(0, st.size[1] * 0.5, st.size[2] / 2 + 3); g.add(canopy);
+      } else if (st.type === 'turret') {
+        const barrel1 = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 6), new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.8 }));
+        barrel1.position.set(-1.4, st.size[1] + 2, 2); barrel1.rotation.x = Math.PI / 3; g.add(barrel1);
+        const barrel2 = barrel1.clone(); barrel2.position.x = 1.4; g.add(barrel2);
+      } else if (st.type === 'garden') {
+        // Holographic fountain
+        const fount = new THREE.Mesh(new THREE.TorusGeometry(2, 0.4, 8, 16), new THREE.MeshBasicMaterial({ color: 0x06b6d4 }));
+        fount.rotation.x = Math.PI / 2; fount.position.y = 0.5; g.add(fount);
       }
 
       if (isDam || isDes) {
@@ -477,10 +643,9 @@
         new THREE.CylinderGeometry(st.size[0] * 0.35, st.size[0] * 0.4, 0.4, 8),
         new THREE.MeshBasicMaterial({ color: 0x09090b })
       );
-      crater.position.set(0, st.size[1] + 0.1, 0);
-      g.add(crater);
+      crater.position.set(0, st.size[1] + 0.1, 0); g.add(crater);
 
-      const sCount = st.status === 'DESTROYED' ? 20 : 10;
+      const sCount = st.status === 'DESTROYED' ? 22 : 12;
       const sGeo = new THREE.DodecahedronGeometry(1.0, 1);
       const sMat = new THREE.MeshBasicMaterial({ color: 0x27272a, transparent: true, opacity: 0.6 });
 
@@ -488,15 +653,29 @@
         const s = new THREE.Mesh(sGeo, sMat.clone());
         s.position.set((Math.random() - 0.5) * st.size[0] * 0.5, st.size[1] + Math.random() * 3, (Math.random() - 0.5) * st.size[2] * 0.5);
         s.userData = { baseY: st.size[1], speedY: 0.1 + Math.random() * 0.15, maxH: 14 + Math.random() * 8 };
-        g.add(s);
-        activeParticles.push(s);
+        g.add(s); activeParticles.push(s);
       }
     }
 
+    // Flying Drone Shuttles
+    function createShuttles() {
+      for (let i = 0; i < 3; i++) {
+        const sMesh = new THREE.Mesh(
+          new THREE.ConeGeometry(0.8, 2.5, 4),
+          new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+        );
+        sMesh.rotation.x = Math.PI / 2;
+        scene.add(sMesh);
+        activeShuttles.push({ mesh: sMesh, angle: (i * Math.PI * 2) / 3, speed: 0.008 + i * 0.003, radius: 45 + i * 15, height: 12 + i * 4 });
+      }
+    }
+    createShuttles();
+
     // =========================================================================
-    // 4. CAMERA & NAVIGATION (DEFAULT FOCUSES ON USER'S CAMPUS!)
+    // 6. CAMERA & NAVIGATION MODES
     // =========================================================================
     function setFocusCampus(id, instant = false) {
+      isAutoTour = false;
       currentCampusId = id;
       const c = campuses[id];
       const p = c.group.position;
@@ -526,6 +705,7 @@
     }
 
     function viewWorld() {
+      isAutoTour = false;
       new TWEEN.Tween(controls.target)
         .to({ x: 0, y: 8, z: 0 }, 1000)
         .easing(TWEEN.Easing.Cubic.Out)
@@ -540,11 +720,20 @@
 
     // Modal toggle
     const modal = document.getElementById('campus-modal');
-    document.getElementById('campus-badge-btn').onclick = () => modal.classList.toggle('open');
+    document.getElementById('campus-badge-btn').onclick = () => { playSound('click'); modal.classList.toggle('open'); };
     function closeModal() { modal.classList.remove('open'); }
 
+    // Quick View Buttons
+    document.getElementById('btn-my-campus').onclick = () => { playSound('click'); setFocusCampus(mySectionId); };
+    document.getElementById('btn-quick-world').onclick = () => { playSound('click'); viewWorld(); };
+    document.getElementById('btn-tour').onclick = () => {
+      playSound('click');
+      isAutoTour = !isAutoTour;
+      ticker(isAutoTour ? '🔄 Auto Orbit Tour Activated' : '⏹️ Auto Orbit Tour Paused');
+    };
+
     // =========================================================================
-    // 5. SELECTION & BATTLE
+    // 7. SELECTION & WEAPONS BATTLE
     // =========================================================================
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -559,6 +748,7 @@
       const hits = raycaster.intersectObjects(clickables, true);
 
       if (hits.length > 0 && hits[0].object.userData.struct) {
+        playSound('click');
         onSelectBldg(hits[0].object.userData.struct, hits[0].object.userData.sectionId);
       }
     });
@@ -584,6 +774,7 @@
         repBtn.className = 'repair-btn';
         repBtn.innerText = '🧯 Extinguish Fire & Repair (+40 HP)';
         repBtn.onclick = () => {
+          playSound('repair');
           st.hp = Math.min(st.maxHp, st.hp + 40);
           if (st.hp >= st.maxHp) st.status = 'INTACT';
           else st.status = 'DAMAGED';
@@ -594,12 +785,12 @@
         slot.appendChild(repBtn);
       }
 
-      // Update strike button
       const fireBtn = document.getElementById('btn-fire');
       fireBtn.disabled = (secId === mySectionId || st.status === 'DESTROYED' || st.status === 'LOCKED');
     }
 
     document.getElementById('insp-close').onclick = () => {
+      playSound('click');
       document.getElementById('inspector-sheet').classList.remove('open');
     };
 
@@ -621,6 +812,7 @@
 
     // Message Building Simulation
     document.getElementById('btn-msg').onclick = () => {
+      playSound('build');
       userPoints += 10;
       const myC = campuses[mySectionId];
       myC.msgCount += 5;
@@ -630,15 +822,13 @@
       const proj = myC.structures.find(s => s.status === 'BUILDING') || myC.structures.find(s => s.status === 'LOCKED');
       if (proj) {
         if (proj.status === 'LOCKED') {
-          proj.status = 'BUILDING';
-          proj.placed = 1;
+          proj.status = 'BUILDING'; proj.placed = 1;
         } else {
           proj.placed += 1;
         }
         if (proj.placed >= proj.req) {
-          proj.status = 'INTACT';
-          proj.hp = proj.maxHp;
-          ticker(`🏗️ COMPLETED: ${proj.name} is fully assembled!`);
+          proj.status = 'INTACT'; proj.hp = proj.maxHp;
+          ticker(`🏗️ COMPLETED: ${proj.name} is fully operational!`);
         } else {
           ticker(`🔨 Assembled chunk on ${proj.name}: ${proj.placed}/${proj.req} units.`);
         }
@@ -649,6 +839,7 @@
     // Weapon selection
     document.querySelectorAll('.weapon-chip').forEach(chip => {
       chip.onclick = () => {
+        playSound('click');
         document.querySelectorAll('.weapon-chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
         selectedWeapon = {
@@ -668,11 +859,11 @@
       }
       userPoints -= selectedWeapon.cost;
       updateHUD();
-
       fireProjectile(mySectionId, selectedBuilding.sectionId, selectedBuilding.struct);
     };
 
     function fireProjectile(fromSec, toSec, st) {
+      playSound('launch');
       const fromP = campuses[fromSec].group.position;
       const toP = campuses[toSec].group.position;
 
@@ -682,7 +873,7 @@
       p1.y += 50;
 
       const missile = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.3, 0.3, 2.5),
+        new THREE.CylinderGeometry(0.35, 0.35, 3),
         new THREE.MeshBasicMaterial({ color: 0xf59e0b })
       );
       scene.add(missile);
@@ -704,15 +895,24 @@
         })
         .onComplete(() => {
           scene.remove(missile);
-          // Impact flash
+          playSound('explosion');
+
+          // Impact Flash Sphere
           const flash = new THREE.Mesh(
             new THREE.SphereGeometry(3, 16, 16),
             new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 1 })
           );
           flash.position.copy(p2);
           scene.add(flash);
-          new TWEEN.Tween(flash.scale).to({ x: 4, y: 4, z: 4 }, 250).start();
+          new TWEEN.Tween(flash.scale).to({ x: 5, y: 5, z: 5 }, 250).start();
           new TWEEN.Tween(flash.material).to({ opacity: 0 }, 250).onComplete(() => scene.remove(flash)).start();
+
+          // Forcefield Shield Ripple Effect
+          const targetShield = campuses[toSec].shieldMesh;
+          if (targetShield) {
+            targetShield.material.opacity = 0.55;
+            new TWEEN.Tween(targetShield.material).to({ opacity: 0.14 }, 600).start();
+          }
 
           // Damage
           st.hp = Math.max(0, st.hp - selectedWeapon.dmg);
@@ -731,6 +931,38 @@
         .start();
     }
 
+    // =========================================================================
+    // 8. TACTICAL RADAR MINIMAP
+    // =========================================================================
+    const radarCanvas = document.getElementById('radar-canvas');
+    const rCtx = radarCanvas.getContext('2d');
+
+    function renderRadar() {
+      rCtx.clearRect(0, 0, 75, 75);
+      rCtx.fillStyle = 'rgba(10, 9, 20, 0.9)';
+      rCtx.fillRect(0, 0, 75, 75);
+
+      // Radar Grid
+      rCtx.strokeStyle = 'rgba(162, 48, 237, 0.3)';
+      rCtx.lineWidth = 1;
+      rCtx.beginPath();
+      rCtx.arc(37.5, 37.5, 34, 0, Math.PI * 2);
+      rCtx.arc(37.5, 37.5, 20, 0, Math.PI * 2);
+      rCtx.stroke();
+
+      // Central Hub Dot
+      rCtx.fillStyle = '#a230ed';
+      rCtx.beginPath(); rCtx.arc(37.5, 37.5, 2.5, 0, Math.PI * 2); rCtx.fill();
+
+      // Section Dots
+      SECTIONS.forEach(s => {
+        const cX = 37.5 + Math.cos(s.angle) * 22;
+        const cY = 37.5 + Math.sin(s.angle) * 22;
+        rCtx.fillStyle = '#' + s.color.toString(16).padStart(6, '0');
+        rCtx.beginPath(); rCtx.arc(cX, cY, s.id === currentCampusId ? 4 : 2.5, 0, Math.PI * 2); rCtx.fill();
+      });
+    }
+
     function updateHUD() {
       document.getElementById('hud-pts').innerText = `${userPoints} PTS`;
       document.getElementById('hud-units').innerText = `${campuses[mySectionId].units} UNITS`;
@@ -740,33 +972,55 @@
       document.getElementById('event-ticker').innerText = msg;
     }
 
-    // Modal populate
     function initUI() {
       const slot = document.getElementById('modal-campus-options');
       SECTIONS.forEach(s => {
         const btn = document.createElement('div');
         btn.className = 'campus-opt-btn' + (s.id === currentCampusId ? ' active' : '');
         btn.innerHTML = `<span>${s.name}</span><span style="font-size: 10px; color: ${s.isMySection ? '#10b981' : '#ef4444'}">${s.isMySection ? 'MY BASE' : 'RIVAL'}</span>`;
-        btn.onclick = () => setFocusCampus(s.id);
+        btn.onclick = () => { playSound('click'); setFocusCampus(s.id); };
         slot.appendChild(btn);
       });
-      document.getElementById('modal-world-btn').onclick = viewWorld;
+      document.getElementById('modal-world-btn').onclick = () => { playSound('click'); viewWorld(); };
       updateHUD();
+      renderRadar();
     }
 
     // =========================================================================
-    // 6. ANIMATION LOOP & STARTUP
+    // 9. ANIMATION LOOP & STARTUP
     // =========================================================================
     buildCampuses();
     initUI();
-    setFocusCampus("CSE-1", true); // INSTANTLY FOCUS ON CSE-1 CAMPUS AT STARTUP!
+    setFocusCampus("CSE-1", true);
+
+    const clock = new THREE.Clock();
 
     function animate() {
       requestAnimationFrame(animate);
       TWEEN.update();
       controls.update();
 
-      // Smoke particles
+      const time = clock.getElapsedTime();
+
+      // Auto Orbit Tour
+      if (isAutoTour) {
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 2.0;
+      } else {
+        controls.autoRotate = false;
+      }
+
+      // Rotate Citadel Ring
+      if (hub.userData.ring) hub.userData.ring.rotation.z += 0.015;
+
+      // Animate Shuttles
+      activeShuttles.forEach(s => {
+        s.angle += s.speed;
+        s.mesh.position.set(Math.cos(s.angle) * s.radius, s.height, Math.sin(s.angle) * s.radius);
+        s.mesh.lookAt(Math.cos(s.angle + 0.1) * s.radius, s.height, Math.sin(s.angle + 0.1) * s.radius);
+      });
+
+      // Animate Smoke Particles
       for (let i = 0; i < activeParticles.length; i++) {
         const p = activeParticles[i];
         p.position.y += p.userData.speedY;
@@ -777,6 +1031,7 @@
         }
       }
 
+      renderRadar();
       renderer.render(scene, camera);
     }
     animate();

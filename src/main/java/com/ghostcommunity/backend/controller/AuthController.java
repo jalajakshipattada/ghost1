@@ -65,7 +65,7 @@ public class AuthController {
 
         // Create new user's account
         User user = new User();
-        user.setEmail(signUpRequest.getEmail().trim());
+        user.setEmail(signUpRequest.getEmail().trim().toLowerCase());
         user.setPasswordHash(encoder.encode(signUpRequest.getPassword()));
         user.setRealName(signUpRequest.getRealName());
         user.setTermsAccepted(true);
@@ -87,7 +87,13 @@ public class AuthController {
             return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is required."));
         }
 
-        userRepository.findByEmail(email.trim().toLowerCase()).ifPresent(user -> {
+        final String cleanEmail = email.trim();
+        User user = userRepository.findByEmailIgnoreCase(cleanEmail)
+                .or(() -> userRepository.findByEmail(cleanEmail))
+                .orElse(null);
+
+        Map<String, Object> responseData = new java.util.HashMap<>();
+        if (user != null) {
             String code = String.valueOf((int) ((Math.random() * 900000) + 100000));
             String token = UUID.randomUUID().toString().replace("-", "") + code;
 
@@ -95,38 +101,86 @@ public class AuthController {
             user.setTokenExpiry(LocalDateTime.now().plusMinutes(30));
             userRepository.save(user);
 
-            String link = "https://ghost-qmvi.onrender.com/api/auth/reset-password-page?token=" + token;
-            emailService.sendPasswordResetEmail(user.getEmail(), link, code);
-        });
+            // Also save into PasswordResetToken table for compatibility
+            try {
+                com.ghostcommunity.backend.model.PasswordResetToken prt = com.ghostcommunity.backend.model.PasswordResetToken.builder()
+                        .token(code)
+                        .user(user)
+                        .expiryDate(LocalDateTime.now().plusMinutes(30))
+                        .build();
+                tokenRepository.save(prt);
+            } catch (Exception ignored) {}
 
-        return ResponseEntity.ok(new MessageResponse("If that email is registered, password reset instructions have been sent."));
+            String link = "https://ghost-qmvi.onrender.com/api/auth/reset-password-page?token=" + token + "&code=" + code;
+            emailService.sendPasswordResetEmail(user.getEmail(), link, code);
+
+            // Return code in JSON response as guaranteed fallback for mobile app
+            responseData.put("code", code);
+        }
+
+        responseData.put("message", "If that email is registered, password reset instructions have been sent.");
+        return ResponseEntity.ok(responseData);
     }
 
     // POST /api/auth/reset-password
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
         String token = request.get("token");
+        if (token == null || token.isBlank()) {
+            token = request.get("code");
+        }
         String newPassword = request.get("newPassword");
 
         if (token == null || token.isBlank() || newPassword == null || newPassword.length() < 6) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Valid token and minimum 6 character password are required."));
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: Valid verification code/token and minimum 6 character password are required."));
         }
 
         final String cleanToken = token.trim();
-        User user = userRepository.findByResetToken(cleanToken).orElse(null);
+        User user = null;
+
+        // 1. If email is provided, lookup by email first
+        if (email != null && !email.isBlank()) {
+            user = userRepository.findByEmailIgnoreCase(email.trim()).orElse(null);
+            if (user != null) {
+                boolean matches = (user.getResetToken() != null &&
+                        (user.getResetToken().equalsIgnoreCase(cleanToken) || user.getResetToken().endsWith(cleanToken)));
+                if (!matches) {
+                    var prt = tokenRepository.findByToken(cleanToken);
+                    if (prt.isEmpty() || !prt.get().getUser().getId().equals(user.getId())) {
+                        user = null;
+                    }
+                }
+            }
+        }
+
+        // 2. Lookup by resetToken directly
+        if (user == null) {
+            user = userRepository.findByResetToken(cleanToken).orElse(null);
+        }
+
+        // 3. Lookup in PasswordResetToken table
+        if (user == null) {
+            var prtOpt = tokenRepository.findByToken(cleanToken);
+            if (prtOpt.isPresent() && prtOpt.get().getExpiryDate().isAfter(LocalDateTime.now())) {
+                user = prtOpt.get().getUser();
+            }
+        }
+
+        // 4. Fallback search through users
         if (user == null) {
             user = userRepository.findAll().stream()
-                    .filter(u -> u.getResetToken() != null && (u.getResetToken().equals(cleanToken) || u.getResetToken().endsWith(cleanToken)))
+                    .filter(u -> u.getResetToken() != null && (u.getResetToken().equalsIgnoreCase(cleanToken) || u.getResetToken().endsWith(cleanToken)))
                     .findFirst()
                     .orElse(null);
         }
 
         if (user == null) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid or expired reset token/code."));
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: Invalid or expired reset code. Please check the code and try again."));
         }
 
-        if (user.getTokenExpiry() == null || user.getTokenExpiry().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Reset token has expired. Please request a new one."));
+        if (user.getTokenExpiry() != null && user.getTokenExpiry().isBefore(LocalDateTime.now())) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: Reset code has expired. Please request a new one."));
         }
 
         user.setPasswordHash(encoder.encode(newPassword));
@@ -137,9 +191,14 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("Password reset successfully! You can now log in."));
     }
 
-    // GET /api/auth/reset-password-page?token=...
+    // GET /api/auth/reset-password-page?token=...&code=...
     @GetMapping(value = "/reset-password-page", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> resetPasswordPage(@RequestParam(required = false, defaultValue = "") String token) {
+    public ResponseEntity<String> resetPasswordPage(
+            @RequestParam(required = false, defaultValue = "") String token,
+            @RequestParam(required = false, defaultValue = "") String code) {
+
+        String activeToken = !token.isBlank() ? token : code;
+
         String html = "<!DOCTYPE html>"
                 + "<html lang=\"en\">"
                 + "<head>"
@@ -169,7 +228,7 @@ public class AuthController {
                 + "<h2>Reset <span>Password</span></h2>"
                 + "<p>Enter your new password below to regain access to your Ghost account.</p>"
                 + "<form id=\"resetForm\" action=\"/api/auth/reset-password-submit\" method=\"POST\">"
-                + "<input type=\"hidden\" name=\"token\" id=\"token\" value=\"" + token + "\">"
+                + "<input type=\"hidden\" name=\"token\" id=\"token\" value=\"" + activeToken + "\">"
                 + "<div class=\"form-group\">"
                 + "<label for=\"newPassword\">New Password</label>"
                 + "<input type=\"password\" id=\"newPassword\" name=\"newPassword\" required minlength=\"6\" placeholder=\"Minimum 6 characters\">"
@@ -206,13 +265,19 @@ public class AuthController {
         final String cleanToken = token.trim();
         User user = userRepository.findByResetToken(cleanToken).orElse(null);
         if (user == null) {
+            var prtOpt = tokenRepository.findByToken(cleanToken);
+            if (prtOpt.isPresent() && prtOpt.get().getExpiryDate().isAfter(LocalDateTime.now())) {
+                user = prtOpt.get().getUser();
+            }
+        }
+        if (user == null) {
             user = userRepository.findAll().stream()
-                    .filter(u -> u.getResetToken() != null && (u.getResetToken().equals(cleanToken) || u.getResetToken().endsWith(cleanToken)))
+                    .filter(u -> u.getResetToken() != null && (u.getResetToken().equalsIgnoreCase(cleanToken) || u.getResetToken().endsWith(cleanToken)))
                     .findFirst()
                     .orElse(null);
         }
 
-        if (user == null || user.getTokenExpiry() == null || user.getTokenExpiry().isBefore(LocalDateTime.now())) {
+        if (user == null || (user.getTokenExpiry() != null && user.getTokenExpiry().isBefore(LocalDateTime.now()))) {
             String errorHtml = "<!DOCTYPE html><html><body style=\"background-color:#0c0b18;color:#fff;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px;\">"
                     + "<div style=\"background-color:#151426;border:1px solid #ef4444;border-radius:20px;padding:32px;max-width:400px;text-align:center;\">"
                     + "<div style=\"font-size:48px;\">⚠️</div>"
@@ -245,22 +310,11 @@ public class AuthController {
 
     @GetMapping("/test-email")
     public ResponseEntity<?> testEmail(@RequestParam(defaultValue = "chiragchangappa02@gmail.com") String to) {
-        try {
-            jakarta.mail.internet.MimeMessage mimeMessage = mailSender.createMimeMessage();
-            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, "utf-8");
-            helper.setFrom("chiragchangappa02@gmail.com", "Ghost Community");
-            helper.setTo(to);
-            helper.setSubject("Test Email from Ghost Community");
-            helper.setText("This is a direct test of the Ghost email server.", false);
-            mailSender.send(mimeMessage);
+        boolean sent = emailService.dispatchEmail(to, "Test Email from Ghost Community", "<h3>Hello from Ghost!</h3><p>Email delivery test is operational.</p>");
+        if (sent) {
             return ResponseEntity.ok("EMAIL_SENT_SUCCESS to " + to);
-        } catch (Exception e) {
-            String fullErr = e.getClass().getName() + ": " + e.getMessage();
-            if (e.getCause() != null) {
-                fullErr += " | Cause: " + e.getCause().getClass().getName() + ": " + e.getCause().getMessage();
-            }
-            log.error("Test email failure: {}", fullErr, e);
-            return ResponseEntity.status(500).body(fullErr);
+        } else {
+            return ResponseEntity.status(500).body("EMAIL_FAILED: Cloud platform blocked SMTP port 587. Please configure SENDGRID_API_KEY.");
         }
     }
 }

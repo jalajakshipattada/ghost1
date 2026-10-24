@@ -6,8 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 
 @Slf4j
 @Service
@@ -19,20 +24,17 @@ public class EmailService {
     @Value("${spring.mail.username:chiragchangappa02@gmail.com}")
     private String fromEmail;
 
+    @Value("${sendgrid.api.key:${SENDGRID_API_KEY:}}")
+    private String sendGridApiKey;
+
     /**
      * Send Welcome Greeting Email with full Terms & Conditions upon registration
      */
     public void sendWelcomeRegistrationEmail(String toEmail, String realName) {
         new Thread(() -> {
             try {
-                MimeMessage mimeMessage = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-
-                helper.setFrom(fromEmail, "Ghost Community");
-                helper.setTo(toEmail);
-                helper.setSubject("Welcome to Ghost Community 👻 - Campus Anonymous Network");
-
                 String greetingName = (realName != null && !realName.isBlank()) ? realName : "Student";
+                String subject = "Welcome to Ghost Community 👻 - Campus Anonymous Network";
 
                 String htmlContent = "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0c0b18; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 600px; margin: auto;\">"
                         + "<div style=\"text-align: center; margin-bottom: 24px;\">"
@@ -58,9 +60,7 @@ public class EmailService {
                         + "<p style=\"font-size: 12px; color: #6b7280; text-align: center;\">© 2026 Ghost Community Inc. All rights reserved.</p>"
                         + "</div>";
 
-                helper.setText(htmlContent, true);
-                mailSender.send(mimeMessage);
-                log.info("Welcome & Terms email successfully sent to: {}", toEmail);
+                dispatchEmail(toEmail, subject, htmlContent);
             } catch (Exception e) {
                 log.error("Failed to send welcome email to {}: {}", toEmail, e.getMessage());
             }
@@ -71,20 +71,14 @@ public class EmailService {
      * Send Password Reset Email with reset link & code
      */
     public void sendPasswordResetEmail(String toEmail, String resetCode) {
-        String link = "https://ghost-qmvi.onrender.com/api/auth/reset-password-page?code=" + resetCode;
+        String link = "https://ghost-qmvi.onrender.com/api/auth/reset-password-page?token=" + resetCode + "&code=" + resetCode;
         sendPasswordResetEmail(toEmail, link, resetCode);
     }
 
     public void sendPasswordResetEmail(String toEmail, String resetLink, String resetCode) {
         new Thread(() -> {
             try {
-                MimeMessage mimeMessage = mailSender.createMimeMessage();
-                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
-
-                helper.setFrom(fromEmail, "Ghost Community");
-                helper.setTo(toEmail);
-                helper.setSubject("Reset Your Ghost Password 🔒");
-
+                String subject = "Reset Your Ghost Password 🔒";
                 String htmlContent = "<div style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0c0b18; color: #ffffff; padding: 32px; border-radius: 16px; max-width: 600px; margin: auto;\">"
                         + "<div style=\"text-align: center; margin-bottom: 24px;\">"
                         + "<h1 style=\"color: #a855f7; margin: 0; font-size: 26px;\">Ghost Community</h1>"
@@ -103,12 +97,81 @@ public class EmailService {
                         + "<p style=\"font-size: 12px; color: #6b7280; margin-top: 24px;\">If you did not request a password reset, you can safely ignore this email. Your account remains secure.</p>"
                         + "</div>";
 
-                helper.setText(htmlContent, true);
-                mailSender.send(mimeMessage);
-                log.info("Password reset email successfully sent to: {}", toEmail);
+                dispatchEmail(toEmail, subject, htmlContent);
             } catch (Exception e) {
                 log.error("Failed to send password reset email to {}: {}", toEmail, e.getMessage());
             }
         }).start();
+    }
+
+    /**
+     * Dispatches email via SendGrid HTTPS API (Port 443) if configured,
+     * or falls back to Spring JavaMailSender (Port 587).
+     */
+    public boolean dispatchEmail(String toEmail, String subject, String htmlContent) {
+        // Priority 1: SendGrid HTTPS REST API (Works everywhere, never blocked on Render)
+        if (sendGridApiKey != null && !sendGridApiKey.isBlank() && sendGridApiKey.startsWith("SG.")) {
+            try {
+                boolean sent = sendViaSendGridHttpsApi(toEmail, subject, htmlContent);
+                if (sent) {
+                    log.info("Email successfully sent via SendGrid HTTPS API to {}", toEmail);
+                    return true;
+                }
+            } catch (Exception e) {
+                log.warn("SendGrid HTTPS API failed ({}), falling back to SMTP: {}", e.getMessage(), toEmail);
+            }
+        }
+
+        // Priority 2: JavaMailSender (SMTP)
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+            helper.setFrom(fromEmail, "Ghost Community");
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
+            mailSender.send(mimeMessage);
+            log.info("Email successfully sent via SMTP to: {}", toEmail);
+            return true;
+        } catch (Exception e) {
+            log.error("SMTP sending failed for {}: {}", toEmail, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * SendGrid v3 Mail Send API over standard HTTPS (Port 443)
+     */
+    private boolean sendViaSendGridHttpsApi(String toEmail, String subject, String htmlContent) throws Exception {
+        // Build JSON payload safely
+        String escapedSubject = subject.replace("\"", "\\\"");
+        String escapedHtml = htmlContent.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+
+        String jsonPayload = "{"
+                + "\"personalizations\": [{\"to\": [{\"email\": \"" + toEmail + "\"}]}],"
+                + "\"from\": {\"email\": \"" + fromEmail + "\", \"name\": \"Ghost Community\"},"
+                + "\"subject\": \"" + escapedSubject + "\","
+                + "\"content\": [{\"type\": \"text/html\", \"value\": \"" + escapedHtml + "\"}]"
+                + "}";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.sendgrid.com/v3/mail/send"))
+                .header("Authorization", "Bearer " + sendGridApiKey.trim())
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(15))
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            return true;
+        } else {
+            log.error("SendGrid API returned status {}: {}", response.statusCode(), response.body());
+            return false;
+        }
     }
 }

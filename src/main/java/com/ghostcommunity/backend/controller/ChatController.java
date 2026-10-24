@@ -25,6 +25,7 @@ public class ChatController {
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final MessageRepository messageRepository;
+    private final com.ghostcommunity.backend.repository.CampusStructureRepository campusStructureRepository;
 
     // Mobile app sends message to: /app/chat.section.1
     @MessageMapping("/chat.section.{sectionId}")
@@ -53,6 +54,13 @@ public class ChatController {
         // Award +10 War Points for every chat message!
         author.setWarPoints(author.getWarPoints() + 10);
         userRepository.save(author);
+
+        // Also advance section's campus construction project by +10 points!
+        try {
+            if (author.getPrimarySection() != null) {
+                CampusWarController.advanceSectionCampusConstruction(author.getPrimarySection().getId(), 10, campusStructureRepository);
+            }
+        } catch (Exception ignored) {}
 
         // 2. Build the PUBLIC response (Strips Real Name, sends ONLY Ghost Name + Primary Section)
         ChatResponsePayload response = ChatResponsePayload.builder()
@@ -90,6 +98,13 @@ public class ChatController {
         // Award +10 War Points for every chat message!
         author.setWarPoints(author.getWarPoints() + 10);
         userRepository.save(author);
+
+        // Also advance section's campus construction project by +10 points!
+        try {
+            if (author.getPrimarySection() != null) {
+                CampusWarController.advanceSectionCampusConstruction(author.getPrimarySection().getId(), 10, campusStructureRepository);
+            }
+        } catch (Exception ignored) {}
 
         ChatResponsePayload response = ChatResponsePayload.builder()
                 .messageId(message.getId())

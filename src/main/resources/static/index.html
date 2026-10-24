@@ -121,6 +121,84 @@
       border: 1px solid #38bdf8; background: rgba(56, 189, 248, 0.4);
     }
 
+    /* Multi-Room Selection Modal */
+    .room-selector-modal {
+      position: absolute; top: 50px; left: 14px; right: 14px; bottom: 85px;
+      background: rgba(10, 16, 32, 0.98); backdrop-filter: blur(20px);
+      border: 1px solid #38bdf8; border-radius: 18px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.9);
+      display: none; flex-direction: column; z-index: 65; overflow: hidden;
+    }
+    .room-selector-modal.open { display: flex; }
+    .room-modal-header {
+      padding: 12px 16px; background: #0f172a; border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .room-modal-title { font-size: 14px; font-weight: 800; color: #38bdf8; }
+    .room-modal-close { background: none; border: none; color: #94a3b8; font-size: 18px; cursor: pointer; }
+    
+    .floor-tabs {
+      display: flex; gap: 6px; padding: 10px 14px 6px 14px; background: #0a0f1d;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .floor-tab-btn {
+      flex: 1; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-size: 11px; font-weight: 700;
+      cursor: pointer; text-align: center;
+    }
+    .floor-tab-btn.active {
+      background: linear-gradient(135deg, #0284c7, #38bdf8); color: #fff; border-color: #38bdf8;
+    }
+
+    .rooms-list {
+      flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .room-card-btn {
+      padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between;
+      align-items: center; cursor: pointer; transition: all 0.2s;
+    }
+    .room-card-btn:active { background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; }
+    .room-card-left { display: flex; flex-direction: column; gap: 2px; }
+    .room-card-num { font-size: 13px; font-weight: 800; color: #fff; }
+    .room-card-desc { font-size: 10px; color: #94a3b8; }
+    .room-status-badge {
+      font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 8px;
+    }
+    .room-status-badge.ok { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
+    .room-status-badge.ruin { background: rgba(239, 68, 68, 0.25); color: #ef4444; border: 1px solid #ef4444; }
+
+    /* Tactical Interior Aim HUD Overlay */
+    .tactical-aim-hud {
+      position: absolute; top: 54px; right: 10px; left: 10px;
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(14px);
+      border: 1px solid #38bdf8; border-radius: 14px; padding: 10px 12px;
+      display: none; flex-direction: column; gap: 6px; z-index: 50;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    }
+    .tactical-aim-hud.active { display: flex; }
+    .tactical-top-row { display: flex; justify-content: space-between; align-items: center; }
+    .target-title { font-size: 11px; font-weight: 800; color: #38bdf8; text-transform: uppercase; }
+    .target-name { font-size: 13px; font-weight: 800; color: #fff; }
+    .target-hp { font-size: 11px; font-weight: 700; color: #10b981; }
+    
+    .tactical-actions-row { display: flex; gap: 6px; margin-top: 4px; }
+    .btn-nuke-room {
+      flex: 1; padding: 8px 10px; border-radius: 10px;
+      background: linear-gradient(135deg, #b91c1c, #dc2626);
+      border: none; color: #fff; font-size: 11px; font-weight: 800;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+    }
+    .btn-change-room {
+      padding: 8px 10px; border-radius: 10px; background: #334155;
+      border: none; color: #fff; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .btn-exit-interior {
+      padding: 8px 10px; border-radius: 10px; background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+
     /* Notification Ticker */
     .ticker {
       position: absolute; bottom: 82px; left: 14px; right: 14px;
@@ -168,23 +246,6 @@
       cursor: pointer; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
     }
     .fire-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* Tactical Interior Aim HUD Overlay */
-    .tactical-aim-hud {
-      position: absolute; top: 54px; right: 10px;
-      background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px);
-      border: 1px solid #38bdf8; border-radius: 14px; padding: 8px 12px;
-      display: none; flex-direction: column; gap: 4px; z-index: 50;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-    }
-    .tactical-aim-hud.active { display: flex; }
-    .target-title { font-size: 11px; font-weight: 800; color: #38bdf8; text-transform: uppercase; }
-    .target-name { font-size: 13px; font-weight: 800; color: #fff; }
-    .target-hp { font-size: 11px; font-weight: 700; color: #10b981; }
-    .btn-exit-interior {
-      background: #334155; border: none; border-radius: 8px; color: #fff;
-      padding: 5px 8px; font-size: 10px; font-weight: 700; cursor: pointer; margin-top: 4px;
-    }
 
     /* Building Inspector Bottom Sheet */
     .inspector-sheet {
@@ -251,12 +312,34 @@
       <button class="view-btn" id="btn-restart" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.4);">⏮️ Reset to Stage 1</button>
     </div>
 
-    <!-- Tactical Aim Info Box (When inside a 3D Room) -->
+    <!-- Tactical Aim Info Box (Inside Room) -->
     <div class="tactical-aim-hud interactive" id="tactical-aim-hud">
-      <span class="target-title">🎯 TACTICAL AIM RETICLE</span>
-      <span class="target-name" id="target-prop-name">Professor Podium</span>
-      <span class="target-hp" id="target-prop-hp">Integrity: 100 / 100 HP</span>
-      <button class="btn-exit-interior" id="btn-exit-interior">🌐 Exit to Campus View</button>
+      <div class="tactical-top-row">
+        <div>
+          <div class="target-title" id="tactical-room-title">ROOM 101 • LECTURE HALL</div>
+          <div class="target-name" id="target-prop-name">Professor Podium</div>
+        </div>
+        <div class="target-hp" id="target-prop-hp">Integrity: 80 / 80 HP</div>
+      </div>
+      <div class="tactical-actions-row">
+        <button class="btn-nuke-room" id="btn-nuke-room">💣 DEMOLISH WHOLE ROOM (400p)</button>
+        <button class="btn-change-room" id="btn-change-room">🚪 Switch Room</button>
+        <button class="btn-exit-interior" id="btn-exit-interior">🌐 Campus View</button>
+      </div>
+    </div>
+
+    <!-- Multi-Room Selection Modal -->
+    <div class="room-selector-modal interactive" id="room-selector-modal">
+      <div class="room-modal-header">
+        <span class="room-modal-title" id="room-modal-building-name">Academic Block • Select Room</span>
+        <button class="room-modal-close" id="room-modal-close">✕</button>
+      </div>
+      <div class="floor-tabs" id="floor-tabs">
+        <button class="floor-tab-btn active" data-f="1">Floor 1</button>
+        <button class="floor-tab-btn" data-f="2">Floor 2</button>
+        <button class="floor-tab-btn" data-f="3">Floor 3</button>
+      </div>
+      <div class="rooms-list" id="rooms-list"></div>
     </div>
 
     <!-- Campus Dropdown Selector Modal -->
@@ -267,7 +350,7 @@
 
     <!-- Live Event Ticker -->
     <div class="ticker" id="event-ticker">
-      ✨ Expansive 3D Collegiate Base active. Tap any building -> [Enter 3D Room & Aim] to zoom in and blast interior props!
+      ✨ Expansive 3D Collegiate Base. Tap any building -> [Select Room & Aim] to view rooms or demolish!
     </div>
 
     <!-- Building Inspector Bottom Sheet -->
@@ -370,11 +453,22 @@
         const g = audioCtx.createGain();
         osc.type = 'square';
         osc.frequency.setValueAtTime(140, now);
-        osc.frequency.exponentialRampToValueAtTime(25, now + 0.55);
-        g.gain.setValueAtTime(0.45, now);
-        g.gain.linearRampToValueAtTime(0.01, now + 0.55);
+        osc.frequency.exponentialRampToValueAtTime(25, now + 0.6);
+        g.gain.setValueAtTime(0.5, now);
+        g.gain.linearRampToValueAtTime(0.01, now + 0.6);
         osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.55);
+        osc.start(now); osc.stop(now + 0.6);
+      } else if (type === 'nuke') {
+        // Massive Rumble Explosion for Demolishing Whole Room
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.exponentialRampToValueAtTime(15, now + 1.2);
+        g.gain.setValueAtTime(0.65, now);
+        g.gain.linearRampToValueAtTime(0.01, now + 1.2);
+        osc.connect(g); g.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + 1.2);
       } else if (type === 'repair') {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
@@ -471,7 +565,6 @@
       const c = document.createElement('canvas'); c.width = 1024; c.height = 1024;
       const ctx = c.getContext('2d');
 
-      // Lush collegiate green turf
       ctx.fillStyle = '#183c20'; ctx.fillRect(0, 0, 1024, 1024);
       ctx.fillStyle = '#204d2b';
       for (let i = 0; i < 4000; i++) ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 4, 4);
@@ -487,23 +580,22 @@
       }
       ctx.globalAlpha = 1.0;
 
-      // Concentric rings & boulevards
       ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 3.5;
       ctx.beginPath(); ctx.arc(512, 512, 360, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.arc(512, 512, 220, 0, Math.PI * 2); ctx.stroke();
       ctx.beginPath(); ctx.arc(512, 512, 90, 0, Math.PI * 2); ctx.stroke();
 
-      // Main Entrance Road (South)
+      // Main Entrance Road
       ctx.fillStyle = '#334155'; ctx.fillRect(468, 512, 88, 512);
       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.setLineDash([16, 16]);
       ctx.beginPath(); ctx.moveTo(512, 512); ctx.lineTo(512, 1024); ctx.stroke();
       ctx.setLineDash([]);
 
-      // Circular Garden Pond (Southeast)
+      // Circular Garden Pond
       ctx.fillStyle = '#0284c7'; ctx.beginPath(); ctx.arc(740, 740, 75, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 4; ctx.stroke();
 
-      // Sports Court (Far Southeast)
+      // Sports Court
       const courtX = 730, courtY = 530, courtW = 230, courtH = 150;
       ctx.fillStyle = '#dc2626'; ctx.fillRect(courtX - 10, courtY - 10, courtW + 20, courtH + 20);
       ctx.fillStyle = '#1d4ed8'; ctx.fillRect(courtX, courtY, courtW, courtH);
@@ -512,7 +604,7 @@
       ctx.beginPath(); ctx.moveTo(courtX + courtW / 2, courtY + 10); ctx.lineTo(courtX + courtW / 2, courtY + courtH - 10); ctx.stroke();
       ctx.beginPath(); ctx.arc(courtX + courtW / 2, courtY + courtH / 2, 26, 0, Math.PI * 2); ctx.stroke();
 
-      // Parking Lot (Northwest)
+      // Parking Lot
       const pkX = 110, pkY = 400, pkW = 200, pkH = 140;
       ctx.fillStyle = '#0f172a'; ctx.fillRect(pkX, pkY, pkW, pkH);
       ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
@@ -531,147 +623,183 @@
     const groundsTex = makeGroundsTexture();
 
     // =========================================================================
-    // 3. EXPANDED LANDMARK POSITIONS & TACTICAL INTERIOR DEFINITIONS
+    // 3. MULTI-ROOM EXPANDED BUILDING DIRECTORY & ROOM TEMPLATES
     // =========================================================================
+    function generateBuildingRooms(buildingKey) {
+      if (buildingKey === 'ACADEMIC_BLOCK') {
+        return [
+          {
+            id: 'room_101', floor: 1, num: 'Room 101', name: 'Main Lecture Hall', status: 'INTACT',
+            desc: 'Grand tiered classroom with professor podium, smart screens, and student desks.',
+            props: [
+              { key: 'prof_podium', name: 'Professor Podium', hp: 80, maxHp: 80, x: 0, y: 1.2, z: -6, size: [2.2, 2.4, 1.6], col: 0x78350f },
+              { key: 'smart_board', name: 'Smart Holographic Board', hp: 70, maxHp: 70, x: 0, y: 3.5, z: -9.5, size: [10, 3.5, 0.4], col: 0x0f172a },
+              { key: 'front_desks', name: 'Front Student Desks', hp: 90, maxHp: 90, x: -3.5, y: 0.8, z: -1.5, size: [5, 1.4, 1.8], col: 0x1e293b },
+              { key: 'back_desks', name: 'Rear Student Desks', hp: 90, maxHp: 90, x: 3.5, y: 0.8, z: 3.5, size: [5, 1.4, 1.8], col: 0x1e293b }
+            ]
+          },
+          {
+            id: 'room_102', floor: 1, num: 'Room 102', name: 'AI Coding Workshop', status: 'INTACT',
+            desc: 'High-tech computer lab with developer workstations and server terminals.',
+            props: [
+              { key: 'dev_bench_1', name: 'Dual-Monitor Workstations', hp: 80, maxHp: 80, x: -4, y: 1.0, z: -3, size: [5, 1.6, 2], col: 0x0284c7 },
+              { key: 'dev_bench_2', name: 'Projector Console', hp: 70, maxHp: 70, x: 4, y: 1.2, z: -3, size: [4, 1.8, 2], col: 0x334155 },
+              { key: 'trophy_case', name: 'Section Hackathon Trophy Case', hp: 60, maxHp: 60, x: 0, y: 2.2, z: -8, size: [6, 4, 1.2], col: 0xf59e0b }
+            ]
+          },
+          {
+            id: 'room_201', floor: 2, num: 'Room 201', name: 'Cyber Defense Lab', status: 'INTACT',
+            desc: 'Isolated cyber security room with locked server arrays and network consoles.',
+            props: [
+              { key: 'firewall_server', name: 'Firewall Matrix', hp: 100, maxHp: 100, x: -5, y: 2.5, z: -5, size: [2.5, 5, 4], col: 0x06b6d4 },
+              { key: 'threat_map', name: 'Cyber Threat Screen', hp: 80, maxHp: 80, x: 0, y: 3.2, z: -9, size: [8, 3.2, 0.4], col: 0xef4444 }
+            ]
+          },
+          {
+            id: 'room_301', floor: 3, num: 'Room 301', name: 'VR Simulation Chamber', status: 'INTACT',
+            desc: 'Rooftop sensory simulation pod with holographic projection core.',
+            props: [
+              { key: 'vr_pod', name: 'Combat VR Simulator Pod', hp: 110, maxHp: 110, x: 0, y: 1.8, z: 0, size: [3.5, 3.2, 3.5], col: 0xa855f7, wire: true },
+              { key: 'power_cell', name: 'Auxiliary Power Battery', hp: 80, maxHp: 80, x: 6, y: 2.0, z: -5, size: [2.5, 3.8, 2.5], col: 0x10b981 }
+            ]
+          }
+        ];
+      } else if (buildingKey === 'ADMIN_BLOCK') {
+        return [
+          {
+            id: 'room_101', floor: 1, num: 'Room 101', name: 'Security & Surveillance', status: 'INTACT',
+            desc: 'Main campus security desk and barrier override controls.',
+            props: [
+              { key: 'cctv_bank', name: 'CCTV Monitor Wall', hp: 90, maxHp: 90, x: 0, y: 3.0, z: -8, size: [9, 3.5, 0.5], col: 0x0284c7 },
+              { key: 'guard_desk', name: 'Command Dispatch Desk', hp: 80, maxHp: 80, x: 0, y: 1.0, z: -2, size: [5, 1.4, 2.2], col: 0x334155 }
+            ]
+          },
+          {
+            id: 'room_201', floor: 2, num: 'Room 201', name: 'War Council Chamber', status: 'INTACT',
+            desc: 'Executive meeting hall with chancellor podium and live campus holo-projector.',
+            props: [
+              { key: 'admin_podium', name: 'Chancellor Podium', hp: 80, maxHp: 80, x: 0, y: 1.2, z: -6, size: [2.2, 2.4, 1.6], col: 0x0284c7 },
+              { key: 'admin_table', name: 'Council Obsidian Table', hp: 120, maxHp: 120, x: 0, y: 0.9, z: 0, size: [8, 1.2, 4], col: 0x1e293b },
+              { key: 'admin_holo', name: 'Holo-Map Projector', hp: 70, maxHp: 70, x: 0, y: 2.4, z: 0, size: [2, 2, 2], col: 0x38bdf8, wire: true }
+            ]
+          },
+          {
+            id: 'room_301', floor: 3, num: 'Room 301', name: 'Clock Spire Vault & Armory', status: 'INTACT',
+            desc: 'Top spire room housing the section treasury safe and orbital missile key console.',
+            props: [
+              { key: 'vault_safe', name: 'Section Treasury Safe', hp: 140, maxHp: 140, x: -4, y: 2.2, z: -5, size: [3, 4.2, 3], col: 0xf59e0b },
+              { key: 'strike_console', name: 'Orbital Missile Console', hp: 90, maxHp: 90, x: 4, y: 1.4, z: -5, size: [3, 2.2, 2], col: 0xef4444 }
+            ]
+          }
+        ];
+      } else if (buildingKey === 'LABS') {
+        return [
+          {
+            id: 'room_101', floor: 1, num: 'Room 101', name: 'Supercomputer Server Matrix', status: 'INTACT',
+            desc: 'High-density computational servers and liquid nitrogen cooling pipes.',
+            props: [
+              { key: 'main_servers', name: 'Mainframe Server Rack', hp: 100, maxHp: 100, x: -5, y: 2.8, z: -5, size: [2.5, 5.2, 5], col: 0x0284c7 },
+              { key: 'ai_core', name: 'Central AI Neural Core', hp: 110, maxHp: 110, x: 0, y: 2.2, z: 0, size: [2.5, 3.8, 2.5], col: 0xa855f7, wire: true }
+            ]
+          },
+          {
+            id: 'room_201', floor: 2, num: 'Room 201', name: 'Robotics Workshop', status: 'INTACT',
+            desc: 'Hardware fabrication bench with robotic testing arms and circuit printers.',
+            props: [
+              { key: 'robot_arm', name: 'Robotics Assembly Bench', hp: 80, maxHp: 80, x: 0, y: 1.2, z: -4, size: [6, 1.8, 2.5], col: 0x334155 },
+              { key: 'drone_dock', name: 'Autonomous Drone Bay', hp: 90, maxHp: 90, x: 5, y: 2.0, z: 3, size: [3, 3.5, 3], col: 0x10b981 }
+            ]
+          }
+        ];
+      } else if (buildingKey === 'CAFETERIA') {
+        return [
+          {
+            id: 'room_101', floor: 1, num: 'Room 101', name: 'Campus Food Court & Cafe', status: 'INTACT',
+            desc: 'Student cafeteria dining area with beverage bars and snack machines.',
+            props: [
+              { key: 'cafe_bar', name: 'Espresso & Food Bar', hp: 90, maxHp: 90, x: -5, y: 1.5, z: -5, size: [3, 2.2, 6], col: 0xd97706 },
+              { key: 'dining_booth', name: 'Central Dining Booth', hp: 70, maxHp: 70, x: 3, y: 0.9, z: 0, size: [4, 1.2, 3], col: 0x78350f },
+              { key: 'vending_depot', name: 'Energy Drink Depot', hp: 60, maxHp: 60, x: 6, y: 2.2, z: 4, size: [2, 4, 2], col: 0x0284c7 }
+            ]
+          },
+          {
+            id: 'room_201', floor: 2, num: 'Room 201', name: 'Rogue Arcade & Lounge', status: 'INTACT',
+            desc: 'Recreational student lounge with arcade game cabinets and sofa booths.',
+            props: [
+              { key: 'arcade_cab', name: 'Retro Cyber Arcade Machine', hp: 80, maxHp: 80, x: -4, y: 2.0, z: -4, size: [2, 3.8, 2], col: 0xa855f7 },
+              { key: 'lounge_sofa', name: 'VIP Leather Lounge Sofa', hp: 70, maxHp: 70, x: 3, y: 0.8, z: 0, size: [5, 1.2, 2.5], col: 0xef4444 }
+            ]
+          }
+        ];
+      } else if (buildingKey === 'LIBRARY') {
+        return [
+          {
+            id: 'room_101', floor: 1, num: 'Room 101', name: 'Main Book Archive', status: 'INTACT',
+            desc: 'Multi-aisle digital and physical book stacks with research desks.',
+            props: [
+              { key: 'book_stacks', name: 'Digital Bookshelves', hp: 100, maxHp: 100, x: -6, y: 2.5, z: -4, size: [2, 5, 8], col: 0x0369a1 },
+              { key: 'study_table', name: 'Quiet Study Desks', hp: 80, maxHp: 80, x: 2, y: 0.9, z: 0, size: [6, 1.2, 3], col: 0x475569 }
+            ]
+          }
+        ];
+      }
+      return [];
+    }
+
     const LANDMARKS_DEF = [
       {
-        key: 'ADMIN_BLOCK',
-        name: 'Admin Block',
-        icon: '🏛️',
-        color: 'blue',
-        stage: 3,
-        x: 0, z: -20, badgeY: 34,
-        maxHp: 200,
-        roomName: 'Admin Council Chamber',
-        props: [
-          { key: 'admin_podium', name: 'Chancellor Podium', hp: 80, maxHp: 80, x: 0, y: 1.2, z: -6, size: [2, 2.4, 1.5], col: 0x0284c7 },
-          { key: 'admin_table', name: 'Council Table', hp: 120, maxHp: 120, x: 0, y: 0.9, z: 0, size: [8, 1.2, 4], col: 0x334155 },
-          { key: 'admin_holo', name: 'Holo-Map Projector', hp: 60, maxHp: 60, x: 0, y: 2.2, z: 0, size: [1.8, 1.8, 1.8], col: 0x38bdf8, wire: true }
-        ],
+        key: 'ADMIN_BLOCK', name: 'Admin Block', icon: '🏛️', color: 'blue', stage: 3,
+        x: 0, z: -20, badgeY: 34, maxHp: 200, hasRooms: true,
         desc: 'Centerpiece administrative clock tower building with cyan glass elevator, four clock faces, and pointed spire beacon.'
       },
       {
-        key: 'ACADEMIC_BLOCK',
-        name: 'Academic Block',
-        icon: '🎓',
-        color: 'purple',
-        stage: 4,
-        x: -22, z: -20, badgeY: 18,
-        maxHp: 160,
-        roomName: 'Academic Lecture Hall',
-        props: [
-          { key: 'prof_podium', name: 'Professor Podium', hp: 80, maxHp: 80, x: 0, y: 1.2, z: -6, size: [2.2, 2.4, 1.6], col: 0x78350f },
-          { key: 'smart_board', name: 'Smart Blackboard', hp: 70, maxHp: 70, x: 0, y: 3.5, z: -9.5, size: [10, 3.5, 0.4], col: 0x0f172a },
-          { key: 'student_desks_1', name: 'Front Row Desks', hp: 90, maxHp: 90, x: -3.5, y: 0.8, z: -1.5, size: [5, 1.4, 1.8], col: 0x1e293b },
-          { key: 'student_desks_2', name: 'Back Row Desks', hp: 90, maxHp: 90, x: 3.5, y: 0.8, z: 3.5, size: [5, 1.4, 1.8], col: 0x1e293b }
-        ],
+        key: 'ACADEMIC_BLOCK', name: 'Academic Block', icon: '🎓', color: 'purple', stage: 4,
+        x: -22, z: -20, badgeY: 18, maxHp: 160, hasRooms: true,
         desc: 'Multi-story classroom building with lecture halls, smart classrooms, and faculty suites.'
       },
       {
-        key: 'LIBRARY',
-        name: 'Library',
-        icon: '📖',
-        color: 'blue',
-        stage: 5,
-        x: 22, z: -20, badgeY: 18,
-        maxHp: 150,
-        roomName: 'Central Study Archive',
-        props: [
-          { key: 'lib_shelves', name: 'Digital Bookshelves', hp: 100, maxHp: 100, x: -6, y: 2.5, z: -4, size: [2, 5, 8], col: 0x0369a1 },
-          { key: 'lib_table', name: 'Study Desks', hp: 80, maxHp: 80, x: 2, y: 0.9, z: 0, size: [6, 1.2, 3], col: 0x475569 }
-        ],
+        key: 'LIBRARY', name: 'Library', icon: '📖', color: 'blue', stage: 5,
+        x: 22, z: -20, badgeY: 18, maxHp: 150, hasRooms: true,
         desc: 'Central modern university library with full rooftop solar panels and digital reading halls.'
       },
       {
-        key: 'CAFETERIA',
-        name: 'Cafeteria',
-        icon: '☕',
-        color: 'green',
-        stage: 5,
-        x: 28, z: 2, badgeY: 13,
-        maxHp: 120,
-        roomName: 'Campus Food Court & Cafe',
-        props: [
-          { key: 'cafe_counter', name: 'Espresso & Food Bar', hp: 90, maxHp: 90, x: -5, y: 1.5, z: -5, size: [3, 2.2, 6], col: 0xd97706 },
-          { key: 'cafe_table', name: 'Dining Booth', hp: 70, maxHp: 70, x: 3, y: 0.9, z: 0, size: [4, 1.2, 3], col: 0x78350f },
-          { key: 'cafe_vending', name: 'Energy Drink Depot', hp: 60, maxHp: 60, x: 6, y: 2.2, z: 4, size: [2, 4, 2], col: 0x0284c7 }
-        ],
+        key: 'CAFETERIA', name: 'Cafeteria', icon: '☕', color: 'green', stage: 5,
+        x: 28, z: 2, badgeY: 13, maxHp: 120, hasRooms: true,
         desc: 'Student food court & cafe pavilion with outdoor dining terraces, sun umbrellas, and lawn tables.'
       },
       {
-        key: 'SPORTS_GROUND',
-        name: 'Sports Ground',
-        icon: '🏀',
-        color: 'red',
-        stage: 6,
-        x: 28, z: 20, badgeY: 10,
-        maxHp: 100,
+        key: 'SPORTS_GROUND', name: 'Sports Ground', icon: '🏀', color: 'red', stage: 6,
+        x: 28, z: 20, badgeY: 10, maxHp: 100,
         desc: 'All-weather campus sports complex with red athletic running track, blue basketball court, and floodlights.'
       },
       {
-        key: 'GARDEN',
-        name: 'Garden',
-        icon: '🌲',
-        color: 'green',
-        stage: 2,
-        x: 12, z: 20, badgeY: 10,
-        maxHp: 80,
+        key: 'GARDEN', name: 'Garden', icon: '🌲', color: 'green', stage: 2,
+        x: 12, z: 20, badgeY: 10, maxHp: 80,
         desc: 'Manicured circular botanical garden quad with central reflecting pond, gazebo, and flowerbeds.'
       },
       {
-        key: 'PARKING',
-        name: 'Parking',
-        icon: '🅿️',
-        color: 'blue',
-        stage: 6,
-        x: -28, z: -2, badgeY: 8,
-        maxHp: 100,
+        key: 'PARKING', name: 'Parking', icon: '🅿️', color: 'blue', stage: 6,
+        x: -28, z: -2, badgeY: 8, maxHp: 100,
         desc: 'Dedicated paved campus parking grounds with student and faculty vehicle stalls.'
       },
       {
-        key: 'LABS',
-        name: 'Labs',
-        icon: '🔬',
-        color: 'purple',
-        stage: 4,
-        x: -28, z: 12, badgeY: 16,
-        maxHp: 140,
-        roomName: 'AI & Cyber Robotics Lab',
-        props: [
-          { key: 'lab_server', name: 'Supercomputer Server Rack', hp: 90, maxHp: 90, x: -6, y: 2.8, z: -5, size: [2.5, 5.2, 5], col: 0x0284c7 },
-          { key: 'lab_core', name: 'Central AI Core', hp: 110, maxHp: 110, x: 0, y: 2.2, z: 0, size: [2.2, 3.5, 2.2], col: 0xa855f7, wire: true },
-          { key: 'lab_bench', name: 'Robotics Workstation', hp: 70, maxHp: 70, x: 5, y: 1.2, z: 2, size: [5, 1.8, 2.5], col: 0x334155 }
-        ],
+        key: 'LABS', name: 'Labs', icon: '🔬', color: 'purple', stage: 4,
+        x: -28, z: 12, badgeY: 16, maxHp: 140, hasRooms: true,
         desc: 'Advanced computer science, robotics, and cyber laboratories with rooftop cooling units.'
       },
       {
-        key: 'HOSTEL',
-        name: 'Hostel',
-        icon: '🛏️',
-        color: 'blue',
-        stage: 6,
-        x: -18, z: 24, badgeY: 14,
-        maxHp: 130,
+        key: 'HOSTEL', name: 'Hostel', icon: '🛏️', color: 'blue', stage: 6,
+        x: -18, z: 24, badgeY: 14, maxHp: 130,
         desc: 'Multi-tier student residential dormitory halls with living quarters and recreation rooms.'
       },
       {
-        key: 'MAIN_GATE',
-        name: 'Main Gate',
-        icon: '🏛️',
-        color: 'blue',
-        stage: 1,
-        x: 0, z: 34, badgeY: 9,
-        maxHp: 120,
+        key: 'MAIN_GATE', name: 'Main Gate', icon: '🏛️', color: 'blue', stage: 1,
+        x: 0, z: 34, badgeY: 9, maxHp: 120,
         desc: 'Collegiate grand security entrance gate with guardhouses, boom barriers, and illuminated stone road.'
       },
       {
-        key: 'CENTRAL_FOUNTAIN',
-        name: 'You are here',
-        icon: '📍',
-        color: 'blue',
-        stage: 2,
-        x: -5, z: 4, badgeY: 9,
-        maxHp: 80,
+        key: 'CENTRAL_FOUNTAIN', name: 'You are here', icon: '📍', color: 'blue', stage: 2,
+        x: -5, z: 4, badgeY: 9, maxHp: 80,
         desc: 'Central quad plaza with illuminated blue holographic water fountain and radiating pedestrian boulevards.'
       }
     ];
@@ -696,9 +824,8 @@
           } else if (s.id === 'CSE-2') {
             if (d.key === 'ADMIN_BLOCK') { status = 'DAMAGED'; hp = Math.floor(d.maxHp * 0.45); }
           }
-          // Clone props
-          const props = d.props ? d.props.map(p => ({ ...p, status: 'INTACT', mesh: null, fireMesh: null })) : [];
-          return { ...d, status, hp, props, mesh: null, badgeEl: null };
+          const rooms = d.hasRooms ? generateBuildingRooms(d.key) : [];
+          return { ...d, status, hp, rooms, mesh: null, badgeEl: null };
         }),
         group: null,
         shieldMesh: null
@@ -707,6 +834,7 @@
 
     let currentCampusId = 'CSE-1';
     let selectedLandmark = null;
+    let selectedRoom = null;
     let selectedProp = null;
     let isInteriorView = false;
     let currentInteriorBuilding = null;
@@ -746,7 +874,6 @@
     controls.maxDistance = 180;
     controls.target.set(0, 4, 2);
 
-    // Deep Space Starfield
     const starGeo = new THREE.BufferGeometry();
     const starPos = [];
     for (let i = 0; i < 2400; i++) {
@@ -755,7 +882,6 @@
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
     scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x93c5fd, size: 1.3, transparent: true, opacity: 0.85 })));
 
-    // Volumetric Cinematic Lighting
     scene.add(new THREE.AmbientLight(0x272e48, 1.5));
     const sunLight = new THREE.DirectionalLight(0xfff5e6, 2.0);
     sunLight.position.set(50, 90, 40);
@@ -782,7 +908,6 @@
       const root = new THREE.Group();
       cData.group = root;
 
-      // 1. EXPANDED CIRCULAR CAMPUS ISLAND GROUND (Radius 46)
       const islandGeo = new THREE.CylinderGeometry(46, 28, 14, 36);
       const islandMat = new THREE.MeshStandardMaterial({ color: 0x161a24, roughness: 0.85 });
       const islandBase = new THREE.Mesh(islandGeo, islandMat);
@@ -796,7 +921,6 @@
       topMesh.receiveShadow = true;
       root.add(topMesh);
 
-      // Glowing Cyan Perimeter Ring
       const ringGeo = new THREE.TorusGeometry(46, 0.45, 8, 64);
       const ringMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.8 });
       const ring = new THREE.Mesh(ringGeo, ringMat);
@@ -804,7 +928,6 @@
       ring.position.y = 1.2;
       root.add(ring);
 
-      // 8 Perimeter Neon Pylons
       for (let i = 0; i < 8; i++) {
         const ang = (i * Math.PI) / 4;
         const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 10, 8), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 }));
@@ -816,7 +939,6 @@
         root.add(lightTip);
       }
 
-      // 2. DETAILED 3D BUILDINGS
       cData.landmarks.forEach(lm => {
         if (lm.status === 'LOCKED') return;
 
@@ -845,10 +967,8 @@
         }
       });
 
-      // Trees throughout campus quad
       createTreesAroundCampus(root);
 
-      // Forcefield Shield Dome (Stage 7)
       if (cData.currentStage >= 7) {
         const shield = new THREE.Mesh(
           new THREE.SphereGeometry(50, 36, 18, 0, Math.PI * 2, 0, Math.PI / 2),
@@ -1209,57 +1329,112 @@
     }
 
     // =========================================================================
-    // 8. TACTICAL 3D ROOM INTERIOR & BLASTABLE PROPS ENGINE
+    // 8. MULTI-ROOM PICKER MODAL
     // =========================================================================
-    function enter3DRoomInterior(lm) {
+    function openRoomPicker(lm) {
+      playSound('click');
+      currentInteriorBuilding = lm;
+      document.getElementById('room-modal-building-name').innerText = `${lm.icon} ${lm.name} • Select Room`;
+      document.getElementById('room-selector-modal').classList.add('open');
+      document.getElementById('inspector-sheet').classList.remove('open');
+      renderFloorRooms(1);
+    }
+
+    document.getElementById('room-modal-close').onclick = () => {
+      playSound('click');
+      document.getElementById('room-selector-modal').classList.remove('open');
+    };
+
+    document.querySelectorAll('.floor-tab-btn').forEach(tab => {
+      tab.onclick = () => {
+        playSound('click');
+        document.querySelectorAll('.floor-tab-btn').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderFloorRooms(parseInt(tab.dataset.f));
+      };
+    });
+
+    function renderFloorRooms(floorNum) {
+      const slot = document.getElementById('rooms-list');
+      slot.innerHTML = '';
+      if (!currentInteriorBuilding || !currentInteriorBuilding.rooms) return;
+
+      const floorRooms = currentInteriorBuilding.rooms.filter(r => r.floor === floorNum);
+      if (floorRooms.length === 0) {
+        slot.innerHTML = `<div style="text-align: center; color: #64748b; font-size: 12px; margin-top: 20px;">No additional rooms constructed on Floor ${floorNum} yet. Send messages to expand!</div>`;
+        return;
+      }
+
+      floorRooms.forEach(room => {
+        const btn = document.createElement('div');
+        btn.className = 'room-card-btn';
+        const isDemolished = room.status === 'DEMOLISHED';
+        btn.innerHTML = `
+          <div class="room-card-left">
+            <span class="room-card-num">${room.num}: ${room.name}</span>
+            <span class="room-card-desc">${room.desc}</span>
+          </div>
+          <span class="room-status-badge ${isDemolished ? 'ruin' : 'ok'}">${isDemolished ? '💥 RUINED' : '✨ OPERATIONAL'}</span>
+        `;
+        btn.onclick = () => {
+          document.getElementById('room-selector-modal').classList.remove('open');
+          enter3DRoomInterior(currentInteriorBuilding, room);
+        };
+        slot.appendChild(btn);
+      });
+    }
+
+    // =========================================================================
+    // 9. TACTICAL 3D ROOM INTERIOR & PROPS ENGINE
+    // =========================================================================
+    function enter3DRoomInterior(lm, room) {
       playSound('click');
       isInteriorView = true;
       currentInteriorBuilding = lm;
+      selectedRoom = room || lm.rooms[0];
       interiorClickables.length = 0;
 
-      // Hide campus group
       const cData = campuses[currentCampusId];
       if (cData.group) scene.remove(cData.group);
 
       if (interiorRoomGroup) scene.remove(interiorRoomGroup);
       interiorRoomGroup = new THREE.Group();
 
-      // 1. Physical 3D Room Box (Floor, Back Wall, Side Walls)
+      const isRoomDemolished = selectedRoom.status === 'DEMOLISHED';
+
+      // 1. Physical 3D Room Box
       const roomW = 24, roomH = 12, roomD = 24;
-      // Floor
-      const floor = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.8, roomD), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.3 }));
+      const floorMat = new THREE.MeshStandardMaterial({ color: isRoomDemolished ? 0x18181b : 0x1e293b, roughness: isRoomDemolished ? 0.9 : 0.3 });
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.8, roomD), floorMat);
       floor.position.y = -0.4;
       interiorRoomGroup.add(floor);
 
-      // Back Wall
-      const backWall = new THREE.Mesh(new THREE.BoxGeometry(roomW, roomH, 0.8), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 }));
+      const wallMat = new THREE.MeshStandardMaterial({ color: isRoomDemolished ? 0x09090b : 0x0f172a, roughness: 0.6 });
+      const backWall = new THREE.Mesh(new THREE.BoxGeometry(roomW, roomH, 0.8), wallMat);
       backWall.position.set(0, roomH / 2, -roomD / 2);
       interiorRoomGroup.add(backWall);
 
-      // Left Wall
-      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, roomH, roomD), new THREE.MeshStandardMaterial({ color: 0x111c2e }));
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, roomH, roomD), wallMat);
       leftWall.position.set(-roomW / 2, roomH / 2, 0);
       interiorRoomGroup.add(leftWall);
 
-      // Right Wall with Glass Window overlooking Campus
-      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, roomH, roomD), new THREE.MeshStandardMaterial({ color: 0x0284c7, transparent: true, opacity: 0.25 }));
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, roomH, roomD), new THREE.MeshStandardMaterial({ color: 0x0284c7, transparent: true, opacity: isRoomDemolished ? 0.05 : 0.25 }));
       rightWall.position.set(roomW / 2, roomH / 2, 0);
       interiorRoomGroup.add(rightWall);
 
-      // Ceiling Fluorescent Light Strip
-      const lightStrip = new THREE.Mesh(new THREE.BoxGeometry(16, 0.3, 2), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      // Fluorescent Ceiling Light Strip
+      const lightStrip = new THREE.Mesh(new THREE.BoxGeometry(16, 0.3, 2), new THREE.MeshBasicMaterial({ color: isRoomDemolished ? 0xef4444 : 0xffffff }));
       lightStrip.position.set(0, roomH - 0.2, 0);
       interiorRoomGroup.add(lightStrip);
 
-      // Room Point Light
-      const roomLight = new THREE.PointLight(0xfff5e6, 2.2, 40);
+      const roomLight = new THREE.PointLight(isRoomDemolished ? 0xef4444 : 0xfff5e6, isRoomDemolished ? 1.4 : 2.2, 40);
       roomLight.position.set(0, 9, 0);
       interiorRoomGroup.add(roomLight);
 
-      // 2. Physical 3D Targetable & Blastable Props
-      lm.props.forEach(p => {
+      // 2. Physical 3D Targetable Props
+      selectedRoom.props.forEach(p => {
         const pGroup = new THREE.Group();
-        const isDestroyed = p.status === 'DESTROYED';
+        const isDestroyed = p.status === 'DESTROYED' || isRoomDemolished;
 
         const pMat = new THREE.MeshStandardMaterial({
           color: isDestroyed ? 0x1c1917 : p.col,
@@ -1275,7 +1450,6 @@
         pMesh.userData = { isRoomProp: true, propData: p };
         interiorClickables.push(pMesh);
 
-        // Active Fire & Smoke particles if destroyed
         if (isDestroyed) {
           createBurningFire(pGroup, p.x, p.y + p.size[1] / 2, p.z);
         }
@@ -1285,22 +1459,24 @@
 
       scene.add(interiorRoomGroup);
 
-      // Smooth camera transition into the room
       new TWEEN.Tween(camera.position).to({ x: 0, y: 11, z: 20 }, 900).easing(TWEEN.Easing.Cubic.Out).start();
       new TWEEN.Tween(controls.target).to({ x: 0, y: 3, z: 0 }, 900).start();
 
-      // Show Tactical Aim Box
       document.getElementById('tactical-aim-hud').classList.add('active');
+      document.getElementById('tactical-room-title').innerText = `${selectedRoom.num} • ${selectedRoom.name}`;
       document.getElementById('inspector-sheet').classList.remove('open');
       document.getElementById('fire-btn-label').innerText = 'BLAST PROP';
       document.getElementById('btn-fire').disabled = false;
 
-      // Select first prop by default
-      if (lm.props.length > 0) {
-        selectInteriorProp(lm.props[0]);
+      if (selectedRoom.props.length > 0) {
+        selectInteriorProp(selectedRoom.props[0]);
       }
 
-      ticker(`🔍 Inside ${lm.roomName || lm.name}. Click on any object (Podium, Desk, Server) and tap [BLAST PROP]!`);
+      if (isRoomDemolished) {
+        ticker(`⚠️ ${selectedRoom.name} is DEMOLISHED and on fire! Repair the room or switch rooms.`);
+      } else {
+        ticker(`🔍 Inside ${selectedRoom.num} (${selectedRoom.name}). Aim at props or tap [DEMOLISH WHOLE ROOM]!`);
+      }
     }
 
     function selectInteriorProp(prop) {
@@ -1308,13 +1484,14 @@
       document.getElementById('target-prop-name').innerText = prop.name;
       document.getElementById('target-prop-hp').innerText = `Integrity: ${prop.hp} / ${prop.maxHp} HP (${prop.status})`;
       document.getElementById('target-prop-hp').style.color = prop.status === 'INTACT' ? '#10b981' : '#ef4444';
-      ticker(`🎯 Aiming at ${prop.name} (${prop.hp}/${prop.maxHp} HP). Tap [BLAST PROP] to destroy it!`);
+      ticker(`🎯 Aiming at ${prop.name} (${prop.hp}/${prop.maxHp} HP). Tap [BLAST PROP] or [DEMOLISH WHOLE ROOM]!`);
     }
 
     function exitRoomInterior() {
       playSound('click');
       isInteriorView = false;
       selectedProp = null;
+      selectedRoom = null;
       currentInteriorBuilding = null;
 
       if (interiorRoomGroup) scene.remove(interiorRoomGroup);
@@ -1331,6 +1508,7 @@
     }
 
     document.getElementById('btn-exit-interior').onclick = exitRoomInterior;
+    document.getElementById('btn-change-room').onclick = () => openRoomPicker(currentInteriorBuilding);
 
     function createBurningFire(parent, x, y, z) {
       for (let i = 0; i < 4; i++) {
@@ -1344,7 +1522,65 @@
     }
 
     // =========================================================================
-    // 9. RAYCASTING & CLICK SELECTION
+    // 10. WHOLE ROOM DEMOLITION (HIGH-POINTS NUKE)
+    // =========================================================================
+    document.getElementById('btn-nuke-room').onclick = () => {
+      if (userPoints < 400) {
+        alert(`Need 400 PTS to demolish the entire room at once! Chat to earn points.`);
+        return;
+      }
+      userPoints -= 400;
+      updateHUD();
+      nukeEntireRoom();
+    };
+
+    function nukeEntireRoom() {
+      if (!selectedRoom) return;
+      playSound('nuke');
+
+      // Violent Screen Shake
+      const origCamY = camera.position.y;
+      new TWEEN.Tween(camera.position)
+        .to({ y: origCamY + 2.5 }, 50)
+        .yoyo(true).repeat(8)
+        .onComplete(() => { camera.position.y = origCamY; })
+        .start();
+
+      // Massive Multi-Explosion Burst
+      for (let i = 0; i < 6; i++) {
+        setTimeout(() => {
+          playSound('explosion');
+          const fxPos = new THREE.Vector3(
+            (Math.random() - 0.5) * 16,
+            1 + Math.random() * 4,
+            (Math.random() - 0.5) * 16
+          );
+          const flash = new THREE.Mesh(
+            new THREE.SphereGeometry(4.5, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 1 })
+          );
+          flash.position.copy(fxPos);
+          scene.add(flash);
+          new TWEEN.Tween(flash.scale).to({ x: 3.5, y: 3.5, z: 3.5 }, 250).start();
+          new TWEEN.Tween(flash.material).to({ opacity: 0 }, 250).onComplete(() => scene.remove(flash)).start();
+        }, i * 120);
+      }
+
+      setTimeout(() => {
+        // Demolish all props and room status
+        selectedRoom.status = 'DEMOLISHED';
+        selectedRoom.props.forEach(p => {
+          p.status = 'DESTROYED';
+          p.hp = 0;
+        });
+
+        ticker(`💥 CATASTROPHIC DEMOLITION! ${selectedRoom.num} (${selectedRoom.name}) completely demolished!`);
+        enter3DRoomInterior(currentInteriorBuilding, selectedRoom);
+      }, 750);
+    }
+
+    // =========================================================================
+    // 11. RAYCASTING & PROP SELECTION
     // =========================================================================
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -1357,7 +1593,6 @@
       raycaster.setFromCamera(mouse, camera);
 
       if (isInteriorView) {
-        // Raycast interior blastable props
         const hits = raycaster.intersectObjects(interiorClickables, true);
         if (hits.length > 0) {
           let cur = hits[0].object;
@@ -1368,7 +1603,6 @@
           }
         }
       } else {
-        // Raycast full campus buildings
         const hits = raycaster.intersectObjects(clickables, true);
         if (hits.length > 0) {
           let cur = hits[0].object;
@@ -1398,12 +1632,12 @@
       const slot = document.getElementById('insp-action-slot');
       slot.innerHTML = '';
 
-      // TACTICAL 3D ROOM INTERIOR BUTTON
-      if (lm.props && lm.props.length > 0) {
+      // MULTI-ROOM EXPLORATION BUTTON
+      if (lm.hasRooms && lm.rooms.length > 0) {
         const tacBtn = document.createElement('button');
         tacBtn.className = 'tactical-btn';
-        tacBtn.innerText = '🔍 Enter 3D Room & Aim';
-        tacBtn.onclick = () => enter3DRoomInterior(lm);
+        tacBtn.innerText = `🔍 Select Room (${lm.rooms.length} Rooms)`;
+        tacBtn.onclick = () => openRoomPicker(lm);
         slot.appendChild(tacBtn);
       }
 
@@ -1434,7 +1668,7 @@
     };
 
     // =========================================================================
-    // 10. WEAPON STRIKE & BLASTING PROPS
+    // 12. WEAPON STRIKE & BLASTING PROPS
     // =========================================================================
     document.querySelectorAll('.weapon-chip').forEach(chip => {
       chip.onclick = () => {
@@ -1464,12 +1698,10 @@
       }
     };
 
-    // Blast the targeted interior prop with explosive shockwave
     function blastInteriorPropTarget() {
       if (!selectedProp) return;
       playSound('laser');
 
-      // Spawn laser bolt into the prop
       const laser = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 6), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
       laser.position.set(camera.position.x * 0.6, camera.position.y * 0.6, camera.position.z * 0.6);
       scene.add(laser);
@@ -1488,7 +1720,6 @@
           scene.remove(laser);
           playSound('explosion');
 
-          // 3D Explosion Flash inside room
           const flash = new THREE.Mesh(
             new THREE.SphereGeometry(3.2, 16, 16),
             new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 1 })
@@ -1498,11 +1729,9 @@
           new TWEEN.Tween(flash.scale).to({ x: 3, y: 3, z: 3 }, 200).start();
           new TWEEN.Tween(flash.material).to({ opacity: 0 }, 200).onComplete(() => scene.remove(flash)).start();
 
-          // Camera screen shake
           const origY = camera.position.y;
           new TWEEN.Tween(camera.position).to({ y: origY + 0.8 }, 50).yoyo(true).repeat(3).start();
 
-          // Damage Prop
           selectedProp.hp = Math.max(0, selectedProp.hp - selectedWeapon.dmg);
           if (selectedProp.hp === 0) {
             selectedProp.status = 'DESTROYED';
@@ -1511,8 +1740,7 @@
             ticker(`⚡ Direct Hit! Dealt ${selectedWeapon.dmg} damage to ${selectedProp.name}.`);
           }
 
-          // Re-render interior room
-          enter3DRoomInterior(currentInteriorBuilding);
+          enter3DRoomInterior(currentInteriorBuilding, selectedRoom);
           selectInteriorProp(selectedProp);
         })
         .start();
@@ -1580,7 +1808,7 @@
     }
 
     // =========================================================================
-    // 11. PROGRESSIVE 5-MESSAGE CONSTRUCTION
+    // 13. PROGRESSIVE 5-MESSAGE CONSTRUCTION
     // =========================================================================
     document.getElementById('btn-msg').onclick = () => {
       playSound('build');
@@ -1624,8 +1852,11 @@
         } else {
           lm.status = 'LOCKED'; lm.hp = 0;
         }
-        if (lm.props) {
-          lm.props.forEach(p => { p.status = 'INTACT'; p.hp = p.maxHp; });
+        if (lm.rooms) {
+          lm.rooms.forEach(r => {
+            r.status = 'INTACT';
+            r.props.forEach(p => { p.status = 'INTACT'; p.hp = p.maxHp; });
+          });
         }
       });
       if (isInteriorView) exitRoomInterior();
@@ -1635,7 +1866,7 @@
     };
 
     // =========================================================================
-    // 12. CAMPUS SWITCHER & HUD
+    // 14. CAMPUS SWITCHER & HUD
     // =========================================================================
     const campusBadgeBtn = document.getElementById('campus-badge-btn');
     const campusModal = document.getElementById('campus-modal');
@@ -1709,7 +1940,7 @@
     }
 
     // =========================================================================
-    // 13. ANIMATION LOOP & STARTUP
+    // 15. ANIMATION LOOP & STARTUP
     // =========================================================================
     initUI();
     switchCampus('CSE-1');

@@ -46,7 +46,19 @@ public class Fortress {
 
     @Column(nullable = false)
     @Builder.Default
-    private int bricks = 150;
+    private int bricks = 300;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int energy = 100;
+
+    @Column(name = "max_energy", nullable = false)
+    @Builder.Default
+    private int maxEnergy = 100;
+
+    @Column(name = "auto_turrets_active", nullable = false)
+    @Builder.Default
+    private boolean autoTurretsActive = true;
 
     @Column(nullable = false)
     @Builder.Default

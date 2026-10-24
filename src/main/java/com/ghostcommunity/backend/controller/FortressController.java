@@ -32,7 +32,10 @@ public class FortressController {
                             .maxHp(1000)
                             .shields(2)
                             .maxShields(3)
-                            .bricks(150)
+                            .bricks(300)
+                            .energy(100)
+                            .maxEnergy(100)
+                            .autoTurretsActive(true)
                             .points(500)
                             .build();
                     return fortressRepository.save(newFort);
@@ -81,6 +84,9 @@ public class FortressController {
         fortMap.put("shields", myFort.getShields());
         fortMap.put("maxShields", myFort.getMaxShields());
         fortMap.put("bricks", myFort.getBricks());
+        fortMap.put("energy", myFort.getEnergy());
+        fortMap.put("maxEnergy", myFort.getMaxEnergy());
+        fortMap.put("autoTurretsActive", myFort.isAutoTurretsActive());
         fortMap.put("points", myFort.getPoints());
         fortMap.put("lastAttackedAt", myFort.getLastAttackedAt() != null ? myFort.getLastAttackedAt().toString() : "");
 
@@ -123,6 +129,37 @@ public class FortressController {
         return ResponseEntity.ok(targets);
     }
 
+    @GetMapping("/leaderboard")
+    public ResponseEntity<?> getLeaderboard(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Section> allSections = (user.getCollege() != null)
+                ? sectionRepository.findByCollegeId(user.getCollege().getId())
+                : sectionRepository.findAll();
+
+        List<Map<String, Object>> rankList = new ArrayList<>();
+        for (Section sec : allSections) {
+            Fortress f = getOrCreateFortress(sec);
+            Map<String, Object> item = new HashMap<>();
+            item.put("sectionId", sec.getId());
+            item.put("sectionName", sec.getName());
+            item.put("level", f.getLevel());
+            item.put("points", f.getPoints());
+            item.put("hp", f.getHp());
+            item.put("maxHp", f.getMaxHp());
+            rankList.add(item);
+        }
+
+        rankList.sort((a, b) -> Integer.compare((int) b.get("points"), (int) a.get("points")));
+
+        for (int i = 0; i < rankList.size(); i++) {
+            rankList.get(i).put("rank", i + 1);
+        }
+
+        return ResponseEntity.ok(rankList);
+    }
+
     @PostMapping("/attack/{targetSectionId}")
     public ResponseEntity<?> attackFortress(
             @PathVariable Long targetSectionId,
@@ -147,6 +184,27 @@ public class FortressController {
         Fortress myFort = getOrCreateFortress(mySection);
         Fortress targetFort = getOrCreateFortress(targetSection);
 
+        // Energy requirement
+        int energyCost = 50;
+        int baseDamage = 160;
+        int baseSteal = 150;
+
+        if ("TROJAN_EMP".equalsIgnoreCase(weapon) || "EMP_SURGE".equalsIgnoreCase(weapon)) {
+            energyCost = 80;
+            baseDamage = 220;
+            baseSteal = 200;
+        } else if ("AIR_STRIKE".equalsIgnoreCase(weapon) || "CYBER_ORBITAL".equalsIgnoreCase(weapon)) {
+            energyCost = 100;
+            baseDamage = 280;
+            baseSteal = 250;
+        }
+
+        if (myFort.getEnergy() >= energyCost) {
+            myFort.setEnergy(myFort.getEnergy() - energyCost);
+        } else {
+            myFort.setEnergy(Math.max(0, myFort.getEnergy() - 20));
+        }
+
         boolean shieldAbsorbed = false;
         int damageDealt = 0;
         int pointsStolen = 0;
@@ -155,16 +213,6 @@ public class FortressController {
             targetFort.setShields(targetFort.getShields() - 1);
             shieldAbsorbed = true;
         } else {
-            // Weapon power
-            int baseDamage = 160;
-            int baseSteal = 40;
-            if ("EMP_SURGE".equalsIgnoreCase(weapon)) {
-                baseDamage = 220;
-                baseSteal = 65;
-            } else if ("CYBER_ORBITAL".equalsIgnoreCase(weapon)) {
-                baseDamage = 280;
-                baseSteal = 90;
-            }
             int variance = new Random().nextInt(40);
             damageDealt = baseDamage + variance;
             pointsStolen = Math.min(targetFort.getPoints(), baseSteal + (variance / 2));
@@ -196,14 +244,37 @@ public class FortressController {
         result.put("damageDealt", damageDealt);
         result.put("pointsStolen", pointsStolen);
         result.put("targetSectionName", targetSection.getName());
+        result.put("targetOldHp", targetFort.getHp() + damageDealt);
         result.put("targetRemainingHp", targetFort.getHp());
         result.put("targetRemainingShields", targetFort.getShields());
         result.put("myVaultPoints", myFort.getPoints());
+        result.put("myRemainingEnergy", myFort.getEnergy());
         result.put("message", shieldAbsorbed
                 ? "Enemy Cyber Shield absorbed your strike! (Shield -1)"
-                : "DIRECT HIT! Dealt " + damageDealt + " damage & stole " + pointsStolen + " points for " + mySection.getName() + "!");
+                : "Hacker Missile hit! Dealt " + damageDealt + " damage & stole " + pointsStolen + " points for " + mySection.getName() + "!");
 
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/donate")
+    public ResponseEntity<?> donateBricksAndEnergy(
+            @RequestParam(defaultValue = "50") int bricks,
+            @RequestParam(defaultValue = "20") int energy,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Section mySection = user.getPrimarySection();
+        Fortress myFort = getOrCreateFortress(mySection);
+
+        myFort.setBricks(myFort.getBricks() + bricks);
+        myFort.setEnergy(Math.min(myFort.getMaxEnergy(), myFort.getEnergy() + energy));
+        fortressRepository.save(myFort);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Donated " + bricks + " Bricks & " + energy + " Energy to " + mySection.getName() + "!",
+                "bricks", myFort.getBricks(),
+                "energy", myFort.getEnergy()
+        ));
     }
 
     @PostMapping("/repair")
@@ -213,19 +284,16 @@ public class FortressController {
         Section mySection = user.getPrimarySection();
         Fortress myFort = getOrCreateFortress(mySection);
 
-        if (myFort.getBricks() < 30) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Not enough bricks! Need 30 bricks to repair."));
-        }
         if (myFort.getHp() >= myFort.getMaxHp()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Fortress is already at maximum health (1000 HP)!"));
         }
 
-        myFort.setBricks(myFort.getBricks() - 30);
-        myFort.setHp(Math.min(myFort.getMaxHp(), myFort.getHp() + 250));
+        myFort.setHp(myFort.getMaxHp());
+        myFort.setBricks(Math.max(0, myFort.getBricks() - 40));
         fortressRepository.save(myFort);
 
         return ResponseEntity.ok(Map.of(
-                "message", "Fortress repaired! +250 HP restored.",
+                "message", "Emergency Repair complete! Health restored to 100% (1,000 HP) 🔧",
                 "hp", myFort.getHp(),
                 "bricks", myFort.getBricks()
         ));
@@ -241,12 +309,9 @@ public class FortressController {
         if (myFort.getShields() >= myFort.getMaxShields()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Shield capacity already full (3/3)!"));
         }
-        if (myFort.getBricks() < 50) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Need 50 bricks to deploy a new Cyber Shield."));
-        }
 
-        myFort.setBricks(myFort.getBricks() - 50);
         myFort.setShields(myFort.getShields() + 1);
+        myFort.setBricks(Math.max(0, myFort.getBricks() - 50));
         fortressRepository.save(myFort);
 
         return ResponseEntity.ok(Map.of(
@@ -263,12 +328,14 @@ public class FortressController {
         Section mySection = user.getPrimarySection();
         Fortress myFort = getOrCreateFortress(mySection);
 
-        myFort.setBricks(myFort.getBricks() + 50);
+        myFort.setBricks(myFort.getBricks() + 60);
+        myFort.setEnergy(Math.min(myFort.getMaxEnergy(), myFort.getEnergy() + 25));
         fortressRepository.save(myFort);
 
         return ResponseEntity.ok(Map.of(
-                "message", "Mined 50 Cyber Bricks for your Section!",
-                "bricks", myFort.getBricks()
+                "message", "Mined 60 Cyber Bricks & recharged +25 Energy!",
+                "bricks", myFort.getBricks(),
+                "energy", myFort.getEnergy()
         ));
     }
 
@@ -279,20 +346,14 @@ public class FortressController {
         Section mySection = user.getPrimarySection();
         Fortress myFort = getOrCreateFortress(mySection);
 
-        int cost = 120 * myFort.getLevel();
-        if (myFort.getBricks() < cost) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Need " + cost + " bricks to upgrade to Level " + (myFort.getLevel() + 1) + "."));
-        }
-
-        myFort.setBricks(myFort.getBricks() - cost);
         myFort.setLevel(myFort.getLevel() + 1);
         myFort.setMaxHp(myFort.getMaxHp() + 250);
         myFort.setHp(myFort.getMaxHp());
-        myFort.setPoints(myFort.getPoints() + 200);
+        myFort.setPoints(myFort.getPoints() + 500);
         fortressRepository.save(myFort);
 
         return ResponseEntity.ok(Map.of(
-                "message", "FORTRESS UPGRADED to Level " + myFort.getLevel() + "! Max HP increased to " + myFort.getMaxHp() + "!",
+                "message", "FORTRESS UPGRADED to Level " + myFort.getLevel() + "! Sky Citadel Unlocked! ⚡",
                 "level", myFort.getLevel(),
                 "maxHp", myFort.getMaxHp(),
                 "hp", myFort.getHp(),

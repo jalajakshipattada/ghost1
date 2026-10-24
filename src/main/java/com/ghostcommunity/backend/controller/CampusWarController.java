@@ -355,6 +355,79 @@ public class CampusWarController {
     }
 
     /**
+     * POST /api/campus/start-fresh
+     * Resets current section's campus to Stage 1 sequential building mode
+     * so students can build their campus piece-by-piece from blueprints!
+     */
+    @PostMapping("/start-fresh")
+    public ResponseEntity<?> startFreshConstruction() {
+        try {
+            User user = getCurrentUser();
+            Section mySection = user.getPrimarySection();
+            if (mySection == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "No primary section assigned"));
+            }
+
+            List<CampusStructure> structs = ensureSectionStructures(mySection);
+            for (CampusStructure s : structs) {
+                switch (s.getStructureKey()) {
+                    case "MAIN_HALL":
+                        s.setStatus("INTACT");
+                        s.setHp(s.getMaxHp());
+                        s.setRebuildPointsContributed(0);
+                        break;
+                    case "LIGHT_POLE_1":
+                        s.setStatus("BUILDING");
+                        s.setHp(0);
+                        s.setRebuildPointsRequired(30);
+                        s.setRebuildPointsContributed(0);
+                        break;
+                    case "LIGHT_POLE_2":
+                        s.setStatus("LOCKED");
+                        s.setHp(0);
+                        s.setRebuildPointsRequired(30);
+                        s.setRebuildPointsContributed(0);
+                        break;
+                    case "CANTEEN":
+                        s.setStatus("LOCKED");
+                        s.setHp(0);
+                        s.setRebuildPointsRequired(80);
+                        s.setRebuildPointsContributed(0);
+                        break;
+                    case "GARDEN":
+                        s.setStatus("LOCKED");
+                        s.setHp(0);
+                        s.setRebuildPointsRequired(60);
+                        s.setRebuildPointsContributed(0);
+                        break;
+                    case "LIBRARY":
+                        s.setStatus("LOCKED");
+                        s.setHp(0);
+                        s.setRebuildPointsRequired(100);
+                        s.setRebuildPointsContributed(0);
+                        break;
+                    case "LASER_TURRET":
+                        s.setStatus("LOCKED");
+                        s.setHp(0);
+                        s.setRebuildPointsRequired(100);
+                        s.setRebuildPointsContributed(0);
+                        break;
+                }
+            }
+            campusStructureRepository.saveAll(structs);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Campus reset to Stage 1! Chat in your group or contribute points to build each structure piece-by-piece!",
+                    "structures", structs
+            ));
+        } catch (Exception e) {
+            log.error("startFresh error: ", e);
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * Automatic progression: advance section's active campus construction project by +10 points on each message.
      */
     public static CampusStructure advanceSectionCampusConstruction(Long sectionId, int points, CampusStructureRepository repo) {

@@ -35,6 +35,7 @@ public class AuthController {
     private final JwtUtils jwtUtils;
     private final EmailService emailService;
     private final com.ghostcommunity.backend.repository.PasswordResetTokenRepository tokenRepository;
+    private final org.springframework.mail.javamail.JavaMailSender mailSender;
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -240,5 +241,26 @@ public class AuthController {
                 + "</div></body></html>";
 
         return ResponseEntity.ok(successHtml);
+    }
+
+    @GetMapping("/test-email")
+    public ResponseEntity<?> testEmail(@RequestParam(defaultValue = "chiragchangappa02@gmail.com") String to) {
+        try {
+            jakarta.mail.internet.MimeMessage mimeMessage = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, "utf-8");
+            helper.setFrom("chiragchangappa02@gmail.com", "Ghost Community");
+            helper.setTo(to);
+            helper.setSubject("Test Email from Ghost Community");
+            helper.setText("This is a direct test of the Ghost email server.", false);
+            mailSender.send(mimeMessage);
+            return ResponseEntity.ok("EMAIL_SENT_SUCCESS to " + to);
+        } catch (Exception e) {
+            String fullErr = e.getClass().getName() + ": " + e.getMessage();
+            if (e.getCause() != null) {
+                fullErr += " | Cause: " + e.getCause().getClass().getName() + ": " + e.getCause().getMessage();
+            }
+            log.error("Test email failure: {}", fullErr, e);
+            return ResponseEntity.status(500).body(fullErr);
+        }
     }
 }

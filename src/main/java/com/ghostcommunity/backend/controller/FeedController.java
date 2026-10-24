@@ -29,7 +29,9 @@ public class FeedController {
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
-    private final MessageRepository messageRepository;    @GetMapping
+    private final MessageRepository messageRepository;
+
+    @GetMapping
     public ResponseEntity<?> getFeed(@RequestParam(defaultValue = "0") int page,
                                      @RequestParam(defaultValue = "20") int size,
                                      @RequestParam(required = false) String query) {
@@ -52,9 +54,16 @@ public class FeedController {
             map.put("content", post.getContent());
             map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");
             map.put("createdAt", post.getCreatedAt());
-            map.put("likesCount", postLikeRepository.countByPostId(post.getId()));
+
+            int score = postLikeRepository.getScoreByPostId(post.getId());
+            var myLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), user.getId());
+            int myVote = myLikeOpt.map(l -> l.getVoteValue() != null ? l.getVoteValue() : 1).orElse(0);
+
+            map.put("score", score);
+            map.put("myVote", myVote);
+            map.put("likesCount", score);
             map.put("commentsCount", commentRepository.countByPostId(post.getId()));
-            map.put("isLikedByMe", postLikeRepository.existsByPostIdAndUserId(post.getId(), user.getId()));
+            map.put("isLikedByMe", myVote == 1);
             return map;
         }).collect(Collectors.toList());
 
@@ -83,17 +92,44 @@ public class FeedController {
         return ResponseEntity.ok("Post created successfully");
     }
 
-    @PostMapping("/{postId}/like")
-    public ResponseEntity<?> togglePostLike(@PathVariable Long postId) {
+    @PostMapping("/{postId}/vote")
+    public ResponseEntity<?> votePost(@PathVariable Long postId, @RequestParam int value) {
         User user = getCurrentUser();
         Post post = postRepository.findById(postId).orElseThrow();
 
-        postLikeRepository.findByPostIdAndUserId(postId, user.getId()).ifPresentOrElse(
-                postLikeRepository::delete,
-                () -> postLikeRepository.save(PostLike.builder().post(post).user(user).build())
-        );
+        var existingOpt = postLikeRepository.findByPostIdAndUserId(postId, user.getId());
+        if (existingOpt.isPresent()) {
+            PostLike existing = existingOpt.get();
+            int currentVal = existing.getVoteValue() != null ? existing.getVoteValue() : 1;
+            if (currentVal == value || value == 0) {
+                postLikeRepository.delete(existing);
+            } else {
+                existing.setVoteValue(value);
+                postLikeRepository.save(existing);
+            }
+        } else {
+            if (value != 0) {
+                postLikeRepository.save(PostLike.builder()
+                        .post(post)
+                        .user(user)
+                        .voteValue(value)
+                        .build());
+            }
+        }
 
-        return ResponseEntity.ok("Like toggled");
+        int newScore = postLikeRepository.getScoreByPostId(postId);
+        var updatedOpt = postLikeRepository.findByPostIdAndUserId(postId, user.getId());
+        int updatedVote = updatedOpt.map(l -> l.getVoteValue() != null ? l.getVoteValue() : 1).orElse(0);
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("score", newScore);
+        res.put("myVote", updatedVote);
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/{postId}/like")
+    public ResponseEntity<?> togglePostLike(@PathVariable Long postId) {
+        return votePost(postId, 1);
     }
 
     @GetMapping("/{postId}/comments")
@@ -198,7 +234,3 @@ public class FeedController {
         return userRepository.findByIdWithSectionAndCollege(userDetails.getId()).orElseThrow();
     }
 }
-
-
-
-

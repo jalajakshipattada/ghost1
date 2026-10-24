@@ -20,6 +20,10 @@ public class PostLike {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "vote_value")
+    @Builder.Default
+    private Integer voteValue = 1;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

@@ -39,44 +39,60 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail().trim(), loginRequest.getPassword()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getEmail().trim(), loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = jwtUtils.generateJwtToken(authentication);
 
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User user = userRepository.findById(userDetails.getId()).orElseThrow();
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            User user = userRepository.findById(userDetails.getId()).orElseThrow();
 
-        return ResponseEntity.ok(new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getUsername(),
-                userDetails.getStatus(),
-                user.getGhostName()));
+            return ResponseEntity.ok(new JwtResponse(jwt,
+                    userDetails.getId(),
+                    userDetails.getUsername(),
+                    userDetails.getStatus(),
+                    user.getGhostName()));
+        } catch (Exception e) {
+            log.error("Login failure: ", e);
+            String msg = e.getMessage() != null ? e.getMessage() : "Invalid credentials";
+            return ResponseEntity.status(401).body(Map.of("error", msg));
+        }
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new MessageResponse("Error: Email is already in use!"));
+        try {
+            if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+                return ResponseEntity
+                        .badRequest()
+                        .body(new MessageResponse("Error: Email is already in use!"));
+            }
+
+            // Create new user's account
+            User user = new User();
+            user.setEmail(signUpRequest.getEmail().trim().toLowerCase());
+            user.setPasswordHash(encoder.encode(signUpRequest.getPassword()));
+            user.setRealName(signUpRequest.getRealName());
+            user.setTermsAccepted(true);
+            user.setStatus(UserStatus.ONBOARDING_INCOMPLETE);
+
+            user = userRepository.save(user);
+
+            // Send Welcome Greeting & Terms Email!
+            try {
+                emailService.sendWelcomeRegistrationEmail(user.getEmail(), user.getRealName());
+            } catch (Exception mailEx) {
+                log.warn("Welcome email dispatch skipped: {}", mailEx.getMessage());
+            }
+
+            return ResponseEntity.ok(new MessageResponse("User registered successfully! Proceed to college selection."));
+        } catch (Exception e) {
+            log.error("Registration failure: ", e);
+            String rootCause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            return ResponseEntity.status(500).body(Map.of("error", "Registration error: " + rootCause));
         }
-
-        // Create new user's account
-        User user = new User();
-        user.setEmail(signUpRequest.getEmail().trim().toLowerCase());
-        user.setPasswordHash(encoder.encode(signUpRequest.getPassword()));
-        user.setRealName(signUpRequest.getRealName());
-        user.setTermsAccepted(true);
-        user.setStatus(UserStatus.ONBOARDING_INCOMPLETE);
-
-        userRepository.save(user);
-
-        // Send Welcome Greeting & Terms Email!
-        emailService.sendWelcomeRegistrationEmail(user.getEmail(), user.getRealName());
-
-        return ResponseEntity.ok(new MessageResponse("User registered successfully! Proceed to college selection."));
     }
 
     // POST /api/auth/forgot-password

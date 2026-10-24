@@ -14,7 +14,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #040408; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #030408; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
     #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; outline: none; }
     
     .hud-layer { position: absolute; z-index: 10; pointer-events: none; width: 100%; height: 100%; }
@@ -26,17 +26,17 @@
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
     .campus-badge-btn {
-      background: rgba(13, 17, 30, 0.92); backdrop-filter: blur(12px);
-      border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 20px;
+      background: rgba(10, 15, 28, 0.94); backdrop-filter: blur(14px);
+      border: 1px solid rgba(56, 189, 248, 0.65); border-radius: 20px;
       padding: 6px 14px; display: flex; align-items: center; gap: 8px;
-      cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+      cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.8);
     }
     .campus-badge-name { font-size: 13px; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
     .campus-badge-tag { font-size: 9px; padding: 2px 6px; border-radius: 6px; font-weight: 700; background: rgba(16, 185, 129, 0.25); color: #10b981; border: 1px solid #10b981; }
     
     .stats-pill-group { display: flex; gap: 6px; align-items: center; }
     .stat-chip {
-      background: rgba(13, 17, 30, 0.92); backdrop-filter: blur(12px);
+      background: rgba(10, 15, 28, 0.94); backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px;
       padding: 6px 10px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
     }
@@ -44,7 +44,7 @@
     .stat-chip.bld { color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); }
 
     .sound-toggle-btn {
-      background: rgba(13, 17, 30, 0.92); border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(10, 15, 28, 0.94); border: 1px solid rgba(255,255,255,0.15);
       border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
       cursor: pointer; font-size: 14px;
     }
@@ -71,8 +71,8 @@
       position: absolute; top: 54px; left: 10px; display: flex; gap: 6px;
     }
     .view-btn {
-      background: rgba(13, 17, 30, 0.9); border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px; padding: 5px 9px; font-size: 10px; font-weight: 700; color: #94a3b8;
+      background: rgba(10, 15, 28, 0.92); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px; padding: 5px 9px; font-size: 10px; font-weight: 700; color: #cbd5e1;
       cursor: pointer; display: flex; align-items: center; gap: 4px;
     }
     .view-btn:active { background: rgba(56, 189, 248, 0.3); color: #fff; }
@@ -87,14 +87,14 @@
       background: linear-gradient(135deg, #059669, #10b981);
       border: none; color: #fff; font-size: 13px; font-weight: 800;
       display: flex; align-items: center; justify-content: center; gap: 8px;
-      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4); cursor: pointer;
+      box-shadow: 0 4px 18px rgba(16, 185, 129, 0.45); cursor: pointer;
       letter-spacing: 0.3px;
     }
     .msg-btn:active { transform: scale(0.98); }
 
     .weapon-dock-row {
       display: flex; gap: 6px; align-items: center; justify-content: space-between;
-      background: rgba(13, 17, 30, 0.95); backdrop-filter: blur(14px);
+      background: rgba(10, 15, 28, 0.96); backdrop-filter: blur(14px);
       padding: 8px 10px; border-radius: 16px; border: 1px solid rgba(56, 189, 248, 0.4);
     }
     .weapon-chip {
@@ -102,7 +102,7 @@
       padding: 6px 4px; border-radius: 10px; background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08); cursor: pointer; gap: 2px;
     }
-    .weapon-chip.active { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; }
+    .weapon-chip.active { background: rgba(239, 68, 68, 0.22); border-color: #ef4444; }
     .w-icon { font-size: 14px; }
     .w-name { font-size: 10px; font-weight: 700; color: #e2e8f0; }
     .w-cost { font-size: 9px; color: #f59e0b; font-weight: 700; }
@@ -121,7 +121,7 @@
       position: absolute; bottom: 120px; left: 14px; right: 14px;
       background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px);
       border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 16px;
-      padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+      padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.85);
       display: none; flex-direction: column; gap: 6px; z-index: 15;
     }
     .inspector-sheet.open { display: flex; }
@@ -164,9 +164,9 @@
     .ticker {
       position: absolute; bottom: 82px; left: 14px; right: 14px;
       text-align: center; font-size: 11px; color: #94a3b8; pointer-events: none;
-      background: rgba(0,0,0,0.65); padding: 5px 10px; border-radius: 8px;
+      background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 8px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
     }
   </style>
 </head>
@@ -210,7 +210,7 @@
 
     <!-- Live Event Ticker -->
     <div class="ticker" id="event-ticker">
-      ✨ Stage 1: Floating Bedrock Asteroid Base ready. Click [SEND 5 MESSAGES] to build building by building!
+      ✨ Stage 1: Massive Bedrock Island ready. Tap [SEND 5 MESSAGES] to construct buildings one by one!
     </div>
 
     <!-- Building Inspector Bottom Sheet -->
@@ -278,7 +278,7 @@
 
   <script>
     // =========================================================================
-    // 1. SOUND FX (PROCEDURAL WEB AUDIO API)
+    // 1. PROCEDURAL SOUND FX (WEB AUDIO API)
     // =========================================================================
     let audioCtx = null;
     let soundEnabled = true;
@@ -307,11 +307,11 @@
         const g = audioCtx.createGain();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(320, now);
-        osc.frequency.linearRampToValueAtTime(680, now + 0.16);
-        g.gain.setValueAtTime(0.2, now);
-        g.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+        osc.frequency.linearRampToValueAtTime(720, now + 0.2);
+        g.gain.setValueAtTime(0.25, now);
+        g.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
         osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.22);
+        osc.start(now); osc.stop(now + 0.25);
       } else if (type === 'launch') {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
@@ -350,24 +350,200 @@
     };
 
     // =========================================================================
-    // 2. PROCEDURAL TEXTURES (ROCK FOUNDATION, NEON SIGNAGE, STONE PLAZA)
+    // 2. ULTRA-DETAILED PROCEDURAL CANVAS TEXTURES
     // =========================================================================
-    function makeRockTexture() {
-      const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+
+    // Realistic Multi-Floor Building Facade with lit windows, spandrels, and glowing signs
+    function createBuildingFacadeTexture(primaryColor, windowTheme, signText) {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#1c1b26'; ctx.fillRect(0, 0, 256, 256);
-      ctx.fillStyle = '#2d2b3d';
-      for (let i = 0; i < 400; i++) {
-        const x = Math.random() * 256, y = Math.random() * 256, s = Math.random() * 12 + 4;
+
+      // Concrete / dark metallic slate paneling background
+      ctx.fillStyle = primaryColor || '#1e293b';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Vertical architectural structural columns
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+      for (let x = 0; x < 512; x += 64) {
+        ctx.fillRect(x, 0, 10, 512);
+      }
+
+      // Horizontal concrete floor spandrels & 6 floors of windows
+      const floors = 6;
+      const floorH = 512 / floors;
+
+      for (let f = 0; f < floors; f++) {
+        const yTop = f * floorH;
+
+        // Concrete floor slab divider
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.fillRect(0, yTop, 512, 8);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.fillRect(0, yTop + 8, 512, 2);
+
+        // Windows for this floor (7 windows per floor)
+        const winW = 42;
+        const winH = floorH - 22;
+        for (let w = 0; w < 7; w++) {
+          const winX = 20 + w * 68;
+          const winY = yTop + 14;
+
+          // Window Frame
+          ctx.fillStyle = '#0a0f1d';
+          ctx.fillRect(winX - 2, winY - 2, winW + 4, winH + 4);
+
+          // Glass Window Glow
+          const isLit = (f + w) % 5 !== 0;
+          if (isLit) {
+            const grad = ctx.createLinearGradient(winX, winY, winX, winY + winH);
+            if (windowTheme === 'cyan') {
+              grad.addColorStop(0, '#67e8f9');
+              grad.addColorStop(1, '#0284c7');
+            } else if (windowTheme === 'amber') {
+              grad.addColorStop(0, '#fde68a');
+              grad.addColorStop(1, '#d97706');
+            } else {
+              grad.addColorStop(0, '#93c5fd');
+              grad.addColorStop(1, '#2563eb');
+            }
+            ctx.fillStyle = grad;
+          } else {
+            ctx.fillStyle = '#111827';
+          }
+          ctx.fillRect(winX, winY, winW, winH);
+
+          // Window mullion / pane dividers
+          ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(winX + winW / 2, winY); ctx.lineTo(winX + winW / 2, winY + winH);
+          ctx.moveTo(winX, winY + winH * 0.45); ctx.lineTo(winX + winW, winY + winH * 0.45);
+          ctx.stroke();
+
+          // Subtle blind reflection
+          if (isLit && (w % 2 === 0)) {
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            ctx.fillRect(winX + 2, winY + 2, winW - 4, 6);
+          }
+        }
+      }
+
+      // Ground Floor Grand Entrance Lobby
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(0, 512 - floorH, 512, floorH);
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
+      ctx.fillRect(160, 512 - floorH + 12, 192, floorH - 12);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(250, 512 - floorH + 12, 12, floorH - 12); // Door center bar
+
+      // Illuminated Top Signboard
+      if (signText) {
+        ctx.fillStyle = '#020617';
+        ctx.fillRect(40, 20, 432, 42);
+        ctx.strokeStyle = windowTheme === 'amber' ? '#f59e0b' : '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(40, 20, 432, 42);
+
+        ctx.fillStyle = windowTheme === 'amber' ? '#fde68a' : '#7dd3fc';
+        ctx.font = 'bold 20px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(signText, 256, 41);
+      }
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    // High-Detail Campus Grounds (Stone Plaza, Pedestrian Cobblestone, Lawns & Mini Sports Court)
+    function createGroundsTexture() {
+      const c = document.createElement('canvas');
+      c.width = 1024; c.height = 1024;
+      const ctx = c.getContext('2d');
+
+      // Base: Lush manicured collegiate green turf
+      ctx.fillStyle = '#1b3b24';
+      ctx.fillRect(0, 0, 1024, 1024);
+
+      // Noise on grass
+      ctx.fillStyle = '#234a2e';
+      for (let i = 0; i < 2000; i++) {
+        const gx = Math.random() * 1024, gy = Math.random() * 1024;
+        ctx.fillRect(gx, gy, 6, 6);
+      }
+
+      // Central Paver Quad / Plaza (Hexagonal/Octagonal Stone Arena)
+      ctx.fillStyle = '#22283a';
+      ctx.beginPath();
+      ctx.arc(512, 512, 380, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Stone tile grid lines
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.2;
+      ctx.globalAlpha = 0.55;
+      for (let x = 140; x <= 880; x += 36) {
+        ctx.beginPath(); ctx.moveTo(x, 140); ctx.lineTo(x, 880); ctx.stroke();
+      }
+      for (let y = 140; y <= 880; y += 36) {
+        ctx.beginPath(); ctx.moveTo(140, y); ctx.lineTo(880, y); ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+
+      // Concentric plaza accent rings
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.arc(512, 512, 360, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(512, 512, 220, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(512, 512, 90, 0, Math.PI * 2); ctx.stroke();
+
+      // Radiating Promenade Pathways
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(482, 0, 60, 1024); // North-South boulevard
+      ctx.fillRect(0, 482, 1024, 60); // East-West boulevard
+
+      // Mini Sports Court (Southeast lawn)
+      const courtX = 720, courtY = 720, courtW = 220, courtH = 140;
+      ctx.fillStyle = '#1e40af'; // Blue sports turf
+      ctx.fillRect(courtX, courtY, courtW, courtH);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(courtX + 10, courtY + 10, courtW - 20, courtH - 20);
+      ctx.beginPath();
+      ctx.moveTo(courtX + courtW / 2, courtY + 10);
+      ctx.lineTo(courtX + courtW / 2, courtY + courtH - 10);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(courtX + courtW / 2, courtY + courtH / 2, 26, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
+    }
+
+    // Craggy Asteroid Rock Texture with glowing amber geothermal conduits
+    function createAsteroidRockTexture() {
+      const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#161922'; ctx.fillRect(0, 0, 512, 512);
+
+      // Craggy stone noise
+      ctx.fillStyle = '#262a38';
+      for (let i = 0; i < 800; i++) {
+        const x = Math.random() * 512, y = Math.random() * 512, s = Math.random() * 18 + 6;
         ctx.fillRect(x, y, s, s);
       }
-      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5;
-      for (let i = 0; i < 8; i++) {
+      // Glowing Geothermal Energy Veins
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.5;
+      for (let i = 0; i < 12; i++) {
         ctx.beginPath();
-        let px = Math.random() * 256, py = Math.random() * 256;
+        let px = Math.random() * 512, py = Math.random() * 512;
         ctx.moveTo(px, py);
-        for (let j = 0; j < 4; j++) {
-          px += (Math.random() - 0.5) * 60; py += (Math.random() - 0.5) * 60;
+        for (let j = 0; j < 5; j++) {
+          px += (Math.random() - 0.5) * 90; py += (Math.random() - 0.5) * 90;
           ctx.lineTo(px, py);
         }
         ctx.stroke();
@@ -375,23 +551,58 @@
       return new THREE.CanvasTexture(c);
     }
 
-    function makePlazaTexture() {
+    // Clock Tower Face Texture
+    function createClockFaceTexture() {
+      const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 128, 128);
+      ctx.fillStyle = '#0284c7'; ctx.beginPath(); ctx.arc(64, 64, 56, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(64, 64, 52, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+      // Hour marks
+      for (let i = 0; i < 12; i++) {
+        const a = (i * Math.PI) / 6;
+        ctx.beginPath();
+        ctx.moveTo(64 + Math.cos(a) * 40, 64 + Math.sin(a) * 40);
+        ctx.lineTo(64 + Math.cos(a) * 48, 64 + Math.sin(a) * 48);
+        ctx.stroke();
+      }
+      // Hands (10:10)
+      ctx.beginPath(); ctx.moveTo(64, 64); ctx.lineTo(64 + Math.cos(-Math.PI / 3) * 30, 64 + Math.sin(-Math.PI / 3) * 30); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(64, 64); ctx.lineTo(64 + Math.cos(Math.PI / 6) * 38, 64 + Math.sin(Math.PI / 6) * 38); ctx.stroke();
+      return new THREE.CanvasTexture(c);
+    }
+
+    // Industrial Roof Texture (gravel, vents, solar panels)
+    function createRoofTexture() {
       const c = document.createElement('canvas'); c.width = 256; c.height = 256;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#1e1e2d'; ctx.fillRect(0, 0, 256, 256);
-      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.5;
-      for (let i = 0; i < 256; i += 32) {
-        ctx.strokeRect(i, 0, 32, 256);
-        ctx.strokeRect(0, i, 256, 32);
+      ctx.fillStyle = '#334155'; ctx.fillRect(0, 0, 256, 256);
+      ctx.fillStyle = '#1e293b';
+      // Solar panel grid
+      for (let x = 16; x < 240; x += 32) {
+        for (let y = 16; y < 240; y += 32) {
+          ctx.fillStyle = '#0284c7';
+          ctx.fillRect(x, y, 26, 26);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x, y, 26, 26);
+        }
       }
       return new THREE.CanvasTexture(c);
     }
 
-    const rockTex = makeRockTexture();
-    const plazaTex = makePlazaTexture();
+    const groundsTex = createGroundsTexture();
+    const rockTex = createAsteroidRockTexture();
+    const clockTex = createClockFaceTexture();
+    const roofTex = createRoofTexture();
+
+    const citadelFacadeTex = createBuildingFacadeTexture('#0f172a', 'cyan', 'ACADEMIC CITADEL');
+    const labsFacadeTex = createBuildingFacadeTexture('#111c2e', 'blue', 'CYBER & AI LABS');
+    const rogueFacadeTex = createBuildingFacadeTexture('#261e16', 'amber', 'ROGUE CANTEEN');
 
     // =========================================================================
-    // 3. SECTIONS & EXPANSIVE CAMPUS LAYOUT CONFIGURATION
+    // 3. SECTIONS & CAMPUS PROGRESSION TEMPLATES
     // =========================================================================
     let userPoints = 100;
     const mySectionId = "CSE-1";
@@ -406,46 +617,46 @@
       {
         key: "FOUNDATION_BEDROCK",
         name: "Floating Bedrock Island & Hydraulic Struts",
-        desc: "Massive craggy asteroid foundation with glowing amber energy conduits and hydraulic stabilizer pylons.",
+        desc: "Massive rocky asteroid foundation with glowing amber energy conduits, hydraulic stabilizer pylons, and Main Security Gate.",
         stage: 1, req: 1, maxHp: 150, type: 'foundation'
       },
       {
         key: "CENTRAL_PLAZA",
-        name: "Nexus Courtyard & Holographic Fountain",
-        desc: "Multi-level paved student plaza, illuminated blue holographic water fountain, and neon trees.",
-        stage: 2, req: 1, maxHp: 80, x: 0, z: 8, size: [16, 2, 16], type: 'fountain'
+        name: "Nexus Quad, Holo-Fountain & Sports Court",
+        desc: "Lush collegiate campus lawns, illuminated holographic water fountain, sports arena, and bioluminescent cherry trees.",
+        stage: 2, req: 1, maxHp: 90, x: 0, z: 8, type: 'fountain'
       },
       {
         key: "NEXUS_CITADEL",
-        name: "Nexus Institute Academic Citadel",
-        desc: "Soaring centerpiece tower with glowing neon signs, glass elevator shafts, and grand tiered entrance stairs.",
-        stage: 3, req: 1, maxHp: 180, x: 0, z: -10, size: [22, 28, 16], type: 'citadel',
+        name: "Nexus Academic Citadel & Clock Tower",
+        desc: "Soaring collegiate centerpiece tower with multi-tier glass facade, clock spire, classical pillars, and grand entrance stairs.",
+        stage: 3, req: 1, maxHp: 200, x: 0, z: -10, type: 'citadel',
         hasInterior: true, interiorTitle: "Nexus 3D Lecture Hall Interior", interiorImg: "images/interior_classroom.jpg"
       },
       {
         key: "CYBER_LABS",
         name: "Cyber Labs & Future Tech Wing",
-        desc: "Multi-tier tech laboratory building with rooftop cooling pipes, antenna arrays, and cyan signage.",
-        stage: 4, req: 1, maxHp: 120, x: -18, z: -4, size: [14, 18, 14], type: 'cyber_labs'
+        desc: "Multi-tier tech laboratory building with rooftop cooling fans, elevated skybridge, and high-tech research pavilion.",
+        stage: 4, req: 1, maxHp: 130, x: -18, z: -4, type: 'cyber_labs'
       },
       {
         key: "ROGUE_BAR",
-        name: "Rogue Bar Canteen & Hatry Archive",
-        desc: "Student food center and digital library archive with solar panels, neon signs, and cafe decks.",
-        stage: 5, req: 1, maxHp: 110, x: 18, z: -4, size: [14, 16, 14], type: 'rogue_bar',
+        name: "Rogue Bar Canteen & Central Library",
+        desc: "Student food center and digital library archive with solar panels, neon signs, and outdoor dining terrace.",
+        stage: 5, req: 1, maxHp: 120, x: 18, z: -4, type: 'rogue_bar',
         hasInterior: true, interiorTitle: "Rogue Bar Cafeteria Interior", interiorImg: "images/interior_canteen.jpg"
       },
       {
         key: "MONORAIL_CIRCUIT",
-        name: "Elevated Monorail Circuit & Moving Trains",
-        desc: "High-speed perimeter transit ring with illuminated monorail train cars circling the campus.",
+        name: "Elevated Monorail Circuit & Moving Train",
+        desc: "High-speed perimeter transit ring with multi-car illuminated bullet train cars circling the campus base.",
         stage: 6, req: 1, maxHp: 100, type: 'monorail'
       },
       {
         key: "SHIELD_DOME",
         name: "Hexagonal Forcefield Shield Defense",
-        desc: "Energy dome enveloping the complete campus territory to protect buildings from rival strikes.",
-        stage: 7, req: 1, maxHp: 140, type: 'shield'
+        desc: "Planetary defense energy dome with corner emitter towers enveloping the entire university base.",
+        stage: 7, req: 1, maxHp: 150, type: 'shield'
       }
     ];
 
@@ -461,14 +672,13 @@
           let hp = t.maxHp;
 
           if (s.isMySection) {
-            // Start from Stage 1 (Raw bedrock only) so the user can click through all stages!
+            // Stage 1 initial state (Foundation only)
             if (idx === 0) {
               status = 'INTACT'; placed = 1; hp = t.maxHp;
             } else {
               status = 'LOCKED'; placed = 0; hp = 0;
             }
           } else if (s.id === 'CSE-2') {
-            // Rival section starts fully built with one damaged building
             if (idx === 2) { status = 'DAMAGED'; hp = 90; }
           }
           return { ...t, status, hp, placed, mesh: null };
@@ -495,47 +705,47 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060710);
-    scene.fog = new THREE.FogExp2(0x060710, 0.005);
+    scene.background = new THREE.Color(0x05070e);
+    scene.fog = new THREE.FogExp2(0x05070e, 0.0045);
 
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.set(0, 36, 68);
+    camera.position.set(0, 42, 75);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.maxPolarAngle = Math.PI / 2.05;
     controls.minDistance = 20;
-    controls.maxDistance = 150;
-    controls.target.set(0, 4, 0);
+    controls.maxDistance = 160;
+    controls.target.set(0, 5, 0);
 
-    // Deep Space Starfield & Cosmic Dust
+    // Deep Space Cosmic Starfield
     const starGeo = new THREE.BufferGeometry();
     const starPos = [];
-    for (let i = 0; i < 1800; i++) {
+    for (let i = 0; i < 2200; i++) {
       starPos.push(
-        (Math.random() - 0.5) * 600,
-        Math.random() * 300 - 50,
-        (Math.random() - 0.5) * 600
+        (Math.random() - 0.5) * 700,
+        Math.random() * 350 - 50,
+        (Math.random() - 0.5) * 700
       );
     }
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0x93c5fd, size: 1.2, transparent: true, opacity: 0.8 });
+    const starMat = new THREE.PointsMaterial({ color: 0xa5b4fc, size: 1.3, transparent: true, opacity: 0.85 });
     scene.add(new THREE.Points(starGeo, starMat));
 
-    // Dramatic Lighting (Ambient, Directional, and Neon Rim)
-    const ambientLight = new THREE.AmbientLight(0x272e48, 1.4);
+    // Volumetric Cinematic Lighting
+    const ambientLight = new THREE.AmbientLight(0x272e48, 1.5);
     scene.add(ambientLight);
 
-    const sunLight = new THREE.DirectionalLight(0xfff7ed, 1.8);
-    sunLight.position.set(40, 70, 30);
+    const sunLight = new THREE.DirectionalLight(0xfff7ed, 1.9);
+    sunLight.position.set(45, 80, 35);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 2048;
     sunLight.shadow.mapSize.height = 2048;
     scene.add(sunLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
-    rimLight.position.set(-40, 20, -40);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.3);
+    rimLight.position.set(-45, 25, -45);
     scene.add(rimLight);
 
     const activeParticles = [];
@@ -543,7 +753,7 @@
     let trainAngle = 0;
 
     // =========================================================================
-    // 5. ISOLATED CAMPUS BUILDER ENGINE
+    // 5. RICH ARCHITECTURAL CAMPUS BUILDER
     // =========================================================================
     function buildCampusScene(campusId) {
       SECTIONS.forEach(s => {
@@ -558,284 +768,460 @@
       cData.group = root;
 
       // -------------------------------------------------------------
-      // 1. MASSIVE FLOATING BEDROCK ASTEROID FOUNDATION (Matching image)
+      // STAGE 1: MASSIVE CRAGGY ASTEROID FOUNDATION & HYDRAULIC STRUTS
       // -------------------------------------------------------------
-      const bedrockGeo = new THREE.CylinderGeometry(34, 14, 18, 12);
+      // Upper Bedrock Rim
+      const bedrockGeo = new THREE.CylinderGeometry(35, 22, 12, 16);
       const bedrockMat = new THREE.MeshStandardMaterial({
-        map: rockTex, roughness: 0.85, metalness: 0.2
+        map: rockTex, roughness: 0.9, metalness: 0.15
       });
       const bedrock = new THREE.Mesh(bedrockGeo, bedrockMat);
-      bedrock.position.y = -9;
+      bedrock.position.y = -6;
       bedrock.receiveShadow = true;
       root.add(bedrock);
 
-      // Hydraulic Struts & Glowing Amber Runes on Asteroid
-      for (let i = 0; i < 6; i++) {
-        const ang = (i * Math.PI) / 3;
-        const strut = new THREE.Mesh(
-          new THREE.BoxGeometry(2, 14, 2),
-          new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 })
-        );
-        strut.position.set(Math.cos(ang) * 26, -9, Math.sin(ang) * 26);
-        root.add(strut);
+      // Deep Lower Asteroid Cone
+      const coneGeo = new THREE.ConeGeometry(22, 16, 12);
+      const cone = new THREE.Mesh(coneGeo, bedrockMat);
+      cone.rotation.x = Math.PI;
+      cone.position.y = -20;
+      root.add(cone);
 
+      // Heavy Hydraulic Stabilizer Pylons
+      for (let i = 0; i < 8; i++) {
+        const ang = (i * Math.PI) / 4;
+        const pylon = new THREE.Mesh(
+          new THREE.CylinderGeometry(1.2, 1.6, 14, 8),
+          new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.3 })
+        );
+        pylon.position.set(Math.cos(ang) * 28, -8, Math.sin(ang) * 28);
+        root.add(pylon);
+
+        // Amber geothermal conduit
         const rune = new THREE.Mesh(
-          new THREE.BoxGeometry(1.2, 3, 0.4),
+          new THREE.BoxGeometry(1.4, 4, 0.4),
           new THREE.MeshBasicMaterial({ color: 0xf59e0b })
         );
-        rune.position.set(Math.cos(ang) * 27.2, -8, Math.sin(ang) * 27.2);
-        rune.lookAt(0, -8, 0);
+        rune.position.set(Math.cos(ang) * 29.4, -7, Math.sin(ang) * 29.4);
+        rune.lookAt(0, -7, 0);
         root.add(rune);
       }
+
+      // Main Security Gatehouse (South entrance)
+      const gatehouse = new THREE.Mesh(
+        new THREE.BoxGeometry(10, 4, 3),
+        new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6 })
+      );
+      gatehouse.position.set(0, 2, 28);
+      root.add(gatehouse);
 
       const foundProg = cData.structures.find(s => s.key === 'FOUNDATION_BEDROCK');
       if (foundProg) {
         bedrock.userData = { sectionId: campusId, struct: foundProg };
-        clickables.push(bedrock);
+        gatehouse.userData = { sectionId: campusId, struct: foundProg };
+        clickables.push(bedrock, gatehouse);
       }
 
       // -------------------------------------------------------------
-      // 2. CENTRAL COURTYARD PLAZA & HOLO-FOUNTAIN
+      // STAGE 2: CAMPUS GROUNDS, FOUNTAIN, SPORTS COURT & PARK
       // -------------------------------------------------------------
       const plazaProg = cData.structures.find(s => s.key === 'CENTRAL_PLAZA');
       if (plazaProg && plazaProg.status !== 'LOCKED') {
-        const plaza = new THREE.Mesh(
-          new THREE.CylinderGeometry(33.5, 33.5, 1, 16),
-          new THREE.MeshStandardMaterial({ map: plazaTex, roughness: 0.6 })
+        // Detailed textured grounds
+        const grounds = new THREE.Mesh(
+          new THREE.CylinderGeometry(34.8, 34.8, 1, 32),
+          new THREE.MeshStandardMaterial({ map: groundsTex, roughness: 0.65 })
         );
-        plaza.position.y = 0;
-        root.add(plaza);
+        grounds.position.y = 0.5;
+        grounds.receiveShadow = true;
+        root.add(grounds);
 
-        // Bioluminescent glowing trees (cyan and magenta like the image)
-        createNeonTree(root, -12, 16, 0x06b6d4);
-        createNeonTree(root, -16, 12, 0xd946ef);
-        createNeonTree(root, 14, 16, 0x10b981);
-        createNeonTree(root, 18, 12, 0xd946ef);
-
-        // Holographic Cyan Fountain
-        const fPool = new THREE.Mesh(
-          new THREE.CylinderGeometry(4.5, 5, 1.2, 16),
-          new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.5 })
+        // Central Tiered Stone Fountain
+        const fBase = new THREE.Mesh(
+          new THREE.CylinderGeometry(5.5, 6, 1.4, 16),
+          new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 })
         );
-        fPool.position.set(0, 0.8, 8);
-        root.add(fPool);
+        fBase.position.set(0, 1.7, 7);
+        root.add(fBase);
 
         const fWater = new THREE.Mesh(
-          new THREE.CylinderGeometry(4.2, 4.2, 1, 16),
+          new THREE.CylinderGeometry(5, 5, 1.1, 16),
           new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 })
         );
-        fWater.position.set(0, 1.1, 8);
+        fWater.position.set(0, 2.1, 7);
         root.add(fWater);
 
-        const fHolo = new THREE.Mesh(
-          new THREE.ConeGeometry(2, 5, 8),
-          new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.7 })
+        const fSpire = new THREE.Mesh(
+          new THREE.ConeGeometry(2, 6, 8),
+          new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.8 })
         );
-        fHolo.position.set(0, 4, 8);
-        root.add(fHolo);
+        fSpire.position.set(0, 5.2, 7);
+        root.add(fSpire);
 
-        fPool.userData = { sectionId: campusId, struct: plazaProg };
-        fHolo.userData = { sectionId: campusId, struct: plazaProg };
-        clickables.push(fPool, fHolo);
+        // Water jet particles
+        for (let j = 0; j < 6; j++) {
+          const a = (j * Math.PI) / 3;
+          const drop = new THREE.Mesh(new THREE.SphereGeometry(0.35, 6, 6), new THREE.MeshBasicMaterial({ color: 0xbae6fd }));
+          drop.position.set(Math.cos(a) * 2.8, 3.5, 7 + Math.sin(a) * 2.8);
+          root.add(drop);
+        }
+
+        // Campus Trees (Multi-layer foliage)
+        createRealisticTree(root, -12, 17, 0x15803d); // Lush Green
+        createRealisticTree(root, -17, 12, 0xd946ef); // Cherry / Magenta
+        createRealisticTree(root, 13, 17, 0x06b6d4);  // Cyber Cyan
+        createRealisticTree(root, 18, 12, 0x15803d);  // Lush Green
+        createRealisticTree(root, -15, 23, 0x10b981); // Emerald
+        createRealisticTree(root, 15, 23, 0xd946ef);  // Cherry
+
+        // Campus Streetlamps
+        createStreetlamp(root, -6, 16);
+        createStreetlamp(root, 6, 16);
+        createStreetlamp(root, -6, -2);
+        createStreetlamp(root, 6, -2);
+
+        fBase.userData = { sectionId: campusId, struct: plazaProg };
+        fSpire.userData = { sectionId: campusId, struct: plazaProg };
+        grounds.userData = { sectionId: campusId, struct: plazaProg };
+        clickables.push(fBase, fSpire, grounds);
       }
 
       // -------------------------------------------------------------
-      // 3. ARCHITECTURAL WINGS & STRUCTURES
+      // STAGE 3: NEXUS ACADEMIC CITADEL & CLOCK TOWER
       // -------------------------------------------------------------
-      cData.structures.forEach(st => {
-        if (st.type === 'foundation' || st.type === 'fountain') return;
-
-        const bGroup = createArchitecturalStructure(st, cData.config.color);
-        if (bGroup) {
-          root.add(bGroup);
-          st.mesh = bGroup;
-
-          bGroup.traverse(child => {
-            if (child.isMesh) {
-              child.userData = { sectionId: campusId, struct: st };
-              clickables.push(child);
-            }
-          });
-        }
-      });
+      const citadelProg = cData.structures.find(s => s.key === 'NEXUS_CITADEL');
+      if (citadelProg && citadelProg.status !== 'LOCKED') {
+        const citadelGroup = buildAcademicCitadel(citadelProg);
+        root.add(citadelGroup);
+        citadelProg.mesh = citadelGroup;
+        citadelGroup.traverse(c => {
+          if (c.isMesh) { c.userData = { sectionId: campusId, struct: citadelProg }; clickables.push(c); }
+        });
+      }
 
       // -------------------------------------------------------------
-      // 4. ELEVATED MONORAIL PERIMETER CIRCUIT & TRAIN
+      // STAGE 4: CYBER LABS & FUTURE TECH WING
       // -------------------------------------------------------------
-      const monorailProg = cData.structures.find(s => s.type === 'monorail');
+      const labsProg = cData.structures.find(s => s.key === 'CYBER_LABS');
+      if (labsProg && labsProg.status !== 'LOCKED') {
+        const labsGroup = buildCyberLabs(labsProg);
+        root.add(labsGroup);
+        labsProg.mesh = labsGroup;
+        labsGroup.traverse(c => {
+          if (c.isMesh) { c.userData = { sectionId: campusId, struct: labsProg }; clickables.push(c); }
+        });
+      }
+
+      // -------------------------------------------------------------
+      // STAGE 5: ROGUE BAR CANTEEN & CENTRAL LIBRARY
+      // -------------------------------------------------------------
+      const rogueProg = cData.structures.find(s => s.key === 'ROGUE_BAR');
+      if (rogueProg && rogueProg.status !== 'LOCKED') {
+        const rogueGroup = buildRogueBar(rogueProg);
+        root.add(rogueGroup);
+        rogueProg.mesh = rogueGroup;
+        rogueGroup.traverse(c => {
+          if (c.isMesh) { c.userData = { sectionId: campusId, struct: rogueProg }; clickables.push(c); }
+        });
+      }
+
+      // -------------------------------------------------------------
+      // STAGE 6: ELEVATED PERIMETER MONORAIL CIRCUIT & TRAIN
+      // -------------------------------------------------------------
+      const monorailProg = cData.structures.find(s => s.key === 'MONORAIL_CIRCUIT');
       if (monorailProg && monorailProg.status !== 'LOCKED') {
         createMonorailCircuit(root, cData);
       }
 
       // -------------------------------------------------------------
-      // 5. FORCEFIELD SHIELD DOME
+      // STAGE 7: PLANETARY FORCEFIELD SHIELD DOME & EMITTER TOWERS
       // -------------------------------------------------------------
-      const shieldProg = cData.structures.find(s => s.type === 'shield');
+      const shieldProg = cData.structures.find(s => s.key === 'SHIELD_DOME');
       if (shieldProg && shieldProg.status !== 'LOCKED') {
-        const shield = new THREE.Mesh(
-          new THREE.SphereGeometry(38, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
-          new THREE.MeshBasicMaterial({ color: cData.config.color, wireframe: true, transparent: true, opacity: 0.14 })
-        );
-        root.add(shield);
-        cData.shieldMesh = shield;
+        createShieldDome(root, cData);
       }
 
       scene.add(root);
     }
 
-    function createNeonTree(parent, x, z, leafColor) {
-      const g = new THREE.Group();
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 3.5, 6), new THREE.MeshStandardMaterial({ color: 0x332822 }));
-      trunk.position.y = 1.75; g.add(trunk);
+    // =========================================================================
+    // 6. DETAILED ARCHITECTURAL STRUCTURE GENERATORS
+    // =========================================================================
 
-      const leaves = new THREE.Mesh(new THREE.SphereGeometry(1.8, 8, 8), new THREE.MeshBasicMaterial({ color: leafColor }));
-      leaves.position.y = 4.2; g.add(leaves);
+    // Realistic Tree with multi-tier leafy clusters
+    function createRealisticTree(parent, x, z, leafColor) {
+      const g = new THREE.Group();
+      const trunk = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.35, 0.5, 4, 8),
+        new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 })
+      );
+      trunk.position.y = 2; g.add(trunk);
+
+      const leafMat = new THREE.MeshStandardMaterial({ color: leafColor, roughness: 0.7 });
+      const mainCanopy = new THREE.Mesh(new THREE.SphereGeometry(2.4, 8, 8), leafMat);
+      mainCanopy.position.y = 4.8; g.add(mainCanopy);
+
+      const sub1 = new THREE.Mesh(new THREE.SphereGeometry(1.6, 8, 8), leafMat);
+      sub1.position.set(1.1, 4.2, 0.8); g.add(sub1);
+
+      const sub2 = new THREE.Mesh(new THREE.SphereGeometry(1.4, 8, 8), leafMat);
+      sub2.position.set(-1.1, 4.4, -0.6); g.add(sub2);
+
       g.position.set(x, 0.5, z);
       parent.add(g);
     }
 
-    // -------------------------------------------------------------
-    // STRUCTURE BUILDER
-    // -------------------------------------------------------------
-    function createArchitecturalStructure(st, sectionColor) {
+    // Campus Streetlamp with glowing glass globe
+    function createStreetlamp(parent, x, z) {
+      const g = new THREE.Group();
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 5, 8), new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 }));
+      pole.position.y = 2.5; g.add(pole);
+
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+      lamp.position.y = 5.2; g.add(lamp);
+
+      g.position.set(x, 0.5, z);
+      parent.add(g);
+    }
+
+    // --- ACADEMIC CITADEL ---
+    function buildAcademicCitadel(st) {
       const g = new THREE.Group();
       const isDam = st.status === 'DAMAGED';
       const isDes = st.status === 'DESTROYED';
 
-      if (st.status === 'LOCKED') {
-        return null;
+      // 1. Lower Academic Hall (Wide Base 22 x 12 x 16)
+      const baseGeo = new THREE.BoxGeometry(22, 12, 16);
+      const baseMat = new THREE.MeshStandardMaterial({
+        map: citadelFacadeTex, roughness: 0.4, metalness: 0.4
+      });
+      const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+      baseMesh.position.set(0, 6.5, -10);
+      g.add(baseMesh);
+
+      // 2. Classical Entrance Portico & Pillars
+      const porticoRoof = new THREE.Mesh(new THREE.BoxGeometry(14, 1.2, 5), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+      porticoRoof.position.set(0, 7.5, -1);
+      g.add(porticoRoof);
+
+      for (let p = -2; p <= 2; p++) {
+        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.45, 6.5, 12), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.3 }));
+        pillar.position.set(p * 2.8, 4, -1);
+        g.add(pillar);
       }
 
-      // Fully Constructed Architecture
-      if (st.type === 'citadel') {
-        // --- NEXUS ACADEMIC CITADEL (TALL CENTERPIECE TOWER) ---
-        const main = new THREE.Mesh(
-          new THREE.BoxGeometry(st.size[0], st.size[1], st.size[2]),
-          new THREE.MeshStandardMaterial({ color: isDes ? 0x1e1e24 : 0x0f172a, roughness: 0.35, metalness: 0.5 })
-        );
-        main.position.set(st.x, st.size[1] / 2, st.z);
-        g.add(main);
-
-        // Center Glass Elevator / Atrium
-        const glassAtrium = new THREE.Mesh(
-          new THREE.BoxGeometry(st.size[0] * 0.4, st.size[1] * 1.02, st.size[2] * 1.05),
-          new THREE.MeshStandardMaterial({ color: isDam ? 0xef4444 : 0x06b6d4, emissive: isDam ? 0xef4444 : 0x06b6d4, emissiveIntensity: isDes ? 0 : 0.65 })
-        );
-        glassAtrium.position.set(st.x, st.size[1] / 2, st.z);
-        g.add(glassAtrium);
-
-        // Glowing Blue Signs
-        const sign1 = new THREE.Mesh(new THREE.BoxGeometry(st.size[0] * 0.8, 2.5, 0.4), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
-        sign1.position.set(st.x, st.size[1] - 3, st.z + st.size[2] / 2 + 0.3);
-        g.add(sign1);
-
-        // Grand Tiered Staircase leading down to courtyard
-        const stairs = new THREE.Mesh(new THREE.BoxGeometry(14, 5, 8), new THREE.MeshStandardMaterial({ color: 0x334155 }));
-        stairs.position.set(st.x, 2.5, st.z + st.size[2] / 2 + 3);
-        g.add(stairs);
-
-        // Rooftop Antenna Array & Dishes
-        const ant1 = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 8), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
-        ant1.position.set(st.x - 4, st.size[1] + 4, st.z);
-        g.add(ant1);
-        const ant2 = ant1.clone(); ant2.position.x = st.x + 4; g.add(ant2);
-
-      } else if (st.type === 'cyber_labs') {
-        // --- CYBER LABS & FUTURE TECH WING ---
-        const bld = new THREE.Mesh(
-          new THREE.BoxGeometry(st.size[0], st.size[1], st.size[2]),
-          new THREE.MeshStandardMaterial({ color: isDes ? 0x1e1e24 : 0x1e293b, roughness: 0.4, metalness: 0.6 })
-        );
-        bld.position.set(st.x, st.size[1] / 2, st.z);
-        g.add(bld);
-
-        // Rooftop Cooling Cylinders
-        for (let i = 0; i < 3; i++) {
-          const cy = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 3, 12), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
-          cy.position.set(st.x - 3 + i * 3, st.size[1] + 1.5, st.z);
-          g.add(cy);
-        }
-
-        // Skybridge connecting to Citadel
-        const bridge = new THREE.Mesh(new THREE.BoxGeometry(8, 2.5, 2.5), new THREE.MeshStandardMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.8 }));
-        bridge.position.set(st.x + 9, 8, st.z - 3);
-        g.add(bridge);
-
-      } else if (st.type === 'rogue_bar') {
-        // --- ROGUE BAR CANTEEN & HATRY ARCHIVE ---
-        const bld = new THREE.Mesh(
-          new THREE.BoxGeometry(st.size[0], st.size[1], st.size[2]),
-          new THREE.MeshStandardMaterial({ color: isDes ? 0x1e1e24 : 0x332211, roughness: 0.5 })
-        );
-        bld.position.set(st.x, st.size[1] / 2, st.z);
-        g.add(bld);
-
-        // Warm Amber Dining Deck Awning
-        const awning = new THREE.Mesh(new THREE.BoxGeometry(st.size[0] * 1.1, 1, 6), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
-        awning.position.set(st.x, 6, st.z + st.size[2] / 2 + 2);
-        g.add(awning);
-
-        // Neon Sign
-        const sign = new THREE.Mesh(new THREE.BoxGeometry(8, 2, 0.3), new THREE.MeshBasicMaterial({ color: 0xd946ef }));
-        sign.position.set(st.x, st.size[1] - 2, st.z + st.size[2] / 2 + 0.3);
-        g.add(sign);
+      // Grand Multi-Tiered Cascading Marble Stairs
+      for (let s = 0; s < 4; s++) {
+        const step = new THREE.Mesh(new THREE.BoxGeometry(16 - s * 1.5, 0.5, 2), new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.6 }));
+        step.position.set(0, 0.75 + s * 0.45, 1.5 + (3 - s) * 1.2);
+        g.add(step);
       }
 
-      // Damage / Fire Particles
-      if (isDam || isDes) {
-        createSmokeParticles(g, st.x, (st.size ? st.size[1] : 5), st.z);
+      // 3. Center High-Rise Tower (14 x 26 x 12)
+      const towerGeo = new THREE.BoxGeometry(14, 26, 12);
+      const towerMesh = new THREE.Mesh(towerGeo, baseMat);
+      towerMesh.position.set(0, 13.5, -10);
+      g.add(towerMesh);
+
+      // Glass Elevator Atrium (Emissive Cyan)
+      const atrium = new THREE.Mesh(
+        new THREE.BoxGeometry(5, 27, 2),
+        new THREE.MeshStandardMaterial({ color: isDam ? 0xef4444 : 0x06b6d4, emissive: isDam ? 0xef4444 : 0x06b6d4, emissiveIntensity: 0.7 })
+      );
+      atrium.position.set(0, 14, -3.8);
+      g.add(atrium);
+
+      // 4. Soaring Clock Tower Spire (Height 36)
+      const spireBase = new THREE.Mesh(new THREE.BoxGeometry(6, 8, 6), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
+      spireBase.position.set(0, 30, -10);
+      g.add(spireBase);
+
+      // 4 Clock Faces on each side
+      for (let f = 0; f < 4; f++) {
+        const cf = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 4.5), new THREE.MeshBasicMaterial({ map: clockTex }));
+        const rotY = (f * Math.PI) / 2;
+        cf.position.set(Math.sin(rotY) * 3.05, 30, -10 + Math.cos(rotY) * 3.05);
+        cf.rotation.y = rotY;
+        g.add(cf);
       }
 
+      // Steep Pyramid Spire Tip
+      const spireTip = new THREE.Mesh(new THREE.ConeGeometry(3.8, 9, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8 }));
+      spireTip.rotation.y = Math.PI / 4;
+      spireTip.position.set(0, 38.5, -10);
+      g.add(spireTip);
+
+      // Telemetry Antenna Array & Aviation Beacon
+      const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 8), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
+      ant.position.set(0, 47, -10);
+      g.add(ant);
+
+      const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+      beacon.position.set(0, 51.2, -10);
+      g.add(beacon);
+
+      if (isDam || isDes) createSmokeParticles(g, 0, 16, -10);
       return g;
     }
 
-    // -------------------------------------------------------------
-    // ELEVATED MONORAIL CIRCUIT
-    // -------------------------------------------------------------
+    // --- CYBER LABS & TECH COMPLEX ---
+    function buildCyberLabs(st) {
+      const g = new THREE.Group();
+      const isDam = st.status === 'DAMAGED';
+      const isDes = st.status === 'DESTROYED';
+
+      // Main Multi-Wing Lab Building (15 x 16 x 14)
+      const mainMat = new THREE.MeshStandardMaterial({ map: labsFacadeTex, roughness: 0.4, metalness: 0.5 });
+      const mainLab = new THREE.Mesh(new THREE.BoxGeometry(15, 16, 14), mainMat);
+      mainLab.position.set(-18, 8.5, -4);
+      g.add(mainLab);
+
+      // Industrial Roof Deck
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(14.8, 0.8, 13.8), new THREE.MeshStandardMaterial({ map: roofTex }));
+      roof.position.set(-18, 16.8, -4);
+      g.add(roof);
+
+      // Rooftop Industrial Cooling Fans (3 units)
+      for (let i = 0; i < 3; i++) {
+        const fan = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 2.5, 12), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
+        fan.position.set(-22 + i * 4, 18.2, -4);
+        g.add(fan);
+      }
+
+      // Enclosed Glass Skybridge connecting Cyber Labs to Academic Citadel
+      const bridge = new THREE.Mesh(
+        new THREE.BoxGeometry(10, 3, 2.8),
+        new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.6, transparent: true, opacity: 0.85 })
+      );
+      bridge.position.set(-9.5, 9, -8);
+      g.add(bridge);
+
+      if (isDam || isDes) createSmokeParticles(g, -18, 12, -4);
+      return g;
+    }
+
+    // --- ROGUE BAR CANTEEN & LIBRARY ---
+    function buildRogueBar(st) {
+      const g = new THREE.Group();
+      const isDam = st.status === 'DAMAGED';
+      const isDes = st.status === 'DESTROYED';
+
+      // Main Building (15 x 14 x 14)
+      const mainMat = new THREE.MeshStandardMaterial({ map: rogueFacadeTex, roughness: 0.5 });
+      const mainBld = new THREE.Mesh(new THREE.BoxGeometry(15, 14, 14), mainMat);
+      mainBld.position.set(18, 7.5, -4);
+      g.add(mainBld);
+
+      // Rooftop Solar Panel Array
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(14.8, 0.8, 13.8), new THREE.MeshStandardMaterial({ map: roofTex }));
+      roof.position.set(18, 14.8, -4);
+      g.add(roof);
+
+      // Stepped Outdoor Dining Terrace with Pergola
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(12, 1, 6), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+      deck.position.set(18, 1, 5);
+      g.add(deck);
+
+      // Amber Cafe Awning
+      const awning = new THREE.Mesh(new THREE.BoxGeometry(12, 0.6, 5), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+      awning.position.set(18, 5.5, 4.5);
+      g.add(awning);
+
+      // Miniature Cafe Picnic Tables (2 tables)
+      for (let t = -1; t <= 1; t += 2) {
+        const table = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.8, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        table.position.set(18 + t * 3.5, 1.8, 5);
+        g.add(table);
+
+        const umbrella = new THREE.Mesh(new THREE.ConeGeometry(1.6, 1.2, 8), new THREE.MeshBasicMaterial({ color: t > 0 ? 0xef4444 : 0x06b6d4 }));
+        umbrella.position.set(18 + t * 3.5, 3.8, 5);
+        g.add(umbrella);
+      }
+
+      if (isDam || isDes) createSmokeParticles(g, 18, 10, -4);
+      return g;
+    }
+
+    // --- ELEVATED MONORAIL CIRCUIT & TRAIN ---
     function createMonorailCircuit(parent, cData) {
-      const ringGeo = new THREE.TorusGeometry(28, 0.45, 8, 48);
-      const ringMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.5 });
+      // Elevated Rail Guide (Glowing Cyan Beam)
+      const ringGeo = new THREE.TorusGeometry(30, 0.45, 8, 64);
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.6 });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = Math.PI / 2;
-      ring.position.y = 8;
+      ring.position.y = 9;
       parent.add(ring);
 
-      // Support Pylons
-      for (let i = 0; i < 8; i++) {
-        const ang = (i * Math.PI) / 4;
-        const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 8, 8), new THREE.MeshStandardMaterial({ color: 0x334155 }));
-        pylon.position.set(Math.cos(ang) * 28, 4, Math.sin(ang) * 28);
+      // Support Pylons (12 columns)
+      for (let i = 0; i < 12; i++) {
+        const ang = (i * Math.PI) / 6;
+        const pylon = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.45, 0.55, 9, 8),
+          new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 })
+        );
+        pylon.position.set(Math.cos(ang) * 30, 4.5, Math.sin(ang) * 30);
         parent.add(pylon);
       }
 
-      // Moving Futuristic Bullet Train
+      // Aerodynamic 3-Car Bullet Train
       const train = new THREE.Group();
-      const car1 = new THREE.Mesh(new THREE.BoxGeometry(4, 1.2, 1.8), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9 }));
-      const headL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 1.2), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
-      headL.position.x = 2;
-      train.add(car1, headL);
-      train.position.set(28, 8.8, 0);
+      
+      // Car 1 (Lead Engine with Sloped Nose & Headlights)
+      const car1 = new THREE.Mesh(new THREE.BoxGeometry(4.2, 1.3, 1.8), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9 }));
+      const headL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 1.2), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+      headL.position.x = 2.15;
+      
+      // Car 2 (Passenger Coach)
+      const car2 = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.3, 1.8), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8 }));
+      car2.position.x = -4.2;
+
+      // Car 3 (Rear Engine)
+      const car3 = new THREE.Mesh(new THREE.BoxGeometry(4, 1.3, 1.8), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9 }));
+      car3.position.x = -8.3;
+
+      train.add(car1, headL, car2, car3);
+      train.position.set(30, 9.8, 0);
       parent.add(train);
       cData.trainMesh = train;
     }
 
-    // -------------------------------------------------------------
-    // SMOKE PARTICLES
-    // -------------------------------------------------------------
-    function createSmokeParticles(parent, x, y, z) {
-      const pGeo = new THREE.SphereGeometry(0.8, 6, 6);
-      const pMat = new THREE.MeshBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.6 });
+    // --- PLANETARY DEFENSE SHIELD DOME ---
+    function createShieldDome(parent, cData) {
+      const shield = new THREE.Mesh(
+        new THREE.SphereGeometry(40, 36, 18, 0, Math.PI * 2, 0, Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: cData.config.color, wireframe: true, transparent: true, opacity: 0.16 })
+      );
+      parent.add(shield);
+      cData.shieldMesh = shield;
+
+      // 4 Corner Laser Emitter Pylons
       for (let i = 0; i < 4; i++) {
+        const ang = (i * Math.PI) / 2 + Math.PI / 4;
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 12, 8), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85 }));
+        tower.position.set(Math.cos(ang) * 31, 6, Math.sin(ang) * 31);
+        parent.add(tower);
+
+        const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 20), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        beam.position.set(Math.cos(ang) * 31, 20, Math.sin(ang) * 31);
+        parent.add(beam);
+      }
+    }
+
+    // Smoke Particles
+    function createSmokeParticles(parent, x, y, z) {
+      const pGeo = new THREE.SphereGeometry(0.9, 6, 6);
+      const pMat = new THREE.MeshBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.65 });
+      for (let i = 0; i < 5; i++) {
         const p = new THREE.Mesh(pGeo, pMat);
         p.position.set(x + (Math.random() - 0.5) * 4, y + Math.random() * 2, z + (Math.random() - 0.5) * 4);
-        p.userData = { baseY: y, speedY: 0.04 + Math.random() * 0.03, maxH: 8 + Math.random() * 4 };
+        p.userData = { baseY: y, speedY: 0.045 + Math.random() * 0.03, maxH: 9 + Math.random() * 4 };
         parent.add(p);
         activeParticles.push(p);
       }
     }
 
     // =========================================================================
-    // 6. RAYCASTING INTERACTION
+    // 7. RAYCASTING INTERACTION
     // =========================================================================
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -861,7 +1247,7 @@
     });
 
     // =========================================================================
-    // 7. HUD CONTROLS & BATTLE INTERACTIONS
+    // 8. HUD & USER CONTROLS
     // =========================================================================
     const campusBadgeBtn = document.getElementById('campus-badge-btn');
     const campusModal = document.getElementById('campus-modal');
@@ -873,8 +1259,8 @@
 
     document.getElementById('btn-reset-cam').onclick = () => {
       playSound('click');
-      new TWEEN.Tween(camera.position).to({ x: 0, y: 36, z: 68 }, 800).easing(TWEEN.Easing.Cubic.Out).start();
-      new TWEEN.Tween(controls.target).to({ x: 0, y: 4, z: 0 }, 800).start();
+      new TWEEN.Tween(camera.position).to({ x: 0, y: 42, z: 75 }, 800).easing(TWEEN.Easing.Cubic.Out).start();
+      new TWEEN.Tween(controls.target).to({ x: 0, y: 5, z: 0 }, 800).start();
     };
 
     document.getElementById('btn-tour').onclick = () => {
@@ -883,7 +1269,7 @@
       document.getElementById('btn-tour').innerText = isAutoTour ? '⏹️ Stop Tour' : '🔄 Auto Tour';
     };
 
-    // Reset to Foundation (Stage 1)
+    // Reset Progress to Foundation (Stage 1)
     document.getElementById('btn-restart').onclick = () => {
       playSound('click');
       const myC = campuses[mySectionId];
@@ -898,7 +1284,7 @@
       });
       buildCampusScene(mySectionId);
       updateHUD();
-      ticker(`🔄 Progress reset to Stage 1! Click [SEND 5 MESSAGES] to build building by building!`);
+      ticker(`🔄 Reset to Stage 1! Tap [SEND 5 MESSAGES] to build building by building!`);
     };
 
     function switchCampus(secId) {
@@ -917,8 +1303,8 @@
 
       buildCampusScene(secId);
 
-      camera.position.set(0, 36, 68);
-      controls.target.set(0, 4, 0);
+      camera.position.set(0, 42, 75);
+      controls.target.set(0, 5, 0);
 
       ticker(`🌐 Switched to ${c.config.name} (${c.config.isMySection ? 'Friendly Sanctuary' : 'Rival Base - Target Locked'}).`);
       document.getElementById('inspector-sheet').classList.remove('open');
@@ -941,7 +1327,6 @@
       const slot = document.getElementById('insp-action-slot');
       slot.innerHTML = '';
 
-      // Interior Preview Button
       if (st.hasInterior) {
         const intBtn = document.createElement('button');
         intBtn.className = 'interior-btn';
@@ -950,7 +1335,6 @@
         slot.appendChild(intBtn);
       }
 
-      // Repair Button
       if (secId === mySectionId && (st.status === 'DAMAGED' || st.status === 'DESTROYED')) {
         const repBtn = document.createElement('button');
         repBtn.className = 'repair-btn';
@@ -990,7 +1374,7 @@
       document.getElementById('interior-modal').classList.remove('open');
     };
 
-    // Message Building Simulation (Progressive chunk assembly: 1 click = 1 building)
+    // Message Building Simulation (1 Click = 1 Completed Architectural Landmark)
     document.getElementById('btn-msg').onclick = () => {
       playSound('build');
       userPoints += 10;
@@ -1010,12 +1394,12 @@
         updateHUD();
 
         if (intactCount === 7) {
-          ticker(`🎉 [Stage 7/7 COMPLETE] Planetary Forcefield Shield Online! Base is 100% Fully Developed!`);
+          ticker(`🎉 [Stage 7/7 COMPLETE] Forcefield Shield Online! Base is 100% Fully Developed!`);
         } else {
           ticker(`🏗️ [Stage ${intactCount}/7] Assembled ${nextStruct.name}! (${intactCount}/7 Buildings Online)`);
         }
       } else {
-        ticker(`🌟 100% MAXIMUM LEVEL REACHED! All 7 structures fully developed. Tap [⏮️ Reset to Foundation] to replay!`);
+        ticker(`🌟 100% MAXIMUM LEVEL! All landmarks fully developed. Tap [⏮️ Reset to Foundation] to replay!`);
         updateHUD();
       }
     };
@@ -1049,7 +1433,7 @@
     function fireProjectile(fromSec, toSec, st) {
       playSound('launch');
       const startP = new THREE.Vector3(camera.position.x * 0.8, camera.position.y * 0.8, camera.position.z * 0.8);
-      const endP = new THREE.Vector3(st.x || 0, (st.size ? st.size[1] / 2 : 5), st.z || 0);
+      const endP = new THREE.Vector3(st.x || 0, 8, st.z || 0);
       const midP = new THREE.Vector3().addVectors(startP, endP).multiplyScalar(0.5);
       midP.y += 35;
 
@@ -1080,7 +1464,7 @@
 
           // Impact Flash
           const flash = new THREE.Mesh(
-            new THREE.SphereGeometry(3.5, 16, 16),
+            new THREE.SphereGeometry(4, 16, 16),
             new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 1 })
           );
           flash.position.copy(endP);
@@ -1092,7 +1476,7 @@
           const targetShield = campuses[toSec].shieldMesh;
           if (targetShield) {
             targetShield.material.opacity = 0.55;
-            new TWEEN.Tween(targetShield.material).to({ opacity: 0.14 }, 600).start();
+            new TWEEN.Tween(targetShield.material).to({ opacity: 0.16 }, 600).start();
           }
 
           // Damage
@@ -1137,7 +1521,7 @@
     }
 
     // =========================================================================
-    // 8. ANIMATION LOOP & STARTUP
+    // 9. ANIMATION LOOP & STARTUP
     // =========================================================================
     initUI();
     switchCampus("CSE-1");
@@ -1153,7 +1537,7 @@
 
       // Auto Orbit Tour
       if (isAutoTour) {
-        controls.autoRotate = true; controls.autoRotateSpeed = 2.0;
+        controls.autoRotate = true; controls.autoRotateSpeed = 1.8;
       } else {
         controls.autoRotate = false;
       }
@@ -1162,8 +1546,8 @@
       const curC = campuses[currentCampusId];
       if (curC && curC.trainMesh) {
         trainAngle += 0.012;
-        const trR = 28;
-        curC.trainMesh.position.set(Math.cos(trainAngle) * trR, 8.8, Math.sin(trainAngle) * trR);
+        const trR = 30;
+        curC.trainMesh.position.set(Math.cos(trainAngle) * trR, 9.8, Math.sin(trainAngle) * trR);
         curC.trainMesh.rotation.y = -trainAngle;
       }
 

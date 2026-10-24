@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>3D Multiplayer College Campus Builder & Battle Game</title>
+  <!-- Three.js + OrbitControls + Tween.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #07070d; font-family: 'Rajdhani', sans-serif; color: #fff; }
+    #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; outline: none; }
+    
+    /* HUD Overlays */
+    .hud-layer { position: absolute; z-index: 10; pointer-events: none; width: 100%; height: 100%; }
+    .interactive { pointer-events: auto; }
+    
+    /* Top Bar */
+    .top-bar {
+      position: absolute; top: 16px; left: 20px; right: 20px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(14, 13, 26, 0.85); backdrop-filter: blur(12px);
+      padding: 12px 24px; border-radius: 16px; border: 1px solid rgba(162, 48, 237, 0.35);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .brand-title { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 900; letter-spacing: 1.5px; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .brand-badge { background: linear-gradient(135deg, #a230ed, #6366f1); padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+    
+    .stats-container { display: flex; gap: 20px; align-items: center; }
+    .stat-pill {
+      background: rgba(255,255,255,0.06); padding: 6px 14px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12); display: flex; flex-direction: column; align-items: flex-start;
+    }
+    .stat-label { font-size: 10px; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.5px; }
+    .stat-value { font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700; color: #10b981; }
+    .stat-value.points { color: #f59e0b; }
+    .stat-value.section { color: #c084fc; }
+
+    /* Left Nav / Campus Selector */
+    .campus-selector-panel {
+      position: absolute; top: 90px; left: 20px;
+      background: rgba(14, 13, 26, 0.85); backdrop-filter: blur(12px);
+      padding: 16px; border-radius: 16px; border: 1px solid rgba(162, 48, 237, 0.3);
+      width: 260px; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    .panel-header { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700; color: #c084fc; margin-bottom: 12px; letter-spacing: 1px; display: flex; justify-content: space-between; }
+    .campus-btn {
+      width: 100%; display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px; margin-bottom: 8px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04); color: #fff; font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .campus-btn:hover { background: rgba(162, 48, 237, 0.2); border-color: #a230ed; }
+    .campus-btn.active { background: linear-gradient(135deg, rgba(162, 48, 237, 0.4), rgba(99, 102, 241, 0.4)); border-color: #c084fc; }
+    .campus-tag { font-size: 10px; padding: 2px 6px; border-radius: 6px; }
+    .tag-my { background: rgba(16, 185, 129, 0.25); color: #10b981; border: 1px solid #10b981; }
+    .tag-rival { background: rgba(239, 68, 68, 0.25); color: #ef4444; border: 1px solid #ef4444; }
+
+    /* World View Button */
+    .world-btn {
+      width: 100%; padding: 10px; border-radius: 10px; background: rgba(99, 102, 241, 0.2);
+      border: 1px solid #6366f1; color: #a5b4fc; font-family: 'Orbitron', sans-serif; font-size: 11px;
+      font-weight: 700; cursor: pointer; margin-top: 6px; text-transform: uppercase; letter-spacing: 1px;
+      transition: all 0.2s;
+    }
+    .world-btn:hover { background: #6366f1; color: #fff; }
+
+    /* Bottom Weapon & Action Dock */
+    .bottom-dock {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 16px; align-items: center;
+      background: rgba(14, 13, 26, 0.88); backdrop-filter: blur(14px);
+      padding: 12px 24px; border-radius: 20px; border: 1px solid rgba(162, 48, 237, 0.4);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+    }
+    .dock-group { display: flex; gap: 10px; }
+    .dock-title { font-size: 10px; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; font-weight: 700; letter-spacing: 0.5px; }
+    .weapon-card {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.12); cursor: pointer; transition: all 0.2s; min-width: 90px;
+    }
+    .weapon-card:hover { border-color: #f59e0b; background: rgba(245, 158, 11, 0.15); }
+    .weapon-card.active { border-color: #f59e0b; background: rgba(245, 158, 11, 0.3); box-shadow: 0 0 16px rgba(245, 158, 11, 0.4); }
+    .weapon-name { font-size: 13px; font-weight: 700; color: #fff; }
+    .weapon-cost { font-size: 11px; color: #f59e0b; font-weight: 600; margin-top: 2px; }
+
+    .action-btn {
+      padding: 12px 20px; border-radius: 14px; font-family: 'Orbitron', sans-serif;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.8px; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; border: none; transition: all 0.2s;
+    }
+    .btn-msg { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3); }
+    .btn-msg:hover { filter: brightness(1.15); transform: translateY(-2px); }
+    
+    .btn-fire { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4); }
+    .btn-fire:hover { filter: brightness(1.15); transform: translateY(-2px); }
+    .btn-fire:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Right Building Inspector Card */
+    .inspector-card {
+      position: absolute; top: 90px; right: 20px; width: 300px;
+      background: rgba(14, 13, 26, 0.88); backdrop-filter: blur(14px);
+      padding: 18px; border-radius: 18px; border: 1px solid rgba(162, 48, 237, 0.35);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.7); display: none;
+    }
+    .inspector-title { font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .inspector-section { font-size: 12px; color: #c084fc; font-weight: 600; margin-bottom: 14px; }
+    .hp-bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+    .hp-bar-fill { height: 100%; background: #10b981; transition: width 0.3s; width: 100%; }
+    .hp-bar-fill.damaged { background: #f59e0b; }
+    .hp-bar-fill.destroyed { background: #ef4444; }
+    .hp-text { font-size: 12px; display: flex; justify-content: space-between; margin-bottom: 14px; color: #d1d5db; }
+    .inspector-status { font-size: 12px; padding: 4px 10px; border-radius: 8px; display: inline-block; font-weight: 700; margin-bottom: 14px; }
+    .status-intact { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
+    .status-damaged { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+    .status-destroyed { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+    .status-building { background: rgba(99, 102, 241, 0.2); color: #a5b4fc; border: 1px solid #6366f1; }
+    .status-locked { background: rgba(107, 114, 128, 0.2); color: #9ca3af; border: 1px solid #6b7280; }
+
+    .repair-btn {
+      width: 100%; padding: 10px; border-radius: 10px; background: rgba(16, 185, 129, 0.25);
+      border: 1px solid #10b981; color: #6ee7b7; font-family: 'Rajdhani', sans-serif; font-size: 14px;
+      font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .repair-btn:hover { background: #10b981; color: #fff; }
+
+    /* Battle Log Notification Bar */
+    .battle-log {
+      position: absolute; bottom: 96px; left: 20px; width: 340px; max-height: 140px; overflow-y: auto;
+      background: rgba(10, 9, 20, 0.7); backdrop-filter: blur(8px); padding: 10px 14px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: #cbd5e1;
+    }
+    .log-item { margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .log-hit { color: #f87171; }
+    .log-build { color: #34d399; }
+    .log-repair { color: #60a5fa; }
+
+    /* Instructions Pill */
+    .help-pill {
+      position: absolute; top: 16px; right: 20px;
+      background: rgba(14, 13, 26, 0.85); backdrop-filter: blur(12px);
+      padding: 8px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);
+      font-size: 11px; color: #9ca3af; display: flex; align-items: center; gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="webgl-canvas"></canvas>
+
+  <div class="hud-layer">
+    <!-- Top Bar -->
+    <div class="top-bar interactive">
+      <div class="brand-title">
+        <span>🏛️ CAMPUS REALM 3D</span>
+        <span class="brand-badge">CANARA ENGINEERING COLLEGE</span>
+      </div>
+
+      <div class="stats-container">
+        <div class="stat-pill">
+          <span class="stat-label">Personal Balance</span>
+          <span class="stat-value points" id="hud-user-points">100 PTS</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Section Campus</span>
+          <span class="stat-value section" id="hud-my-section">CSE-1 CAMPUS</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Shared Construction</span>
+          <span class="stat-value" id="hud-section-bricks">18 / 40 UNITS</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Next Unit Progress</span>
+          <span class="stat-value" id="hud-msg-count">3 / 5 MSGS</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Campus Selector Panel -->
+    <div class="campus-selector-panel interactive">
+      <div class="panel-header">
+        <span>COLLEGIATE TERRITORIES</span>
+      </div>
+      <div id="campus-list">
+        <!-- Rendered via JS -->
+      </div>
+      <button class="world-btn" id="btn-world-view">🌐 Complete World Overview</button>
+    </div>
+
+    <!-- Right Building Inspector Card -->
+    <div class="inspector-card interactive" id="building-inspector">
+      <div class="inspector-title" id="insp-name">Academic Main Hall</div>
+      <div class="inspector-section" id="insp-campus">CSE-1 Campus (My Base)</div>
+      <div class="hp-bar-bg">
+        <div class="hp-bar-fill" id="insp-hp-bar"></div>
+      </div>
+      <div class="hp-text">
+        <span>Structural Integrity</span>
+        <span id="insp-hp-val">100 / 100 HP</span>
+      </div>
+      <div>
+        <span class="inspector-status status-intact" id="insp-status">INTACT</span>
+      </div>
+      <div id="insp-actions">
+        <!-- Dynamic repair or attack options -->
+      </div>
+    </div>
+
+    <!-- Battle Log Notification Box -->
+    <div class="battle-log" id="battle-log">
+      <div class="log-item log-build">✨ Continuous 3D world initialized with Canara Engineering College sections.</div>
+      <div class="log-item log-build">🧱 Every 5 messages advance physical campus construction & award +10 personal pts.</div>
+    </div>
+
+    <!-- Bottom Dock: Weapons + Message Simulator -->
+    <div class="bottom-dock interactive">
+      <div class="dock-group">
+        <div>
+          <div class="dock-title">Weapons Arsenal</div>
+          <div style="display: flex; gap: 8px;">
+            <div class="weapon-card active" data-weapon="GUN" data-cost="50" data-damage="30">
+              <span style="font-size: 16px;">🔫</span>
+              <span class="weapon-name">Plasma Cannon</span>
+              <span class="weapon-cost">50 PTS</span>
+            </div>
+            <div class="weapon-card" data-weapon="SMALL_MISSILE" data-cost="150" data-damage="60">
+              <span style="font-size: 16px;">🚀</span>
+              <span class="weapon-name">Heavy Missile</span>
+              <span class="weapon-cost">150 PTS</span>
+            </div>
+            <div class="weapon-card" data-weapon="BIG_MISSILE" data-cost="400" data-damage="120">
+              <span style="font-size: 16px;">⚡</span>
+              <span class="weapon-name">Orbital ICBM</span>
+              <span class="weapon-cost">400 PTS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height: 48px; width: 1px; background: rgba(255,255,255,0.12);"></div>
+
+      <div class="dock-group">
+        <div>
+          <div class="dock-title">Message-Based Construction</div>
+          <button class="action-btn btn-msg" id="btn-simulate-msg">
+            <span>💬</span>
+            <span>SEND 5 SECTION MESSAGES (+10 PTS & +1 UNIT)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="dock-group">
+        <div>
+          <div class="dock-title">Strike Selected Target</div>
+          <button class="action-btn btn-fire" id="btn-launch-attack" disabled>
+            <span>🎯</span>
+            <span>FIRE PROJECTILE AT TARGET</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. GAME DATA & SECTION MODEL
+    // =========================================================================
+    const COLLEGE_NAME = "Canara Engineering College";
+    let userPoints = 100;
+    const mySectionId = "CSE-1";
+
+    const SECTIONS_CONFIG = [
+      { id: "CSE-1", name: "CSE-1 Campus", color: 0x3b82f6, isMySection: true, angle: 0, distance: 90 },
+      { id: "CSE-2", name: "CSE-2 Campus", color: 0xef4444, isMySection: false, angle: (2 * Math.PI) / 3, distance: 90 },
+      { id: "ECE-1", name: "ECE-1 Campus", color: 0x10b981, isMySection: false, angle: (4 * Math.PI) / 3, distance: 90 }
+    ];
+
+    // Building blueprints per section
+    const STRUCTURE_TEMPLATES = [
+      { key: "MAIN_HALL", name: "Genesis Academic Hall", maxHp: 100, bricksRequired: 8, posX: 0, posZ: 0, size: [16, 12, 14], type: 'hall' },
+      { key: "LIBRARY", name: "Tech Archive Clock Tower", maxHp: 80, bricksRequired: 6, posX: 14, posZ: -8, size: [8, 24, 8], type: 'tower' },
+      { key: "CANTEEN", name: "Rogue Bar Canteen", maxHp: 60, bricksRequired: 6, posX: -14, posZ: -8, size: [12, 7, 12], type: 'canteen' },
+      { key: "LAB", name: "Cyber AI & Robotics Lab", maxHp: 80, bricksRequired: 6, posX: -12, posZ: 12, size: [10, 8, 10], type: 'lab' },
+      { key: "GARDEN", name: "Quad Courtyard & Fountain", maxHp: 40, bricksRequired: 4, posX: 12, posZ: 12, size: [10, 3, 10], type: 'garden' },
+      { key: "DEFENSE_GATE", name: "Laser Defense Battery", maxHp: 120, bricksRequired: 10, posX: 0, posZ: 20, size: [8, 10, 6], type: 'turret' }
+    ];
+
+    // State of each section's 3D campus
+    const sectionCampuses = {};
+    SECTIONS_CONFIG.forEach(sec => {
+      sectionCampuses[sec.id] = {
+        config: sec,
+        messageCount: sec.isMySection ? 3 : 18,
+        totalBricks: sec.isMySection ? 18 : 25,
+        structures: STRUCTURE_TEMPLATES.map((tmpl, idx) => {
+          let status = 'INTACT';
+          let bricksPlaced = tmpl.bricksRequired;
+          let hp = tmpl.maxHp;
+
+          if (sec.isMySection) {
+            if (idx === 4) { status = 'BUILDING'; bricksPlaced = 2; hp = 20; }
+            else if (idx === 5) { status = 'LOCKED'; bricksPlaced = 0; hp = 0; }
+          } else if (sec.id === 'CSE-2') {
+            if (idx === 0) { status = 'DAMAGED'; hp = 45; }
+            else if (idx === 5) { status = 'DESTROYED'; hp = 0; bricksPlaced = 0; }
+          }
+          return {
+            ...tmpl,
+            status,
+            hp,
+            bricksPlaced,
+            smokeParticles: null,
+            fireParticles: null,
+            meshGroup: null
+          };
+        }),
+        group: null
+      };
+    });
+
+    let activeSelectedCampusId = "CSE-1";
+    let selectedBuilding = null;
+    let selectedWeapon = { type: 'GUN', cost: 50, damage: 30 };
+
+    // =========================================================================
+    // 2. THREE.JS 3D SCENE SETUP
+    // =========================================================================
+    const canvas = document.getElementById('webgl-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x06060c);
+    scene.fog = new THREE.FogExp2(0x06060c, 0.0035);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1500);
+    camera.position.set(0, 75, 170);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2.1;
+    controls.minDistance = 25;
+    controls.maxDistance = 450;
+    controls.target.set(0, 10, 0);
+
+    // Starfield Background
+    const starsGeo = new THREE.BufferGeometry();
+    const starCoords = [];
+    for (let i = 0; i < 2000; i++) {
+      starCoords.push((Math.random() - 0.5) * 1200);
+      starCoords.push(Math.random() * 600 + 50);
+      starCoords.push((Math.random() - 0.5) * 1200);
+    }
+    starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0x818cf8, size: 1.5, transparent: true, opacity: 0.8 });
+    scene.add(new THREE.Points(starsGeo, starMat));
+
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0x232338, 1.8);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xc4b5fd, 2.2);
+    sunLight.position.set(100, 200, 100);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.bias = -0.0005;
+    scene.add(sunLight);
+
+    // =========================================================================
+    // 3. CENTRAL CITADEL HUB (WORLD MONUMENT)
+    // =========================================================================
+    function createCentralCitadel() {
+      const hubGroup = new THREE.Group();
+
+      // Base Pillar
+      const pillarGeo = new THREE.CylinderGeometry(14, 18, 20, 16);
+      const pillarMat = new THREE.MeshStandardMaterial({ color: 0x181829, metalness: 0.8, roughness: 0.2 });
+      const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+      pillar.position.y = -10;
+      hubGroup.add(pillar);
+
+      // Glowing Center Spire & Orb
+      const orbGeo = new THREE.SphereGeometry(6, 32, 32);
+      const orbMat = new THREE.MeshStandardMaterial({
+        color: 0xa230ed, emissive: 0xa230ed, emissiveIntensity: 0.8, roughness: 0.1
+      });
+      const orb = new THREE.Mesh(orbGeo, orbMat);
+      orb.position.y = 8;
+      hubGroup.add(orb);
+
+      // Rotating Energy Ring
+      const ringGeo = new THREE.TorusGeometry(12, 0.6, 16, 64);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.y = 8;
+      ring.rotation.x = Math.PI / 2.3;
+      hubGroup.add(ring);
+      hubGroup.userData.rotatingRing = ring;
+
+      // Collegiate Name Banner Canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'rgba(20, 20, 35, 0.9)';
+      ctx.fillRect(0, 0, 512, 128);
+      ctx.strokeStyle = '#c084fc'; ctx.lineWidth = 6;
+      ctx.strokeRect(6, 6, 500, 116);
+      ctx.font = 'bold 32px Orbitron, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.fillText(COLLEGE_NAME, 256, 55);
+      ctx.font = 'bold 20px Rajdhani, sans-serif';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('CENTRAL COLLEGIATE CITADEL', 256, 95);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const bannerGeo = new THREE.PlaneGeometry(24, 6);
+      const bannerMat = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+      const banner = new THREE.Mesh(bannerGeo, bannerMat);
+      banner.position.y = 20;
+      hubGroup.add(banner);
+
+      scene.add(hubGroup);
+    }
+    createCentralCitadel();
+
+    // =========================================================================
+    // 4. GENERATE INDEPENDENT SECTION CAMPUS ISLANDS
+    // =========================================================================
+    const raycastClickables = [];
+
+    function buildSectionCampuses() {
+      SECTIONS_CONFIG.forEach(sec => {
+        const campusData = sectionCampuses[sec.id];
+        const campusGroup = new THREE.Group();
+        campusData.group = campusGroup;
+
+        // Position on continuous circle in 3D world
+        const posX = Math.cos(sec.angle) * sec.distance;
+        const posZ = Math.sin(sec.angle) * sec.distance;
+        campusGroup.position.set(posX, 0, posZ);
+
+        // 1. Floating Hexagonal Island Foundation
+        const islandGeo = new THREE.CylinderGeometry(28, 24, 10, 6);
+        const islandMat = new THREE.MeshStandardMaterial({
+          color: 0x121124, metalness: 0.6, roughness: 0.4
+        });
+        const island = new THREE.Mesh(islandGeo, islandMat);
+        island.position.y = -5;
+        island.receiveShadow = true;
+        campusGroup.add(island);
+
+        // Glowing Campus Boundary Trim
+        const trimGeo = new THREE.CylinderGeometry(28.3, 28.3, 0.8, 6);
+        const trimMat = new THREE.MeshBasicMaterial({ color: sec.color });
+        const trim = new THREE.Mesh(trimGeo, trimMat);
+        trim.position.y = 0.2;
+        campusGroup.add(trim);
+
+        // Holographic Campus Name Banner floating above island
+        const nameCanvas = document.createElement('canvas');
+        nameCanvas.width = 256; nameCanvas.height = 64;
+        const nctx = nameCanvas.getContext('2d');
+        nctx.fillStyle = 'rgba(10, 10, 20, 0.85)';
+        nctx.fillRect(0, 0, 256, 64);
+        nctx.strokeStyle = '#' + sec.color.toString(16).padStart(6, '0');
+        nctx.lineWidth = 4;
+        nctx.strokeRect(4, 4, 248, 56);
+        nctx.font = 'bold 24px Orbitron, sans-serif';
+        nctx.fillStyle = '#ffffff';
+        nctx.textAlign = 'center';
+        nctx.fillText(sec.name, 128, 40);
+
+        const nameTex = new THREE.CanvasTexture(nameCanvas);
+        const nameMesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(16, 4),
+          new THREE.MeshBasicMaterial({ map: nameTex, side: THREE.DoubleSide })
+        );
+        nameMesh.position.set(0, 18, -24);
+        campusGroup.add(nameMesh);
+
+        // 2. Translucent Energy Forcefield Shield Dome
+        const shieldGeo = new THREE.SphereGeometry(30, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const shieldMat = new THREE.MeshBasicMaterial({
+          color: sec.color, wireframe: true, transparent: true, opacity: 0.15
+        });
+        const shield = new THREE.Mesh(shieldGeo, shieldMat);
+        campusGroup.add(shield);
+        campusData.shieldMesh = shield;
+
+        // 3. Connect to Central Hub via Light Beam Bridge
+        const bridgeGeo = new THREE.BoxGeometry(2, 0.3, sec.distance - 20);
+        const bridgeMat = new THREE.MeshBasicMaterial({ color: sec.color, transparent: true, opacity: 0.35 });
+        const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
+        bridge.position.set(-posX / 2, -1, -posZ / 2);
+        bridge.lookAt(0, -1, 0);
+        scene.add(bridge);
+
+        // 4. Buildings on this Campus
+        campusData.structures.forEach(struct => {
+          const bldgGroup = createBuilding3D(struct, sec.color);
+          bldgGroup.position.set(struct.posX, 0, struct.posZ);
+          campusGroup.add(bldgGroup);
+          struct.meshGroup = bldgGroup;
+
+          // Register building for mouse/touch raycasting
+          bldgGroup.traverse(child => {
+            if (child.isMesh) {
+              child.userData = { sectionId: sec.id, structureKey: struct.key, structRef: struct };
+              raycastClickables.push(child);
+            }
+          });
+        });
+
+        scene.add(campusGroup);
+      });
+    }
+
+    // =========================================================================
+    // 5. DETERMINISTIC 3D BUILDING GENERATION
+    // =========================================================================
+    function createBuilding3D(struct, sectionColor) {
+      const group = new THREE.Group();
+
+      if (struct.status === 'LOCKED') {
+        // Holographic Blueprint Grid on Ground
+        const gridGeo = new THREE.PlaneGeometry(struct.size[0], struct.size[2]);
+        const gridMat = new THREE.MeshBasicMaterial({ color: 0x64748b, wireframe: true });
+        const grid = new THREE.Mesh(gridGeo, gridMat);
+        grid.rotation.x = -Math.PI / 2;
+        grid.position.y = 0.1;
+        group.add(grid);
+        return group;
+      }
+
+      if (struct.status === 'BUILDING') {
+        // Scaffolding & Laser Construction Frame
+        const scaffoldGeo = new THREE.BoxGeometry(struct.size[0], struct.size[1], struct.size[2]);
+        const scaffoldMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b, wireframe: true, transparent: true, opacity: 0.6 });
+        const scaffold = new THREE.Mesh(scaffoldGeo, scaffoldMat);
+        scaffold.position.y = struct.size[1] / 2;
+        group.add(scaffold);
+
+        // Core base partially built
+        const partialH = struct.size[1] * (struct.bricksPlaced / struct.bricksRequired);
+        const coreGeo = new THREE.BoxGeometry(struct.size[0] * 0.9, Math.max(1, partialH), struct.size[2] * 0.9);
+        const coreMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        core.position.y = partialH / 2;
+        group.add(core);
+
+        // Laser Construction Beams
+        const laserGeo = new THREE.CylinderGeometry(0.2, 0.2, 10);
+        const laserMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        const laser = new THREE.Mesh(laserGeo, laserMat);
+        laser.position.set(0, struct.size[1], 0);
+        group.add(laser);
+        return group;
+      }
+
+      // INTACT / DAMAGED / DESTROYED Building 3D Geometry
+      const isDestroyed = struct.status === 'DESTROYED';
+      const isDamaged = struct.status === 'DAMAGED';
+
+      const wallColor = isDestroyed ? 0x27272a : (isDamaged ? 0x475569 : 0x1e1b4b);
+      const glassColor = isDestroyed ? 0x18181b : (isDamaged ? 0xef4444 : 0x38bdf8);
+
+      const mainGeo = new THREE.BoxGeometry(struct.size[0], struct.size[1], struct.size[2]);
+      const mainMat = new THREE.MeshStandardMaterial({
+        color: wallColor, metalness: 0.5, roughness: 0.3
+      });
+      const mainMesh = new THREE.Mesh(mainGeo, mainMat);
+      mainMesh.position.y = struct.size[1] / 2;
+      mainMesh.castShadow = true;
+      mainMesh.receiveShadow = true;
+      group.add(mainMesh);
+
+      // Glass Windows / Emissive Highlights
+      const winGeo = new THREE.BoxGeometry(struct.size[0] * 1.02, struct.size[1] * 0.4, struct.size[2] * 0.8);
+      const winMat = new THREE.MeshStandardMaterial({
+        color: glassColor, emissive: glassColor, emissiveIntensity: isDestroyed ? 0 : 0.6, roughness: 0.1
+      });
+      const winMesh = new THREE.Mesh(winGeo, winMat);
+      winMesh.position.y = struct.size[1] * 0.6;
+      group.add(winMesh);
+
+      // Unique Architecture details per type
+      if (struct.type === 'tower') {
+        const roofGeo = new THREE.ConeGeometry(5, 8, 4);
+        const roofMat = new THREE.MeshStandardMaterial({ color: sectionColor });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.y = struct.size[1] + 4;
+        roof.rotation.y = Math.PI / 4;
+        group.add(roof);
+      } else if (struct.type === 'hall') {
+        const domeGeo = new THREE.SphereGeometry(4, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const domeMat = new THREE.MeshStandardMaterial({ color: 0x6366f1, roughness: 0.2 });
+        const dome = new THREE.Mesh(domeGeo, domeMat);
+        dome.position.y = struct.size[1];
+        group.add(dome);
+      } else if (struct.type === 'turret') {
+        const barrelGeo = new THREE.CylinderGeometry(0.6, 0.6, 6);
+        const barrelMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.8 });
+        const barrel1 = new THREE.Mesh(barrelGeo, barrelMat);
+        barrel1.position.set(-1.5, struct.size[1] + 2, 2);
+        barrel1.rotation.x = Math.PI / 3;
+        group.add(barrel1);
+        const barrel2 = barrel1.clone();
+        barrel2.position.x = 1.5;
+        group.add(barrel2);
+      }
+
+      // Structural Damage & Billowing Smoke/Fire Particles
+      if (isDamaged || isDestroyed) {
+        attachDamageFX(group, struct);
+      }
+
+      return group;
+    }
+
+    // =========================================================================
+    // 6. VISIBLE 3D DAMAGE, PARTICLES & IMPACT EFFECTS
+    // =========================================================================
+    const activeParticles = [];
+
+    function attachDamageFX(group, struct) {
+      // 1. Charred Impact Crater Decal
+      const craterGeo = new THREE.CylinderGeometry(struct.size[0] * 0.4, struct.size[0] * 0.45, 0.4, 8);
+      const craterMat = new THREE.MeshBasicMaterial({ color: 0x09090b });
+      const crater = new THREE.Mesh(craterGeo, craterMat);
+      crater.position.set(0, struct.size[1] + 0.1, 0);
+      group.add(crater);
+
+      // 2. Rising Billowing Smoke Particles
+      const smokeCount = struct.status === 'DESTROYED' ? 30 : 15;
+      const smokeGeo = new THREE.DodecahedronGeometry(1.2, 1);
+      const smokeMat = new THREE.MeshBasicMaterial({ color: 0x27272a, transparent: true, opacity: 0.6 });
+
+      for (let i = 0; i < smokeCount; i++) {
+        const s = new THREE.Mesh(smokeGeo, smokeMat.clone());
+        s.position.set(
+          (Math.random() - 0.5) * struct.size[0] * 0.6,
+          struct.size[1] + Math.random() * 4,
+          (Math.random() - 0.5) * struct.size[2] * 0.6
+        );
+        s.userData = {
+          baseY: struct.size[1],
+          speedY: 0.1 + Math.random() * 0.15,
+          maxHeight: 18 + Math.random() * 10
+        };
+        group.add(s);
+        activeParticles.push(s);
+      }
+
+      // 3. Crackling Fire Flame Particles
+      const fireGeo = new THREE.DodecahedronGeometry(0.8, 1);
+      const fireMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+      for (let i = 0; i < 8; i++) {
+        const f = new THREE.Mesh(fireGeo, fireMat);
+        f.position.set(
+          (Math.random() - 0.5) * struct.size[0] * 0.4,
+          struct.size[1] + 0.5,
+          (Math.random() - 0.5) * struct.size[2] * 0.4
+        );
+        f.userData = { isFire: true, phase: Math.random() * Math.PI };
+        group.add(f);
+        activeParticles.push(f);
+      }
+    }
+
+    // =========================================================================
+    // 7. WEAPON FIRING & 3D ARMED PROJECTILE TRAJECTORY
+    // =========================================================================
+    function launchProjectile(attackerSectionId, targetSectionId, targetStruct) {
+      const startCampus = sectionCampuses[attackerSectionId].group.position;
+      const targetCampus = sectionCampuses[targetSectionId].group.position;
+      
+      const startPos = new THREE.Vector3(startCampus.x, 15, startCampus.z);
+      const endPos = new THREE.Vector3(
+        targetCampus.x + targetStruct.posX,
+        targetCampus.y + targetStruct.size[1] / 2,
+        targetCampus.z + targetStruct.posZ
+      );
+
+      // Projectile 3D Mesh
+      const projGeo = new THREE.CylinderGeometry(0.4, 0.4, 3, 8);
+      const projMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+      const projectile = new THREE.Mesh(projGeo, projMat);
+      projectile.position.copy(startPos);
+      scene.add(projectile);
+
+      // Sound / Log
+      addLog(`🚀 [${attackerSectionId}] fired ${selectedWeapon.type} at ${targetStruct.name} [${targetSectionId}]!`, 'hit');
+
+      // Parabolic flight via Tween
+      const flightDuration = 1200;
+      const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
+      midPoint.y += 65; // Peak arc
+
+      const trajectory = { t: 0 };
+      new TWEEN.Tween(trajectory)
+        .to({ t: 1 }, flightDuration)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .onUpdate(() => {
+          // Quadratic Bezier Curve: (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
+          const t = trajectory.t;
+          const pos = new THREE.Vector3()
+            .copy(startPos).multiplyScalar((1 - t) * (1 - t))
+            .add(midPoint.clone().multiplyScalar(2 * (1 - t) * t))
+            .add(endPos.clone().multiplyScalar(t * t));
+          projectile.position.copy(pos);
+          projectile.lookAt(endPos);
+          projectile.rotateX(Math.PI / 2);
+        })
+        .onComplete(() => {
+          scene.remove(projectile);
+          createImpactExplosion(endPos);
+          applyDamageToBuilding(targetSectionId, targetStruct);
+        })
+        .start();
+    }
+
+    function createImpactExplosion(pos) {
+      // Expanding Flash Sphere
+      const flashGeo = new THREE.SphereGeometry(3, 16, 16);
+      const flashMat = new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 1 });
+      const flash = new THREE.Mesh(flashGeo, flashMat);
+      flash.position.copy(pos);
+      scene.add(flash);
+
+      new TWEEN.Tween(flash.scale)
+        .to({ x: 5, y: 5, z: 5 }, 300)
+        .start();
+      new TWEEN.Tween(flash.material)
+        .to({ opacity: 0 }, 300)
+        .onComplete(() => scene.remove(flash))
+        .start();
+    }
+
+    function applyDamageToBuilding(sectionId, struct) {
+      const dmg = selectedWeapon.damage;
+      struct.hp = Math.max(0, struct.hp - dmg);
+      
+      if (struct.hp === 0) {
+        struct.status = 'DESTROYED';
+        addLog(`💥 CRITICAL! ${struct.name} on ${sectionId} Campus has collapsed into RUINS!`, 'hit');
+      } else {
+        struct.status = 'DAMAGED';
+        addLog(`⚠️ Direct hit! ${struct.name} damaged (-${dmg} HP). Integrity: ${struct.hp}/${struct.maxHp}`, 'hit');
+      }
+
+      // Rebuild 3D mesh of that structure to show charred crater & smoke
+      rebuildBuildingMesh(sectionId, struct);
+      if (selectedBuilding && selectedBuilding.struct.key === struct.key) {
+        updateInspector(selectedBuilding.struct, sectionId);
+      }
+    }
+
+    function rebuildBuildingMesh(sectionId, struct) {
+      const campus = sectionCampuses[sectionId];
+      if (struct.meshGroup) {
+        campus.group.remove(struct.meshGroup);
+      }
+      const newMesh = createBuilding3D(struct, campus.config.color);
+      newMesh.position.set(struct.posX, 0, struct.posZ);
+      campus.group.add(newMesh);
+      struct.meshGroup = newMesh;
+
+      // Re-register raycaster clickables
+      newMesh.traverse(child => {
+        if (child.isMesh) {
+          child.userData = { sectionId, structureKey: struct.key, structRef: struct };
+          raycastClickables.push(child);
+        }
+      });
+    }
+
+    // =========================================================================
+    // 8. CAMERA TWEENING & CAMPUS NAVIGATION
+    // =========================================================================
+    function focusOnCampus(campusId) {
+      activeSelectedCampusId = campusId;
+      document.querySelectorAll('.campus-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.id === campusId);
+      });
+
+      const campusPos = sectionCampuses[campusId].group.position;
+      new TWEEN.Tween(controls.target)
+        .to({ x: campusPos.x, y: 8, z: campusPos.z }, 1000)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+
+      new TWEEN.Tween(camera.position)
+        .to({ x: campusPos.x, y: campusPos.y + 35, z: campusPos.z + 65 }, 1000)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+    }
+
+    function viewWorldOverview() {
+      new TWEEN.Tween(controls.target)
+        .to({ x: 0, y: 10, z: 0 }, 1200)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+
+      new TWEEN.Tween(camera.position)
+        .to({ x: 0, y: 150, z: 230 }, 1200)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+    }
+
+    // =========================================================================
+    // 9. RAYCASTING & CLICK SELECTION
+    // =========================================================================
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    window.addEventListener('click', (e) => {
+      // Ignore clicks on HUD interactive elements
+      if (e.target.closest('.interactive')) return;
+
+      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(raycastClickables, true);
+
+      if (intersects.length > 0) {
+        const hitData = intersects[0].object.userData;
+        if (hitData && hitData.structRef) {
+          selectBuilding(hitData.structRef, hitData.sectionId);
+        }
+      }
+    });
+
+    function selectBuilding(struct, sectionId) {
+      selectedBuilding = { struct, sectionId };
+      updateInspector(struct, sectionId);
+
+      // Fly camera closer to the selected building
+      const campusPos = sectionCampuses[sectionId].group.position;
+      const targetPos = new THREE.Vector3(
+        campusPos.x + struct.posX,
+        campusPos.y + struct.size[1] / 2,
+        campusPos.z + struct.posZ
+      );
+
+      new TWEEN.Tween(controls.target)
+        .to({ x: targetPos.x, y: targetPos.y, z: targetPos.z }, 800)
+        .easing(TWEEN.Easing.Cubic.Out)
+        .start();
+
+      // Enable/Disable Fire Button based on ownership
+      const fireBtn = document.getElementById('btn-launch-attack');
+      if (sectionId === mySectionId) {
+        fireBtn.disabled = true;
+        fireBtn.title = "Cannot attack your own section campus!";
+      } else {
+        fireBtn.disabled = (struct.status === 'DESTROYED' || struct.status === 'LOCKED');
+      }
+    }
+
+    function updateInspector(struct, sectionId) {
+      const card = document.getElementById('building-inspector');
+      card.style.display = 'block';
+
+      document.getElementById('insp-name').innerText = struct.name;
+      const isMySec = sectionId === mySectionId;
+      document.getElementById('insp-campus').innerText = `${sectionId} Campus (${isMySec ? 'My Campus' : 'Rival Territory'})`;
+
+      const hpPct = Math.round((struct.hp / struct.maxHp) * 100);
+      const hpBar = document.getElementById('insp-hp-bar');
+      hpBar.style.width = hpPct + '%';
+      hpBar.className = 'hp-bar-fill' + (struct.hp < struct.maxHp * 0.4 ? ' destroyed' : (struct.hp < struct.maxHp ? ' damaged' : ''));
+      document.getElementById('insp-hp-val').innerText = `${struct.hp} / ${struct.maxHp} HP (${hpPct}%)`;
+
+      const statusEl = document.getElementById('insp-status');
+      statusEl.innerText = struct.status;
+      statusEl.className = 'inspector-status status-' + struct.status.toLowerCase();
+
+      // Actions
+      const actionsEl = document.getElementById('insp-actions');
+      actionsEl.innerHTML = '';
+      if (isMySec && (struct.status === 'DAMAGED' || struct.status === 'DESTROYED')) {
+        const repairBtn = document.createElement('button');
+        repairBtn.className = 'repair-btn';
+        repairBtn.innerHTML = '🧯 Extinguish Fire & Repair (+40 HP)';
+        repairBtn.onclick = () => {
+          struct.hp = Math.min(struct.maxHp, struct.hp + 40);
+          if (struct.hp >= struct.maxHp) struct.status = 'INTACT';
+          else struct.status = 'DAMAGED';
+          addLog(`🔧 Classmates extinguished fires on ${struct.name}! Health restored to ${struct.hp} HP.`, 'repair');
+          rebuildBuildingMesh(sectionId, struct);
+          updateInspector(struct, sectionId);
+        };
+        actionsEl.appendChild(repairBtn);
+      }
+    }
+
+    // =========================================================================
+    // 10. MESSAGE-BASED CONSTRUCTION LOGIC
+    // =========================================================================
+    document.getElementById('btn-simulate-msg').addEventListener('click', () => {
+      userPoints += 10;
+      const myCampus = sectionCampuses[mySectionId];
+      myCampus.messageCount += 5;
+      myCampus.totalBricks += 1;
+
+      updateHUD();
+      addLog(`💬 +5 section messages verified! Awarded +10 Personal Points. Shared construction: +1 unit!`, 'build');
+
+      // Find building project to advance
+      const buildingProject = myCampus.structures.find(s => s.status === 'BUILDING') ||
+                              myCampus.structures.find(s => s.status === 'LOCKED');
+
+      if (buildingProject) {
+        if (buildingProject.status === 'LOCKED') {
+          buildingProject.status = 'BUILDING';
+          buildingProject.bricksPlaced = 1;
+        } else {
+          buildingProject.bricksPlaced += 1;
+        }
+
+        if (buildingProject.bricksPlaced >= buildingProject.bricksRequired) {
+          buildingProject.status = 'INTACT';
+          buildingProject.hp = buildingProject.maxHp;
+          addLog(`🏗️ CONSTRUCTION COMPLETE! ${buildingProject.name} is now fully operational!`, 'build');
+        } else {
+          addLog(`🔨 Scaffolding progress on ${buildingProject.name}: ${buildingProject.bricksPlaced}/${buildingProject.bricksRequired} units assembled.`, 'build');
+        }
+
+        rebuildBuildingMesh(mySectionId, buildingProject);
+        if (selectedBuilding && selectedBuilding.struct.key === buildingProject.key) {
+          updateInspector(buildingProject, mySectionId);
+        }
+      }
+    });
+
+    // Weapon Selection
+    document.querySelectorAll('.weapon-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.weapon-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        selectedWeapon = {
+          type: card.dataset.weapon,
+          cost: parseInt(card.dataset.cost),
+          damage: parseInt(card.dataset.damage)
+        };
+      });
+    });
+
+    // Fire Button Click
+    document.getElementById('btn-launch-attack').addEventListener('click', () => {
+      if (!selectedBuilding) return;
+      if (userPoints < selectedWeapon.cost) {
+        alert(`Insufficient points! You need ${selectedWeapon.cost} PTS. Chat more to earn points!`);
+        return;
+      }
+      userPoints -= selectedWeapon.cost;
+      updateHUD();
+      launchProjectile(mySectionId, selectedBuilding.sectionId, selectedBuilding.struct);
+    });
+
+    // UI Updates & Logs
+    function updateHUD() {
+      document.getElementById('hud-user-points').innerText = `${userPoints} PTS`;
+      const myCampus = sectionCampuses[mySectionId];
+      document.getElementById('hud-section-bricks').innerText = `${myCampus.totalBricks} / 40 UNITS`;
+      document.getElementById('hud-msg-count').innerText = `${myCampus.messageCount % 5} / 5 MSGS`;
+    }
+
+    function addLog(text, type) {
+      const box = document.getElementById('battle-log');
+      const item = document.createElement('div');
+      item.className = 'log-item log-' + type;
+      item.innerText = text;
+      box.prepend(item);
+    }
+
+    // Populate Left Nav
+    function initUI() {
+      const listEl = document.getElementById('campus-list');
+      SECTIONS_CONFIG.forEach(sec => {
+        const btn = document.createElement('button');
+        btn.className = 'campus-btn' + (sec.id === activeSelectedCampusId ? ' active' : '');
+        btn.dataset.id = sec.id;
+        btn.innerHTML = `
+          <span>${sec.name}</span>
+          <span class="campus-tag ${sec.isMySection ? 'tag-my' : 'tag-rival'}">
+            ${sec.isMySection ? 'MY CAMPUS' : 'RIVAL'}
+          </span>
+        `;
+        btn.onclick = () => focusOnCampus(sec.id);
+        listEl.appendChild(btn);
+      });
+
+      document.getElementById('btn-world-view').onclick = viewWorldOverview;
+      updateHUD();
+    }
+
+    // =========================================================================
+    // 11. MAIN ANIMATION LOOP
+    // =========================================================================
+    buildSectionCampuses();
+    initUI();
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      TWEEN.update();
+      controls.update();
+
+      const time = clock.getElapsedTime();
+
+      // Rotate Citadel Energy Ring
+      const hubRing = scene.children[1]?.userData?.rotatingRing;
+      if (hubRing) hubRing.rotation.z += 0.01;
+
+      // Animate active Smoke and Fire particles
+      for (let i = 0; i < activeParticles.length; i++) {
+        const p = activeParticles[i];
+        if (p.userData.isFire) {
+          p.scale.setScalar(0.7 + Math.sin(time * 8 + p.userData.phase) * 0.3);
+        } else if (p.userData.speedY) {
+          p.position.y += p.userData.speedY;
+          p.scale.addScalar(0.01);
+          if (p.position.y > p.userData.baseY + p.userData.maxHeight) {
+            p.position.y = p.userData.baseY + 1;
+            p.scale.set(1, 1, 1);
+          }
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Window Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>

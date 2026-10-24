@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
 
 @Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -24,11 +26,103 @@ public class CampusWarController {
     private final SectionRepository sectionRepository;
     private final UserRepository userRepository;
     private final FortressRaidLogRepository fortressRaidLogRepository;
+    private final CollegeRepository collegeRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /**
      * GET /api/campus/my
      * Returns current user's war points and their section's own full 3D campus territory.
      */
+
+    /**
+     * GET /api/campus/world
+     * Returns the full continuous 3D world with all colleges and section campuses.
+     * Computes procedural 3D world coordinates (X, Y, Z) for each section plot.
+     */
+    @GetMapping("/world")
+    public ResponseEntity<?> getWorldState() {
+        try {
+            List<College> colleges = collegeRepository.findAll();
+            List<Map<String, Object>> collegeList = new ArrayList<>();
+
+            double radius = 100.0;
+            int totalSectionsCount = 0;
+
+            for (College college : colleges) {
+                List<Section> sections = sectionRepository.findByCollegeId(college.getId());
+                List<Map<String, Object>> secList = new ArrayList<>();
+
+                for (int i = 0; i < sections.size(); i++) {
+                    Section sec = sections.get(i);
+                    List<CampusStructure> structs = ensureSectionStructures(sec);
+
+                    // Procedural circular continuous world layout
+                    double angle = (2 * Math.PI / Math.max(1, sections.size())) * i;
+                    double posX = Math.cos(angle) * radius;
+                    double posZ = Math.sin(angle) * radius;
+
+                    int totalHp = structs.stream().mapToInt(CampusStructure::getHp).sum();
+                    int maxHp = structs.stream().mapToInt(CampusStructure::getMaxHp).sum();
+
+                    Map<String, Object> secMap = new HashMap<>();
+                    secMap.put("sectionId", sec.getId());
+                    secMap.put("sectionName", sec.getName());
+                    secMap.put("campusName", sec.getName() + " Campus");
+                    secMap.put("collegeId", college.getId());
+                    secMap.put("collegeName", college.getName());
+                    secMap.put("worldX", posX);
+                    secMap.put("worldY", 0.0);
+                    secMap.put("worldZ", posZ);
+                    secMap.put("totalBricks", sec.getTotalBricks());
+                    secMap.put("messageCount", sec.getMessageCount());
+                    secMap.put("campusLevel", sec.getCampusLevel());
+                    secMap.put("totalHp", totalHp);
+                    secMap.put("maxHp", maxHp);
+                    secMap.put("structures", structs);
+
+                    secList.add(secMap);
+                    totalSectionsCount++;
+                }
+
+                Map<String, Object> colMap = new HashMap<>();
+                colMap.put("collegeId", college.getId());
+                colMap.put("collegeName", college.getName());
+                colMap.put("sections", secList);
+                collegeList.add(colMap);
+            }
+
+            // Check if user is authenticated
+            Map<String, Object> userContext = new HashMap<>();
+            try {
+                User user = getCurrentUser();
+                if (user != null) {
+                    userContext.put("authenticated", true);
+                    userContext.put("userId", user.getId());
+                    userContext.put("ghostName", user.getGhostName());
+                    userContext.put("personalPoints", user.getWarPoints());
+                    if (user.getPrimarySection() != null) {
+                        userContext.put("mySectionId", user.getPrimarySection().getId());
+                        userContext.put("mySectionName", user.getPrimarySection().getName());
+                    }
+                }
+            } catch (Exception ignored) {
+                userContext.put("authenticated", false);
+                userContext.put("personalPoints", 100);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("colleges", collegeList);
+            response.put("totalSections", totalSectionsCount);
+            response.put("userContext", userContext);
+            response.put("timestamp", System.currentTimeMillis());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("getWorldState error: ", e);
+            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/my")
     public ResponseEntity<?> getMyCampus() {
         try {
@@ -291,6 +385,24 @@ public class CampusWarController {
             resp.put("structureStatus", structure.getStatus());
             resp.put("userWarPoints", user.getWarPoints());
             resp.put("message", message);
+
+
+            // Broadcast live battle update to all players viewing the 3D world
+            try {
+                if (messagingTemplate != null) {
+                    Map<String, Object> wsPayload = new HashMap<>();
+                    wsPayload.put("type", "ATTACK_EVENT");
+                    wsPayload.put("attackerSectionId", user.getPrimarySection() != null ? user.getPrimarySection().getId() : -1L);
+                    wsPayload.put("targetSectionId", targetSectionId);
+                    wsPayload.put("structureKey", structureKey);
+                    wsPayload.put("weapon", weapon);
+                    wsPayload.put("damage", damage);
+                    wsPayload.put("newHp", newHp);
+                    wsPayload.put("status", structure.getStatus());
+                    wsPayload.put("message", message);
+                    messagingTemplate.convertAndSend("/topic/campus/world", (Object) wsPayload);
+                }
+            } catch (Exception ignored) {}
 
             return ResponseEntity.ok(resp);
         } catch (Exception e) {

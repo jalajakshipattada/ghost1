@@ -71,7 +71,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/ws-ghost/**").permitAll() // Allow WebSocket Handshake
                         .requestMatchers("/api/media/download/**").permitAll() // Allow public image viewing
                         .requestMatchers("/api/messages/simulate/**").permitAll() // Allow simulate
-                        .requestMatchers("/", "/index.html", "/campus3d/**", "/static/**", "/*.html", "/*.js", "/*.css", "/assets/**").permitAll()
+                        .requestMatchers("/", "/index.html", "/campus3d/**", "/static/**", "/*.html", "/*.js", "/*.css", "/assets/**", "/api/campus/world").permitAll()
                         .requestMatchers("/error").permitAll() // Allow Spring's error endpoint to return real errors
                         .anyRequest().authenticated()
                 );

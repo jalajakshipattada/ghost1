@@ -27,7 +27,7 @@ public class CampusWarController {
 
     /**
      * GET /api/campus/my
-     * Returns current user's war points and their section's 3D campus structures.
+     * Returns current user's war points and their section's own full 3D campus territory.
      */
     @GetMapping("/my")
     public ResponseEntity<?> getMyCampus() {
@@ -54,7 +54,6 @@ public class CampusWarController {
             long buildingCount = structures.stream().filter(s -> "BUILDING".equals(s.getStatus())).count();
             long lockedCount = structures.stream().filter(s -> "LOCKED".equals(s.getStatus())).count();
 
-            // Find current active building/rebuild project
             CampusStructure currentProject = findActiveProject(structures);
 
             String collegeName = "Campus";
@@ -64,11 +63,19 @@ public class CampusWarController {
                 }
             } catch (Exception ignored) {}
 
+            int msgCount = mySection.getMessageCount();
+            int msgsUntilNextBrick = 5 - (msgCount % 5);
+            if (msgsUntilNextBrick == 0) msgsUntilNextBrick = 5;
+
             Map<String, Object> response = new HashMap<>();
             response.put("sectionId", mySection.getId());
             response.put("sectionName", mySection.getName());
             response.put("collegeName", collegeName);
             response.put("userWarPoints", user.getWarPoints());
+            response.put("sectionMessageCount", msgCount);
+            response.put("messagesUntilNextBrick", msgsUntilNextBrick);
+            response.put("totalBricks", mySection.getTotalBricks());
+            response.put("campusLevel", mySection.getCampusLevel());
             response.put("structures", structures);
             response.put("intactCount", intactCount);
             response.put("damagedCount", damagedCount);
@@ -86,7 +93,8 @@ public class CampusWarController {
 
     /**
      * GET /api/campus/sections
-     * List all rival sections in the same college with campus integrity status.
+     * List all rival sections in the same college with their individual campus status.
+     * Each section has its own full campus map!
      */
     @GetMapping("/sections")
     public ResponseEntity<?> getCollegeSections() {
@@ -104,15 +112,22 @@ public class CampusWarController {
                 long intact = structs.stream().filter(s -> "INTACT".equals(s.getStatus())).count();
                 long destroyed = structs.stream().filter(s -> "DESTROYED".equals(s.getStatus())).count();
                 long damaged = structs.stream().filter(s -> "DAMAGED".equals(s.getStatus())).count();
+                int totalHp = structs.stream().mapToInt(CampusStructure::getHp).sum();
+                int maxHp = structs.stream().mapToInt(CampusStructure::getMaxHp).sum();
 
                 Map<String, Object> item = new HashMap<>();
                 item.put("sectionId", sec.getId());
                 item.put("sectionName", sec.getName());
                 item.put("isMySection", sec.getId().equals(mySecId));
+                item.put("campusLevel", sec.getCampusLevel());
+                item.put("totalBricks", sec.getTotalBricks());
+                item.put("messageCount", sec.getMessageCount());
                 item.put("totalStructures", structs.size());
                 item.put("intactCount", intact);
                 item.put("damagedCount", damaged);
                 item.put("destroyedCount", destroyed);
+                item.put("totalHp", totalHp);
+                item.put("maxHp", maxHp);
                 result.add(item);
             }
 
@@ -125,7 +140,7 @@ public class CampusWarController {
 
     /**
      * GET /api/campus/view/{sectionId}
-     * Inspect a specific section's 3D campus structures to target or view.
+     * Inspect a specific section's own full 3D campus territory to view or attack.
      */
     @GetMapping("/view/{sectionId}")
     public ResponseEntity<?> viewSectionCampus(@PathVariable Long sectionId) {
@@ -138,11 +153,19 @@ public class CampusWarController {
             List<CampusStructure> structures = ensureSectionStructures(sec);
             User user = getCurrentUser();
 
+            int msgCount = sec.getMessageCount();
+            int msgsUntilNextBrick = 5 - (msgCount % 5);
+            if (msgsUntilNextBrick == 0) msgsUntilNextBrick = 5;
+
             Map<String, Object> response = new HashMap<>();
             response.put("sectionId", sec.getId());
             response.put("sectionName", sec.getName());
             response.put("isMySection", user.getPrimarySection() != null && user.getPrimarySection().getId().equals(sec.getId()));
             response.put("userWarPoints", user.getWarPoints());
+            response.put("campusLevel", sec.getCampusLevel());
+            response.put("totalBricks", sec.getTotalBricks());
+            response.put("sectionMessageCount", msgCount);
+            response.put("messagesUntilNextBrick", msgsUntilNextBrick);
             response.put("structures", structures);
 
             return ResponseEntity.ok(response);
@@ -154,7 +177,7 @@ public class CampusWarController {
 
     /**
      * POST /api/campus/attack
-     * Launch gun, small missile, or big missile at a rival campus's specific building/pole.
+     * Launch gun, small missile, or ICBM at a rival campus's specific building.
      */
     @PostMapping("/attack")
     public ResponseEntity<?> attackCampusStructure(@RequestBody Map<String, Object> payload) {
@@ -227,6 +250,7 @@ public class CampusWarController {
             boolean wasDestroyed = newHp == 0;
             if (wasDestroyed) {
                 structure.setStatus("DESTROYED");
+                structure.setBricksPlaced(0);
                 structure.setRebuildPointsContributed(0);
             } else {
                 structure.setStatus("DAMAGED");
@@ -277,7 +301,7 @@ public class CampusWarController {
 
     /**
      * POST /api/campus/rebuild
-     * Classmates pool points to build locked structures or rebuild damaged/destroyed structures.
+     * Classmates can manually contribute 50 War Points to place 1 brick!
      */
     @PostMapping("/rebuild")
     public ResponseEntity<?> rebuildStructure(@RequestBody Map<String, Object> payload) {
@@ -285,8 +309,6 @@ public class CampusWarController {
             User user = getCurrentUser();
             Long structureId = Long.valueOf(payload.get("structureId").toString());
             int points = Integer.parseInt(payload.getOrDefault("points", 50).toString());
-
-            if (points <= 0) points = 50;
 
             CampusStructure structure = campusStructureRepository.findById(structureId).orElse(null);
             if (structure == null) {
@@ -298,54 +320,31 @@ public class CampusWarController {
             }
 
             if ("INTACT".equals(structure.getStatus()) && structure.getHp() == structure.getMaxHp()) {
-                return ResponseEntity.badRequest().body(Map.of("error", structure.getDisplayName() + " is already 100% intact!"));
+                return ResponseEntity.badRequest().body(Map.of("error", structure.getDisplayName() + " is already 100% complete and intact!"));
             }
 
-            int pointsToUse = Math.min(points, user.getWarPoints());
-            if (pointsToUse <= 0) {
-                return ResponseEntity.badRequest().body(Map.of("error", "You do not have enough War Points! Chat in section to earn points (+10 pts per msg)."));
+            if (user.getWarPoints() < 50) {
+                return ResponseEntity.badRequest().body(Map.of("error", "You need at least 50 War Points to place a brick! Chat in section (+10 pts per msg)."));
             }
 
-            int needed = structure.getRebuildPointsRequired() - structure.getRebuildPointsContributed();
-            int actuallyContributed = Math.min(pointsToUse, needed);
-
-            user.setWarPoints(user.getWarPoints() - actuallyContributed);
+            // Deduct 50 War points and place 1 brick!
+            user.setWarPoints(user.getWarPoints() - 50);
             userRepository.save(user);
 
-            structure.setRebuildPointsContributed(structure.getRebuildPointsContributed() + actuallyContributed);
+            Section mySec = structure.getSection();
+            mySec.setTotalBricks(mySec.getTotalBricks() + 1);
+            sectionRepository.save(mySec);
 
-            boolean fullyRebuilt = structure.getRebuildPointsContributed() >= structure.getRebuildPointsRequired();
-            if (fullyRebuilt) {
-                structure.setStatus("INTACT");
-                structure.setHp(structure.getMaxHp());
-                structure.setRebuildPointsContributed(0);
+            advanceSectionBrickConstruction(mySec.getId(), 1, campusStructureRepository, sectionRepository);
 
-                // If building sequentially, unlock the next locked structure!
-                List<CampusStructure> allInSec = campusStructureRepository.findBySectionId(structure.getSection().getId());
-                allInSec.stream()
-                        .filter(s -> "LOCKED".equals(s.getStatus()))
-                        .findFirst()
-                        .ifPresent(next -> {
-                            next.setStatus("BUILDING");
-                            campusStructureRepository.save(next);
-                        });
-            } else {
-                structure.setStatus("BUILDING");
-                double progress = (double) structure.getRebuildPointsContributed() / structure.getRebuildPointsRequired();
-                structure.setHp(Math.max(structure.getHp(), (int) (progress * structure.getMaxHp())));
-            }
-            campusStructureRepository.save(structure);
-
-            String message = fullyRebuilt
-                    ? "✨ COMPLETE! " + structure.getDisplayName() + " is fully constructed and standing tall!"
-                    : "🔨 Contributed " + actuallyContributed + " points to " + structure.getDisplayName() + "! (" + structure.getRebuildPointsContributed() + "/" + structure.getRebuildPointsRequired() + " pts)";
+            CampusStructure updated = campusStructureRepository.findById(structureId).orElse(structure);
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("success", true);
-            resp.put("fullyRebuilt", fullyRebuilt);
-            resp.put("structure", structure);
+            resp.put("structure", updated);
             resp.put("userWarPoints", user.getWarPoints());
-            resp.put("message", message);
+            resp.put("totalBricks", mySec.getTotalBricks());
+            resp.put("message", "🧱 Placed 1 brick on " + updated.getDisplayName() + "! (" + updated.getBricksPlaced() + "/" + updated.getBricksRequired() + " bricks)");
 
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
@@ -356,8 +355,11 @@ public class CampusWarController {
 
     /**
      * POST /api/campus/start-fresh
-     * Resets current section's campus to Stage 1 sequential building mode
-     * so students can build their campus piece-by-piece from blueprints!
+     * Resets current section's campus to Stage 1 foundation:
+     * - Main Academic Citadel starts in BUILDING mode (with scaffolding & crane, 0/10 bricks)
+     * - All other structures LOCKED
+     * - Message counter & brick counter reset
+     * Students can now watch their campus construct brick-by-brick every 5 messages!
      */
     @PostMapping("/start-fresh")
     public ResponseEntity<?> startFreshConstruction() {
@@ -368,47 +370,67 @@ public class CampusWarController {
                 return ResponseEntity.badRequest().body(Map.of("error", "No primary section assigned"));
             }
 
+            mySection.setMessageCount(0);
+            mySection.setTotalBricks(0);
+            mySection.setCampusLevel(1);
+            sectionRepository.save(mySection);
+
             List<CampusStructure> structs = ensureSectionStructures(mySection);
             for (CampusStructure s : structs) {
                 switch (s.getStructureKey()) {
                     case "MAIN_HALL":
-                        s.setStatus("INTACT");
-                        s.setHp(s.getMaxHp());
+                        s.setStatus("BUILDING");
+                        s.setHp(20);
+                        s.setBricksRequired(10);
+                        s.setBricksPlaced(0);
+                        s.setRebuildPointsRequired(100);
                         s.setRebuildPointsContributed(0);
                         break;
                     case "LIGHT_POLE_1":
-                        s.setStatus("BUILDING");
+                        s.setStatus("LOCKED");
                         s.setHp(0);
+                        s.setBricksRequired(5);
+                        s.setBricksPlaced(0);
                         s.setRebuildPointsRequired(30);
                         s.setRebuildPointsContributed(0);
                         break;
                     case "LIGHT_POLE_2":
                         s.setStatus("LOCKED");
                         s.setHp(0);
+                        s.setBricksRequired(5);
+                        s.setBricksPlaced(0);
                         s.setRebuildPointsRequired(30);
                         s.setRebuildPointsContributed(0);
                         break;
                     case "CANTEEN":
                         s.setStatus("LOCKED");
                         s.setHp(0);
+                        s.setBricksRequired(8);
+                        s.setBricksPlaced(0);
                         s.setRebuildPointsRequired(80);
                         s.setRebuildPointsContributed(0);
                         break;
                     case "GARDEN":
                         s.setStatus("LOCKED");
                         s.setHp(0);
+                        s.setBricksRequired(6);
+                        s.setBricksPlaced(0);
                         s.setRebuildPointsRequired(60);
                         s.setRebuildPointsContributed(0);
                         break;
                     case "LIBRARY":
                         s.setStatus("LOCKED");
                         s.setHp(0);
+                        s.setBricksRequired(10);
+                        s.setBricksPlaced(0);
                         s.setRebuildPointsRequired(100);
                         s.setRebuildPointsContributed(0);
                         break;
                     case "LASER_TURRET":
                         s.setStatus("LOCKED");
                         s.setHp(0);
+                        s.setBricksRequired(10);
+                        s.setBricksPlaced(0);
                         s.setRebuildPointsRequired(100);
                         s.setRebuildPointsContributed(0);
                         break;
@@ -418,8 +440,11 @@ public class CampusWarController {
 
             return ResponseEntity.ok(Map.of(
                     "success", true,
-                    "message", "Campus reset to Stage 1! Chat in your group or contribute points to build each structure piece-by-piece!",
-                    "structures", structs
+                    "message", "Campus reset to Stage 1 Foundation! Every 5 messages in section will lay 1 brick on the scaffolding!",
+                    "structures", structs,
+                    "sectionMessageCount", 0,
+                    "messagesUntilNextBrick", 5,
+                    "totalBricks", 0
             ));
         } catch (Exception e) {
             log.error("startFresh error: ", e);
@@ -428,58 +453,86 @@ public class CampusWarController {
     }
 
     /**
-     * Automatic progression: advance section's active campus construction project by +10 points on each message.
+     * Advances section's active campus construction by adding bricks.
+     * Triggered every 5 messages or when classmates contribute points.
      */
-    public static CampusStructure advanceSectionCampusConstruction(Long sectionId, int points, CampusStructureRepository repo) {
+    public static CampusStructure advanceSectionBrickConstruction(
+            Long sectionId,
+            int bricksToAdd,
+            CampusStructureRepository repo,
+            SectionRepository secRepo
+    ) {
         try {
             List<CampusStructure> structs = repo.findBySectionId(sectionId);
             if (structs.isEmpty()) return null;
 
-            // 1. Repair destroyed/damaged structures first
+            // 1. Repair destroyed or damaged structures first
             CampusStructure target = structs.stream()
                     .filter(s -> "DESTROYED".equals(s.getStatus()) || "DAMAGED".equals(s.getStatus()))
                     .findFirst()
                     .orElse(null);
 
-            // 2. Otherwise advance next building under construction or locked
+            // 2. Otherwise advance currently BUILDING structure
             if (target == null) {
                 target = structs.stream()
                         .filter(s -> "BUILDING".equals(s.getStatus()))
                         .findFirst()
-                        .orElseGet(() -> structs.stream()
-                                .filter(s -> "LOCKED".equals(s.getStatus()))
-                                .findFirst()
-                                .orElse(null));
+                        .orElse(null);
+            }
+
+            // 3. Otherwise activate next LOCKED structure
+            if (target == null) {
+                target = structs.stream()
+                        .filter(s -> "LOCKED".equals(s.getStatus()))
+                        .findFirst()
+                        .orElse(null);
+                if (target != null) {
+                    target.setStatus("BUILDING");
+                    target.setBricksPlaced(0);
+                }
             }
 
             if (target != null) {
-                if ("LOCKED".equals(target.getStatus())) {
-                    target.setStatus("BUILDING");
-                }
-                int newContributed = target.getRebuildPointsContributed() + points;
-                target.setRebuildPointsContributed(newContributed);
+                int req = target.getBricksRequired();
+                int currentPlaced = target.getBricksPlaced() + bricksToAdd;
+                target.setBricksPlaced(currentPlaced);
 
-                if (newContributed >= target.getRebuildPointsRequired()) {
+                if (currentPlaced >= req) {
+                    // Completed!
                     target.setStatus("INTACT");
                     target.setHp(target.getMaxHp());
+                    target.setBricksPlaced(req);
                     target.setRebuildPointsContributed(0);
 
-                    // Unlock next
-                    structs.stream()
-                            .filter(s -> "LOCKED".equals(s.getStatus()))
+                    // Unlock next locked structure for construction
+                    final Long targetId = target.getId();
+                    CampusStructure nextLocked = structs.stream()
+                            .filter(s -> !s.getId().equals(targetId) && "LOCKED".equals(s.getStatus()))
                             .findFirst()
-                            .ifPresent(next -> {
-                                next.setStatus("BUILDING");
-                                repo.save(next);
+                            .orElse(null);
+
+                    if (nextLocked != null) {
+                        nextLocked.setStatus("BUILDING");
+                        nextLocked.setBricksPlaced(0);
+                        repo.save(nextLocked);
+                    } else {
+                        // All structures completed! Level up campus!
+                        if (secRepo != null) {
+                            secRepo.findById(sectionId).ifPresent(sec -> {
+                                sec.setCampusLevel(sec.getCampusLevel() + 1);
+                                secRepo.save(sec);
                             });
+                        }
+                    }
                 } else {
-                    double progress = (double) newContributed / target.getRebuildPointsRequired();
-                    target.setHp(Math.max(target.getHp(), (int) (progress * target.getMaxHp())));
+                    target.setStatus("BUILDING");
+                    double progress = (double) currentPlaced / req;
+                    target.setHp(Math.max(10, (int) (progress * target.getMaxHp())));
                 }
                 return repo.save(target);
             }
         } catch (Exception e) {
-            log.error("advanceSectionCampusConstruction error: {}", e.getMessage());
+            log.error("advanceSectionBrickConstruction error: {}", e.getMessage());
         }
         return null;
     }
@@ -502,8 +555,8 @@ public class CampusWarController {
 
     /**
      * Initializes default sequential campus structures:
-     * Stage 1: Main Hall (INTACT)
-     * Stage 2: North Light Pole (BUILDING)
+     * Stage 1: Main Hall (BUILDING / foundation)
+     * Stage 2: North Light Pole (LOCKED)
      * Stage 3: South Light Pole (LOCKED)
      * Stage 4: Canteen (LOCKED)
      * Stage 5: Garden (LOCKED)
@@ -520,10 +573,12 @@ public class CampusWarController {
                 CampusStructure.builder()
                         .section(section)
                         .structureKey("MAIN_HALL")
-                        .displayName("Main Academic Block")
+                        .displayName("Main Academic Citadel")
                         .hp(200)
                         .maxHp(200)
-                        .status("INTACT") // Starts completed as the core campus center
+                        .status("INTACT")
+                        .bricksRequired(10)
+                        .bricksPlaced(10)
                         .rebuildPointsRequired(100)
                         .rebuildPointsContributed(0)
                         .coordX(0.0).coordY(0.0).coordZ(0.0)
@@ -532,10 +587,12 @@ public class CampusWarController {
                 CampusStructure.builder()
                         .section(section)
                         .structureKey("LIGHT_POLE_1")
-                        .displayName("North Light Pole")
+                        .displayName("North Cyber Light Pole")
                         .hp(40)
                         .maxHp(40)
-                        .status("BUILDING") // Current active project (30 pts to complete!)
+                        .status("BUILDING")
+                        .bricksRequired(5)
+                        .bricksPlaced(1)
                         .rebuildPointsRequired(30)
                         .rebuildPointsContributed(0)
                         .coordX(-80.0).coordY(0.0).coordZ(90.0)
@@ -544,10 +601,12 @@ public class CampusWarController {
                 CampusStructure.builder()
                         .section(section)
                         .structureKey("LIGHT_POLE_2")
-                        .displayName("South Light Pole")
+                        .displayName("South Cyber Light Pole")
                         .hp(40)
                         .maxHp(40)
                         .status("LOCKED")
+                        .bricksRequired(5)
+                        .bricksPlaced(0)
                         .rebuildPointsRequired(30)
                         .rebuildPointsContributed(0)
                         .coordX(80.0).coordY(0.0).coordZ(90.0)
@@ -560,6 +619,8 @@ public class CampusWarController {
                         .hp(100)
                         .maxHp(100)
                         .status("LOCKED")
+                        .bricksRequired(8)
+                        .bricksPlaced(0)
                         .rebuildPointsRequired(80)
                         .rebuildPointsContributed(0)
                         .coordX(-140.0).coordY(0.0).coordZ(-70.0)
@@ -572,6 +633,8 @@ public class CampusWarController {
                         .hp(60)
                         .maxHp(60)
                         .status("LOCKED")
+                        .bricksRequired(6)
+                        .bricksPlaced(0)
                         .rebuildPointsRequired(60)
                         .rebuildPointsContributed(0)
                         .coordX(0.0).coordY(0.0).coordZ(120.0)
@@ -584,6 +647,8 @@ public class CampusWarController {
                         .hp(120)
                         .maxHp(120)
                         .status("LOCKED")
+                        .bricksRequired(10)
+                        .bricksPlaced(0)
                         .rebuildPointsRequired(100)
                         .rebuildPointsContributed(0)
                         .coordX(140.0).coordY(0.0).coordZ(-70.0)
@@ -596,6 +661,8 @@ public class CampusWarController {
                         .hp(80)
                         .maxHp(80)
                         .status("LOCKED")
+                        .bricksRequired(10)
+                        .bricksPlaced(0)
                         .rebuildPointsRequired(100)
                         .rebuildPointsContributed(0)
                         .coordX(0.0).coordY(0.0).coordZ(-140.0)

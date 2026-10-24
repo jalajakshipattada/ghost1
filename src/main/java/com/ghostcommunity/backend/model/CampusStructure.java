@@ -38,7 +38,7 @@ public class CampusStructure {
 
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private String status = "INTACT"; // INTACT, DAMAGED, DESTROYED
+    private String status = "INTACT"; // INTACT, DAMAGED, DESTROYED, BUILDING, LOCKED
 
     @Column(name = "rebuild_points_required", nullable = false)
     @Builder.Default
@@ -47,6 +47,14 @@ public class CampusStructure {
     @Column(name = "rebuild_points_contributed", nullable = false)
     @Builder.Default
     private int rebuildPointsContributed = 0;
+
+    @Column(name = "bricks_required")
+    @Builder.Default
+    private Integer bricksRequired = 10;
+
+    @Column(name = "bricks_placed")
+    @Builder.Default
+    private Integer bricksPlaced = 0;
 
     @Column(name = "coord_x")
     private double coordX;
@@ -59,6 +67,14 @@ public class CampusStructure {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public int getBricksRequired() {
+        return bricksRequired == null || bricksRequired <= 0 ? 10 : bricksRequired;
+    }
+
+    public int getBricksPlaced() {
+        return bricksPlaced == null ? 0 : bricksPlaced;
+    }
 
     @PrePersist
     @PreUpdate

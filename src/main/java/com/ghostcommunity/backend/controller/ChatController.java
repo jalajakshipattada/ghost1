@@ -5,11 +5,13 @@ import com.ghostcommunity.backend.model.Section;
 import com.ghostcommunity.backend.model.User;
 import com.ghostcommunity.backend.payload.ChatMessagePayload;
 import com.ghostcommunity.backend.payload.ChatResponsePayload;
+import com.ghostcommunity.backend.repository.CampusStructureRepository;
 import com.ghostcommunity.backend.repository.MessageRepository;
 import com.ghostcommunity.backend.repository.SectionRepository;
 import com.ghostcommunity.backend.repository.UserRepository;
 import com.ghostcommunity.backend.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -17,6 +19,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 public class ChatController {
@@ -25,13 +28,12 @@ public class ChatController {
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final MessageRepository messageRepository;
-    private final com.ghostcommunity.backend.repository.CampusStructureRepository campusStructureRepository;
+    private final CampusStructureRepository campusStructureRepository;
 
     // Mobile app sends message to: /app/chat.section.1
     @MessageMapping("/chat.section.{sectionId}")
     public void sendMessageToSection(@DestinationVariable Long sectionId, @Payload ChatMessagePayload chatMessage, Authentication authentication) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        // Use JOIN FETCH query to load primarySection + college in ONE go â€” avoids LazyInitializationException!
         User author = userRepository.findByIdWithSectionAndCollege(userDetails.getId()).orElseThrow();
         Section destinationSection = sectionRepository.findById(sectionId).orElseThrow();
 
@@ -40,7 +42,7 @@ public class ChatController {
             throw new RuntimeException("Security Violation: You cannot chat in another college's room.");
         }
 
-        // 1. Save to Database securely (Backend privately records the real author)
+        // 1. Save to Database securely
         Message message = Message.builder()
                 .author(author)
                 .college(author.getCollege())
@@ -51,16 +53,25 @@ public class ChatController {
         
         message = messageRepository.save(message);
 
-        // Award +10 War Points for every chat message!
+        // RULE: Per each msg add 10 points to a particular user (used to attack)
         author.setWarPoints(author.getWarPoints() + 10);
         userRepository.save(author);
 
-        // Also advance section's campus construction project by +10 points!
+        // RULE: Each 5 messages in section used to build a campus brick by brick
         try {
-            if (author.getPrimarySection() != null) {
-                CampusWarController.advanceSectionCampusConstruction(author.getPrimarySection().getId(), 10, campusStructureRepository);
+            int newCount = destinationSection.getMessageCount() + 1;
+            destinationSection.setMessageCount(newCount);
+
+            if (newCount % 5 == 0) {
+                destinationSection.setTotalBricks(destinationSection.getTotalBricks() + 1);
+                CampusWarController.advanceSectionBrickConstruction(
+                        destinationSection.getId(), 1, campusStructureRepository, sectionRepository
+                );
             }
-        } catch (Exception ignored) {}
+            sectionRepository.save(destinationSection);
+        } catch (Exception e) {
+            log.error("Failed to advance section message/brick count: {}", e.getMessage());
+        }
 
         // 2. Build the PUBLIC response (Strips Real Name, sends ONLY Ghost Name + Primary Section)
         ChatResponsePayload response = ChatResponsePayload.builder()
@@ -95,16 +106,28 @@ public class ChatController {
         
         message = messageRepository.save(message);
 
-        // Award +10 War Points for every chat message!
+        // Rule: +10 War Points to author
         author.setWarPoints(author.getWarPoints() + 10);
         userRepository.save(author);
 
-        // Also advance section's campus construction project by +10 points!
+        // Advance primary section's brick construction pool on every 5 msgs
         try {
             if (author.getPrimarySection() != null) {
-                CampusWarController.advanceSectionCampusConstruction(author.getPrimarySection().getId(), 10, campusStructureRepository);
+                Section primSec = author.getPrimarySection();
+                int newCount = primSec.getMessageCount() + 1;
+                primSec.setMessageCount(newCount);
+
+                if (newCount % 5 == 0) {
+                    primSec.setTotalBricks(primSec.getTotalBricks() + 1);
+                    CampusWarController.advanceSectionBrickConstruction(
+                            primSec.getId(), 1, campusStructureRepository, sectionRepository
+                    );
+                }
+                sectionRepository.save(primSec);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.error("Failed to advance allcollege message/brick count: {}", e.getMessage());
+        }
 
         ChatResponsePayload response = ChatResponsePayload.builder()
                 .messageId(message.getId())
@@ -121,5 +144,3 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/college/" + author.getCollege().getId(), response);
     }
 }
-
-

@@ -19,4 +19,28 @@ public class Section {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "college_id", nullable = false)
     private College college;
+
+    @Column(name = "message_count")
+    @Builder.Default
+    private Integer messageCount = 0;
+
+    @Column(name = "total_bricks")
+    @Builder.Default
+    private Integer totalBricks = 0;
+
+    @Column(name = "campus_level")
+    @Builder.Default
+    private Integer campusLevel = 1;
+
+    public int getMessageCount() {
+        return messageCount == null ? 0 : messageCount;
+    }
+
+    public int getTotalBricks() {
+        return totalBricks == null ? 0 : totalBricks;
+    }
+
+    public int getCampusLevel() {
+        return campusLevel == null ? 1 : campusLevel;
+    }
 }

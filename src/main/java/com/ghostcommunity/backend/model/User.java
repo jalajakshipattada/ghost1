@@ -52,9 +52,17 @@ public class User {
     @Column(nullable = false)
     private boolean isAdmin = false;
 
-    @Column(name = "war_points", nullable = false)
+    @Column(name = "war_points")
     @Builder.Default
-    private int warPoints = 100;
+    private Integer warPoints = 100;
+
+    public int getWarPoints() {
+        return warPoints != null ? warPoints : 100;
+    }
+
+    public void setWarPoints(int warPoints) {
+        this.warPoints = warPoints;
+    }
 
     @Column(name = "reset_token")
     private String resetToken;

@@ -50,6 +50,10 @@ public class ChatController {
         
         message = messageRepository.save(message);
 
+        // Award +10 War Points for every chat message!
+        author.setWarPoints(author.getWarPoints() + 10);
+        userRepository.save(author);
+
         // 2. Build the PUBLIC response (Strips Real Name, sends ONLY Ghost Name + Primary Section)
         ChatResponsePayload response = ChatResponsePayload.builder()
                 .messageId(message.getId())
@@ -82,6 +86,10 @@ public class ChatController {
                 .build();
         
         message = messageRepository.save(message);
+
+        // Award +10 War Points for every chat message!
+        author.setWarPoints(author.getWarPoints() + 10);
+        userRepository.save(author);
 
         ChatResponsePayload response = ChatResponsePayload.builder()
                 .messageId(message.getId())

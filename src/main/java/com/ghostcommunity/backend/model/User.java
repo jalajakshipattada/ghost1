@@ -52,6 +52,10 @@ public class User {
     @Column(nullable = false)
     private boolean isAdmin = false;
 
+    @Column(name = "war_points", nullable = false)
+    @Builder.Default
+    private int warPoints = 100;
+
     @Column(name = "reset_token")
     private String resetToken;
 

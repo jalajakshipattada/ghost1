@@ -12,6 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #01040a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
@@ -459,19 +460,69 @@
     }
 
     // =========================================================================
-    // 2. PROCEDURAL HIGH-RESOLUTION TEXTURE GENERATORS
+    // 2. MODERN ARCHITECTURAL TEXTURES (CLEAN, SLEEK, NON-CHECKERED)
     // =========================================================================
     
-    // Hexagonal glowing forcefield dome texture
+    // Sleek glass curtain wall with horizontal floor slabs and vertical architectural mullions
+    function createModernCurtainWallTexture(tintColor, glowColor) {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
+      const ctx = c.getContext('2d');
+
+      // Base dark graphite panel
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Floor horizontal spandrel bands (concrete/steel floor slabs)
+      const floorHeight = 128;
+      for (let y = 0; y < 512; y += floorHeight) {
+        // Floor spandrel plate
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, y, 512, 28);
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(0, y + 26, 512, 2);
+
+        // Glass window section
+        const glassTop = y + 28;
+        const glassHeight = floorHeight - 32;
+
+        // Tinted glass gradient
+        const grad = ctx.createLinearGradient(0, glassTop, 0, glassTop + glassHeight);
+        grad.addColorStop(0, tintColor);
+        grad.addColorStop(1, '#020617');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, glassTop, 512, glassHeight);
+
+        // Warm linear interior light strip (office lighting)
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(0, glassTop + 14, 512, 6);
+        ctx.globalAlpha = 1.0;
+
+        // Vertical slender mullions (architectural window frames)
+        const mullionSpacing = 42;
+        ctx.fillStyle = '#0a0f1d';
+        for (let x = 0; x < 512; x += mullionSpacing) {
+          ctx.fillRect(x, glassTop, 3, glassHeight);
+        }
+      }
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+
+    // Hexagonal forcefield dome texture
     function createHexForcefieldTexture() {
       const c = document.createElement('canvas');
       c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
       ctx.clearRect(0, 0, 512, 512);
 
-      const r = 24;
+      const r = 28;
       const h = r * Math.sqrt(3);
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
       ctx.lineWidth = 1.5;
 
       for (let y = 0; y < 512 + h; y += h) {
@@ -491,202 +542,112 @@
         }
       }
 
-      // Pulse gradient glow
-      const grad = ctx.createRadialGradient(256, 256, 10, 256, 256, 256);
-      grad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
-      grad.addColorStop(1, 'rgba(2, 6, 23, 0.0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 512, 512);
-
       const tex = new THREE.CanvasTexture(c);
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(8, 4);
+      tex.repeat.set(6, 3);
       return tex;
     }
 
-    // High-tech glass curtain wall facade texture
-    function createFacadeGlassTexture(baseHex, winHex) {
-      const c = document.createElement('canvas');
-      c.width = 512; c.height = 512;
-      const ctx = c.getContext('2d');
-
-      // Base wall gradient
-      ctx.fillStyle = baseHex;
-      ctx.fillRect(0, 0, 512, 512);
-
-      // Floor horizontal steel bands
-      ctx.fillStyle = '#0f172a';
-      for (let f = 0; f < 512; f += 64) {
-        ctx.fillRect(0, f, 512, 8);
-      }
-
-      // Windows grid
-      const cols = 8;
-      const rows = 8;
-      const w = 512 / cols;
-      const h = 512 / rows;
-
-      for (let r = 0; r < rows; r++) {
-        for (let col = 0; col < cols; col++) {
-          const isLit = (r + col * 3) % 4 !== 0;
-          const grad = ctx.createLinearGradient(col * w + 4, r * h + 10, col * w + 4, (r + 1) * h - 4);
-          if (isLit) {
-            grad.addColorStop(0, winHex);
-            grad.addColorStop(1, '#0284c7');
-          } else {
-            grad.addColorStop(0, '#0a101d');
-            grad.addColorStop(1, '#020617');
-          }
-          ctx.fillStyle = grad;
-          ctx.fillRect(col * w + 4, r * h + 10, w - 8, h - 14);
-
-          // Glass reflection highlight
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-          ctx.lineWidth = 1;
-          ctx.strokeRect(col * w + 4, r * h + 10, w - 8, h - 14);
-        }
-      }
-
-      const tex = new THREE.CanvasTexture(c);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      return tex;
-    }
-
-    // Regulation Collegiate Basketball Court Texture
+    // Regulation Collegiate Basketball Court
     function createBasketballCourtTexture() {
       const c = document.createElement('canvas');
       c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
 
-      // Burnt orange outer court perimeter
-      ctx.fillStyle = '#c2410c';
+      ctx.fillStyle = '#c2410c'; // Burnt orange apron
       ctx.fillRect(0, 0, 512, 512);
 
-      // Navy blue inner playing surface
-      ctx.fillStyle = '#1e3a8a';
-      ctx.fillRect(32, 48, 448, 416);
+      ctx.fillStyle = '#1e3a8a'; // Navy blue court
+      ctx.fillRect(36, 48, 440, 416);
 
-      // Regulation White Lines
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 4;
-      ctx.strokeRect(32, 48, 448, 416);
+      ctx.strokeRect(36, 48, 440, 416);
 
       // Half-court line
       ctx.beginPath();
-      ctx.moveTo(256, 48);
-      ctx.lineTo(256, 464);
+      ctx.moveTo(256, 48); ctx.lineTo(256, 464);
       ctx.stroke();
 
       // Center circle
       ctx.beginPath();
-      ctx.arc(256, 256, 50, 0, Math.PI * 2);
+      ctx.arc(256, 256, 52, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.fillStyle = '#0369a1';
+      ctx.fillStyle = '#0284c7';
       ctx.fill();
 
-      // Key areas (left and right)
-      ctx.strokeRect(32, 196, 96, 120);
-      ctx.strokeRect(384, 196, 96, 120);
+      // Key lanes
+      ctx.strokeRect(36, 196, 96, 120);
+      ctx.strokeRect(380, 196, 96, 120);
 
       // 3-point arcs
       ctx.beginPath();
-      ctx.arc(32, 256, 120, -Math.PI / 2.3, Math.PI / 2.3);
+      ctx.arc(36, 256, 120, -Math.PI / 2.3, Math.PI / 2.3);
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(480, 256, 120, Math.PI - Math.PI / 2.3, Math.PI + Math.PI / 2.3);
+      ctx.arc(476, 256, 120, Math.PI - Math.PI / 2.3, Math.PI + Math.PI / 2.3);
       ctx.stroke();
 
-      const tex = new THREE.CanvasTexture(c);
-      return tex;
+      return new THREE.CanvasTexture(c);
     }
 
-    // Roman Numerals Clock Dial Texture
+    // Golden Roman Clock Dial
     function createClockTexture() {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 256;
       const ctx = c.getContext('2d');
 
-      ctx.fillStyle = '#0f172a';
+      ctx.fillStyle = '#0a0f1d';
       ctx.fillRect(0, 0, 256, 256);
 
       ctx.beginPath();
-      ctx.arc(128, 128, 116, 0, Math.PI * 2);
+      ctx.arc(128, 128, 114, 0, Math.PI * 2);
       ctx.fillStyle = '#020617';
       ctx.fill();
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 5;
       ctx.strokeStyle = '#f59e0b';
       ctx.stroke();
 
-      // Hour markers
       ctx.strokeStyle = '#fef08a';
       ctx.lineWidth = 4;
       for (let i = 0; i < 12; i++) {
         const ang = (i * Math.PI) / 6;
         ctx.beginPath();
-        ctx.moveTo(128 + Math.cos(ang) * 92, 128 + Math.sin(ang) * 92);
+        ctx.moveTo(128 + Math.cos(ang) * 94, 128 + Math.sin(ang) * 94);
         ctx.lineTo(128 + Math.cos(ang) * 110, 128 + Math.sin(ang) * 110);
         ctx.stroke();
       }
 
-      // Hands
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 5;
       ctx.strokeStyle = '#ffffff';
       ctx.beginPath();
-      ctx.moveTo(128, 128);
-      ctx.lineTo(128, 50);
+      ctx.moveTo(128, 128); ctx.lineTo(128, 56);
       ctx.stroke();
 
       ctx.lineWidth = 4;
       ctx.strokeStyle = '#38bdf8';
       ctx.beginPath();
-      ctx.moveTo(128, 128);
-      ctx.lineTo(180, 128);
+      ctx.moveTo(128, 128); ctx.lineTo(175, 128);
       ctx.stroke();
 
-      const tex = new THREE.CanvasTexture(c);
-      return tex;
+      return new THREE.CanvasTexture(c);
     }
 
-    // Stone Pavers Texture
-    function createStonePaverTexture() {
-      const c = document.createElement('canvas');
-      c.width = 256; c.height = 256;
-      const ctx = c.getContext('2d');
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(0, 0, 256, 256);
-
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-      ctx.lineWidth = 2;
-      for (let x = 0; x < 256; x += 32) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 256); ctx.stroke();
-      }
-      for (let y = 0; y < 256; y += 32) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke();
-      }
-      const tex = new THREE.CanvasTexture(c);
-      tex.wrapS = THREE.RepeatWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(12, 12);
-      return tex;
-    }
-
-    // Asphalt Road Texture
+    // Dark Asphalt Road with dashed yellow line
     function createAsphaltRoadTexture() {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 256;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#090d16';
+      ctx.fillStyle = '#0d131f';
       ctx.fillRect(0, 0, 256, 256);
 
-      ctx.strokeStyle = '#facc15';
+      ctx.strokeStyle = '#f59e0b';
       ctx.lineWidth = 4;
       ctx.setLineDash([16, 16]);
       ctx.beginPath();
-      ctx.moveTo(128, 0);
-      ctx.lineTo(128, 256);
+      ctx.moveTo(128, 0); ctx.lineTo(128, 256);
       ctx.stroke();
 
       const tex = new THREE.CanvasTexture(c);
@@ -697,51 +658,77 @@
     }
 
     // =========================================================================
-    // 3. ARCHITECTURAL 3D MESH GENERATION (HIGH FIDELITY)
+    // 3. ARCHITECTURAL 3D MESH GENERATION (GLTF + MODERN ARCHITECTURE)
     // =========================================================================
     
-    let facadeBlueTex, facadeAmberTex, courtTex, clockTex, roadTex, paverTex, hexDomeTex;
-    let beaconMesh, searchlightMesh, fountainSprayMesh;
-    let domeMesh;
+    let facadeCyanTex, facadeAmberTex, courtTex, clockTex, roadTex, hexDomeTex;
+    let beaconMesh, fountainSprayMesh, domeMesh;
+    let gltfLoader = null;
 
     function initMaterials() {
+      if (typeof THREE.GLTFLoader !== 'undefined') {
+        gltfLoader = new THREE.GLTFLoader();
+      }
       hexDomeTex = createHexForcefieldTexture();
-      facadeBlueTex = createFacadeGlassTexture('#0b1329', '#38bdf8');
-      facadeAmberTex = createFacadeGlassTexture('#1c1306', '#f59e0b');
+      facadeCyanTex = createModernCurtainWallTexture('#0369a1', 'rgba(56, 189, 248, 0.4)');
+      facadeAmberTex = createModernCurtainWallTexture('#78350f', 'rgba(245, 158, 11, 0.4)');
       courtTex = createBasketballCourtTexture();
       clockTex = createClockTexture();
       roadTex = createAsphaltRoadTexture();
-      paverTex = createStonePaverTexture();
     }
 
-    // 1. ADMIN BLOCK TOWER & ARMORY
-    function createAdminBlock(lm) {
+    // Helper: Attempts to load GLB first, otherwise renders the fallback group
+    function loadGLBWithFallback(lm, glbName, fallbackFn) {
+      const g = new THREE.Group();
+      g.position.set(lm.x, 0, lm.z);
+      
+      const fallbackGroup = fallbackFn(lm);
+      g.add(fallbackGroup);
+
+      if (gltfLoader) {
+        gltfLoader.load(
+          'models/' + glbName,
+          (gltf) => {
+            const model = gltf.scene;
+            model.traverse(child => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+            // Replace fallback with real GLB model
+            g.remove(fallbackGroup);
+            model.position.set(0, 0, 0);
+            g.add(model);
+          },
+          undefined,
+          (err) => {
+            // Keep clean architectural fallback
+          }
+        );
+      }
+      return g;
+    }
+
+    // 1. ADMIN BLOCK TOWER (CLEAN STEPPED CITADEL)
+    function createAdminFallback(lm) {
       const g = new THREE.Group();
 
-      // Main lower terrace base
-      const baseGeo = new THREE.BoxGeometry(18, 12, 16);
-      const baseMat = new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.35, metalness: 0.2 });
-      const base = new THREE.Mesh(baseGeo, baseMat);
-      base.position.set(lm.x, 6.0, lm.z);
+      // Base Podium (Dark slate with entrance portico)
+      const base = new THREE.Mesh(new THREE.BoxGeometry(18, 9, 15), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
+      base.position.y = 4.5;
       base.castShadow = true; base.receiveShadow = true;
       g.add(base);
 
-      // Entrance Portico with columns
-      const portico = new THREE.Mesh(new THREE.BoxGeometry(10, 1.2, 4), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 }));
-      portico.position.set(lm.x, 5.0, lm.z + 9.5);
-      portico.castShadow = true;
-      g.add(portico);
+      // Floor slab trim
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(19, 0.8, 16), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+      slab.position.y = 9.4;
+      slab.castShadow = true;
+      g.add(slab);
 
-      for (let p = -1; p <= 1; p += 2) {
-        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 5.0, 12), new THREE.MeshStandardMaterial({ color: 0xe2e8f0 }));
-        col.position.set(lm.x + p * 4.2, 2.5, lm.z + 10.5);
-        col.castShadow = true;
-        g.add(col);
-      }
-
-      // Central Clock Tower Shaft
-      const tower = new THREE.Mesh(new THREE.BoxGeometry(8.5, 18, 8.5), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 }));
-      tower.position.set(lm.x, 21.0, lm.z);
+      // Middle Tower Shaft
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(9, 16, 9), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 }));
+      tower.position.y = 17.5;
       tower.castShadow = true;
       g.add(tower);
 
@@ -749,156 +736,158 @@
       for (let i = 0; i < 4; i++) {
         const cf = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2), new THREE.MeshBasicMaterial({ map: clockTex }));
         const rotY = (i * Math.PI) / 2;
-        cf.position.set(lm.x + Math.sin(rotY) * 4.35, 23, lm.z + Math.cos(rotY) * 4.35);
+        cf.position.set(Math.sin(rotY) * 4.6, 19.5, Math.cos(rotY) * 4.6);
         cf.rotation.y = rotY;
         g.add(cf);
       }
 
-      // Top Glass Spire
-      const spire = new THREE.Mesh(new THREE.ConeGeometry(4.8, 14, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.15 }));
+      // Crown Beveled Spire (Slender Architectural Roof)
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(5.0, 10, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.85, roughness: 0.2 }));
       spire.rotation.y = Math.PI / 4;
-      spire.position.set(lm.x, 37.0, lm.z);
+      spire.position.y = 30.5;
       spire.castShadow = true;
       g.add(spire);
 
-      // Searchlight Beam shooting into space
-      const beamGeo = new THREE.CylinderGeometry(0.5, 4.5, 55, 16);
-      const beamMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending });
-      searchlightMesh = new THREE.Mesh(beamGeo, beamMat);
-      searchlightMesh.position.set(lm.x, 65, lm.z);
-      g.add(searchlightMesh);
-
-      // Blinking Warning Beacon
-      beaconMesh = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-      beaconMesh.position.set(lm.x, 44.5, lm.z);
+      // Subtle Pulsing Red Warning Beacon (NO giant white beam!)
+      beaconMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+      beaconMesh.position.y = 36.0;
       g.add(beaconMesh);
 
       return g;
     }
 
-    // 2. ACADEMIC BLOCK (MODERN GLASS CANTILEVER)
-    function createAcademicBlock(lm) {
+    function createAdminBlock(lm) {
+      return loadGLBWithFallback(lm, 'admin_block.glb', createAdminFallback);
+    }
+
+    // 2. ACADEMIC BLOCK (MODERN SLATE & GLASS)
+    function createAcademicFallback(lm) {
       const g = new THREE.Group();
 
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(18, 12, 14), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.3 }));
-      bld.position.set(lm.x, 6.0, lm.z);
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(18, 11, 13), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.3 }));
+      bld.position.y = 5.5;
       bld.castShadow = true; bld.receiveShadow = true;
       g.add(bld);
 
-      // Cantilever wing
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(10, 4.5, 16), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8 }));
-      wing.position.set(lm.x - 3.5, 9.5, lm.z + 1.5);
+      // Overhanging cantilever wing
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(11, 4.5, 15), new THREE.MeshStandardMaterial({ color: 0x0369a1, metalness: 0.7 }));
+      wing.position.set(-3.5, 8.5, 1.0);
       wing.castShadow = true;
       g.add(wing);
 
-      // Rooftop ventilation
+      // Rooftop solar / AC units
       for (let i = 0; i < 3; i++) {
-        const vent = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 2.0, 10), new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 }));
-        vent.position.set(lm.x - 4.5 + i * 4.5, 13.0, lm.z - 2.5);
+        const vent = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.5, 2.5), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+        vent.position.set(-4.5 + i * 4.5, 11.8, -2.5);
         vent.castShadow = true;
         g.add(vent);
       }
       return g;
     }
 
-    // 3. LIBRARY ROTUNDA & ARCHIVE
-    function createLibrary(lm) {
+    function createAcademicBlock(lm) {
+      return loadGLBWithFallback(lm, 'academic_block.glb', createAcademicFallback);
+    }
+
+    // 3. LIBRARY ROTUNDA
+    function createLibraryFallback(lm) {
       const g = new THREE.Group();
 
-      // Curved Cylindrical Rotunda
-      const rot = new THREE.Mesh(new THREE.CylinderGeometry(8.5, 9.0, 12, 20), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.35 }));
-      rot.position.set(lm.x, 6.0, lm.z);
+      const rot = new THREE.Mesh(new THREE.CylinderGeometry(8.5, 9.0, 11, 24), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
+      rot.position.y = 5.5;
       rot.castShadow = true; rot.receiveShadow = true;
       g.add(rot);
 
-      // Glass Dome Skylight
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(6.5, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.7 }));
-      dome.position.set(lm.x, 12.0, lm.z);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(6.5, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.15, transparent: true, opacity: 0.8 }));
+      dome.position.y = 11.0;
       dome.castShadow = true;
       g.add(dome);
 
       return g;
     }
 
+    function createLibrary(lm) {
+      return loadGLBWithFallback(lm, 'library.glb', createLibraryFallback);
+    }
+
     // 4. CAFETERIA & LOUNGE ATRIUM
-    function createCafeteria(lm) {
+    function createCafeteriaFallback(lm) {
       const g = new THREE.Group();
 
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(16, 8, 12), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.4 }));
-      bld.position.set(lm.x, 4.0, lm.z);
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(16, 7.5, 11), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.4 }));
+      bld.position.y = 3.75;
       bld.castShadow = true; bld.receiveShadow = true;
       g.add(bld);
 
-      // Outdoor wooden deck
-      const deck = new THREE.Mesh(new THREE.BoxGeometry(16, 0.4, 7), new THREE.MeshStandardMaterial({ color: 0x78350f }));
-      deck.position.set(lm.x, 0.2, lm.z + 8.5);
+      // Wooden terrace deck
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(16, 0.4, 7), new THREE.MeshStandardMaterial({ color: 0x582900 }));
+      deck.position.set(0, 0.2, 8.5);
       deck.receiveShadow = true;
       g.add(deck);
 
-      // Umbrella Cafe Tables
-      const uColors = [0xef4444, 0x06b6d4, 0xf59e0b, 0x10b981];
+      // Cafe Umbrellas & Tables
+      const uCols = [0xd97706, 0x0284c7, 0x16a34a, 0xd97706];
       for (let t = 0; t < 4; t++) {
-        const ox = lm.x - 5.5 + t * 3.6;
-        const oz = lm.z + 8.5;
-        const table = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.8, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        table.position.set(ox, 0.8, oz);
+        const ox = -5.5 + t * 3.6;
+        const table = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.8, 12), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        table.position.set(ox, 0.8, 8.5);
         table.castShadow = true;
         g.add(table);
 
-        const umb = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.4, 8), new THREE.MeshBasicMaterial({ color: uColors[t] }));
-        umb.position.set(ox, 3.2, oz);
+        const umb = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.4, 12), new THREE.MeshStandardMaterial({ color: uCols[t] }));
+        umb.position.set(ox, 3.2, 8.5);
         umb.castShadow = true;
         g.add(umb);
       }
       return g;
     }
 
+    function createCafeteria(lm) {
+      return loadGLBWithFallback(lm, 'cafeteria.glb', createCafeteriaFallback);
+    }
+
     // 5. TOURNAMENT BASKETBALL ARENA (HIGH DETAIL)
     function createSportsCourt(lm) {
       const g = new THREE.Group();
+      g.position.set(lm.x, 0, lm.z);
 
-      // Outer Court Perimeter
-      const court = new THREE.Mesh(new THREE.BoxGeometry(22, 0.6, 14), new THREE.MeshStandardMaterial({ map: courtTex, roughness: 0.5 }));
-      court.position.set(lm.x, 0.3, lm.z);
+      const court = new THREE.Mesh(new THREE.BoxGeometry(22, 0.4, 14), new THREE.MeshStandardMaterial({ map: courtTex, roughness: 0.5 }));
+      court.position.y = 0.2;
       court.receiveShadow = true;
       g.add(court);
 
-      // 3D Basketball Hoops (Both Ends)
+      // 3D Hoops (Both Ends)
       for (let h = -1; h <= 1; h += 2) {
-        // Steel Pole
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 5.2, 8), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 }));
-        pole.position.set(lm.x + h * 9.5, 2.6, lm.z);
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 5.0, 8), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 }));
+        pole.position.set(h * 9.5, 2.5, 0);
         pole.castShadow = true;
         g.add(pole);
 
-        // Acrylic Backboard
         const board = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 2.8), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
-        board.position.set(lm.x + h * 9.1, 4.8, lm.z);
+        board.position.set(h * 9.1, 4.6, 0);
         board.castShadow = true;
         g.add(board);
 
-        // Orange Rim
         const rim = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 6, 16), new THREE.MeshBasicMaterial({ color: 0xea580c }));
         rim.rotation.x = Math.PI / 2;
-        rim.position.set(lm.x + h * 8.4, 4.3, lm.z);
+        rim.position.set(h * 8.4, 4.1, 0);
         g.add(rim);
 
-        // Net (white cylinder wireframe)
         const net = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.35, 0.7, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true }));
-        net.position.set(lm.x + h * 8.4, 3.9, lm.z);
+        net.position.set(h * 8.4, 3.7, 0);
         g.add(net);
       }
 
-      // 4 Corner Stadium Floodlight Towers
+      // 4 Floodlight Pylons
       for (let px = -1; px <= 1; px += 2) {
         for (let pz = -1; pz <= 1; pz += 2) {
-          const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 8.5, 8), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
-          tower.position.set(lm.x + px * 10.5, 4.25, lm.z + pz * 6.5);
+          const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 8.0, 8), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
+          tower.position.set(px * 10.5, 4.0, pz * 6.5);
           tower.castShadow = true;
           g.add(tower);
 
-          const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 0.7), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
-          lamp.position.set(lm.x + px * 10.5, 8.6, lm.z + pz * 6.5);
+          const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 0.6), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+          lamp.position.set(px * 10.5, 8.2, pz * 6.5);
           g.add(lamp);
         }
       }
@@ -908,43 +897,44 @@
     // 6. CENTRAL FOUNTAIN & PLAZA
     function createCentralFountain(lm) {
       const g = new THREE.Group();
+      g.position.set(lm.x, 0, lm.z);
 
-      const basin = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 6.2, 1.0, 24), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }));
-      basin.position.set(lm.x, 0.5, lm.z);
+      const basin = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 6.2, 0.9, 24), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }));
+      basin.position.y = 0.45;
       basin.castShadow = true; basin.receiveShadow = true;
       g.add(basin);
 
-      const water = new THREE.Mesh(new THREE.CylinderGeometry(5.3, 5.3, 0.8, 24), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.1, metalness: 0.8 }));
-      water.position.set(lm.x, 0.65, lm.z);
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(5.3, 5.3, 0.7, 24), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.1, metalness: 0.8 }));
+      water.position.y = 0.55;
       g.add(water);
 
-      const tier2 = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.8, 1.8, 16), new THREE.MeshStandardMaterial({ color: 0x475569 }));
-      tier2.position.set(lm.x, 1.4, lm.z);
+      const tier2 = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.8, 1.6, 16), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+      tier2.position.y = 1.3;
       tier2.castShadow = true;
       g.add(tier2);
 
-      fountainSprayMesh = new THREE.Mesh(new THREE.ConeGeometry(1.2, 4.5, 12), new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.75 }));
-      fountainSprayMesh.position.set(lm.x, 3.8, lm.z);
+      fountainSprayMesh = new THREE.Mesh(new THREE.ConeGeometry(1.2, 4.0, 12), new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.7 }));
+      fountainSprayMesh.position.y = 3.4;
       g.add(fountainSprayMesh);
 
-      // Cyan light inside fountain
-      const fLight = new THREE.PointLight(0x06b6d4, 1.2, 15);
-      fLight.position.set(lm.x, 2.5, lm.z);
+      const fLight = new THREE.PointLight(0x06b6d4, 1.2, 14);
+      fLight.position.y = 2.2;
       g.add(fLight);
 
       return g;
     }
 
-    // 7. PARKING LOT WITH 6 3D CARS
+    // 7. PARKING LOT WITH 6 METALLIC CARS
     function createParkingCars(lm) {
       const g = new THREE.Group();
+      g.position.set(lm.x, 0, lm.z);
 
-      const lot = new THREE.Mesh(new THREE.BoxGeometry(18, 0.4, 13), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85 }));
-      lot.position.set(lm.x, 0.2, lm.z);
+      const lot = new THREE.Mesh(new THREE.BoxGeometry(18, 0.3, 13), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 }));
+      lot.position.y = 0.15;
       lot.receiveShadow = true;
       g.add(lot);
 
-      const carColors = [0xef4444, 0x38bdf8, 0xffffff, 0xf59e0b, 0x10b981, 0xa855f7];
+      const carColors = [0xef4444, 0x0284c7, 0xe2e8f0, 0xf59e0b, 0x10b981, 0x8b5cf6];
       const carSlots = [
         { x: -6, z: -3.5 }, { x: -2, z: -3.5 }, { x: 2, z: -3.5 }, { x: 6, z: -3.5 },
         { x: -3, z: 3.5 }, { x: 3, z: 3.5 }
@@ -952,70 +942,78 @@
 
       carSlots.forEach((slot, idx) => {
         const car = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.8, 1.5), new THREE.MeshStandardMaterial({ color: carColors[idx], metalness: 0.85, roughness: 0.2 }));
-        body.position.y = 0.6; body.castShadow = true;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.7, 1.4), new THREE.MeshStandardMaterial({ color: carColors[idx], metalness: 0.8, roughness: 0.25 }));
+        body.position.y = 0.55; body.castShadow = true;
         car.add(body);
 
-        const cab = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 1.3), new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.1 }));
-        cab.position.set(-0.25, 1.2, 0); cab.castShadow = true;
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.65, 1.2), new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.1 }));
+        cab.position.set(-0.25, 1.1, 0); cab.castShadow = true;
         car.add(cab);
 
-        car.position.set(lm.x + slot.x, 0.2, lm.z + slot.z);
+        car.position.set(slot.x, 0.15, slot.z);
         g.add(car);
       });
 
       return g;
     }
 
-    // 8. RESEARCH LABS & SATELLITE MAST
-    function createLabs(lm) {
+    // 8. RESEARCH LABS
+    function createLabsFallback(lm) {
       const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(15, 10, 12), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.35 }));
-      bld.position.set(lm.x, 5.0, lm.z);
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(15, 9.5, 12), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
+      bld.position.y = 4.75;
       bld.castShadow = true; bld.receiveShadow = true;
       g.add(bld);
 
-      // Satellite Dish
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 5, 8), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
-      mast.position.set(lm.x, 12.5, lm.z);
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 4.5, 8), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
+      mast.position.y = 11.5;
       g.add(mast);
 
       const dish = new THREE.Mesh(new THREE.SphereGeometry(1.8, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, side: THREE.DoubleSide }));
       dish.rotation.x = -Math.PI / 3;
-      dish.position.set(lm.x, 14.5, lm.z);
+      dish.position.y = 13.5;
       g.add(dish);
 
       return g;
     }
 
+    function createLabs(lm) {
+      return loadGLBWithFallback(lm, 'labs.glb', createLabsFallback);
+    }
+
     // 9. STUDENT HOSTEL
-    function createHostel(lm) {
+    function createHostelFallback(lm) {
       const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(16, 11, 11), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.5 }));
-      bld.position.set(lm.x, 5.5, lm.z);
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(16, 10.5, 11), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.45 }));
+      bld.position.y = 5.25;
       bld.castShadow = true; bld.receiveShadow = true;
       g.add(bld);
       return g;
     }
 
+    function createHostel(lm) {
+      return loadGLBWithFallback(lm, 'hostel.glb', createHostelFallback);
+    }
+
     // 10. MAIN CAMPUS GATE
     function createMainGate(lm) {
       const g = new THREE.Group();
+      g.position.set(lm.x, 0, lm.z);
       for (let p = -1; p <= 1; p += 2) {
-        const pillar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 7, 2.4), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6 }));
-        pillar.position.set(lm.x + p * 6, 3.5, lm.z);
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 6.5, 2.4), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6 }));
+        pillar.position.set(p * 6, 3.25, 0);
         pillar.castShadow = true;
         g.add(pillar);
       }
       const arch = new THREE.Mesh(new THREE.BoxGeometry(14.4, 1.4, 2.4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8 }));
-      arch.position.set(lm.x, 7.2, lm.z);
+      arch.position.set(0, 7.0, 0);
       arch.castShadow = true;
       g.add(arch);
 
       return g;
     }
 
-    // LUSH 3D PINE & OAK TREES
+    // REALISTIC ARCHITECTURAL CYPRESS & PINE TREES
     function createRealisticTrees(parent) {
       const treeCoords = [
         { x: -14, z: 12 }, { x: -8, z: 16 }, { x: 8, z: 16 }, { x: 14, z: 12 },
@@ -1023,29 +1021,24 @@
         { x: 0, z: 22 }, { x: -6, z: 24 }, { x: 6, z: 24 }
       ];
 
-      treeCoords.forEach((tc, idx) => {
+      treeCoords.forEach((tc) => {
         const tree = new THREE.Group();
-        // Trunk
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 3.5, 8), new THREE.MeshStandardMaterial({ color: 0x3d2817 }));
-        trunk.position.y = 1.75;
+        // Slender Dark Trunk
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 3.2, 8), new THREE.MeshStandardMaterial({ color: 0x271911 }));
+        trunk.position.y = 1.6;
         trunk.castShadow = true;
         tree.add(trunk);
 
-        if (idx % 2 === 0) {
-          // Pine tree (tiered cones)
-          const colors = [0x15803d, 0x16a34a, 0x22c55e];
-          for (let i = 0; i < 3; i++) {
-            const cone = new THREE.Mesh(new THREE.ConeGeometry(2.4 - i * 0.5, 2.6, 8), new THREE.MeshStandardMaterial({ color: colors[i], roughness: 0.8 }));
-            cone.position.y = 3.6 + i * 1.6;
-            cone.castShadow = true;
-            tree.add(cone);
-          }
-        } else {
-          // Rounded leafy oak tree
-          const foliage = new THREE.Mesh(new THREE.SphereGeometry(2.5, 8, 8), new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.8 }));
-          foliage.position.y = 4.2;
-          foliage.castShadow = true;
-          tree.add(foliage);
+        // Slender Architectural Cypress / Pine Foliage
+        const colors = [0x064e3b, 0x14532d, 0x166534];
+        for (let i = 0; i < 3; i++) {
+          const cone = new THREE.Mesh(
+            new THREE.ConeGeometry(2.0 - i * 0.45, 2.8, 8),
+            new THREE.MeshStandardMaterial({ color: colors[i], roughness: 0.8 })
+          );
+          cone.position.y = 3.2 + i * 1.5;
+          cone.castShadow = true;
+          tree.add(cone);
         }
 
         tree.position.set(tc.x, 0, tc.z);
@@ -1177,7 +1170,7 @@
     }
 
     const LANDMARKS_DEF = [
-      { id: 'admin', key: 'ADMIN_BLOCK', name: 'Admin Block', icon: '🏛️', color: 'blue', x: 0, z: -16, badgeY: 48, hp: 500, maxHp: 500, status: 'INTACT', builder: createAdminBlock },
+      { id: 'admin', key: 'ADMIN_BLOCK', name: 'Admin Block', icon: '🏛️', color: 'blue', x: 0, z: -16, badgeY: 38, hp: 500, maxHp: 500, status: 'INTACT', builder: createAdminBlock },
       { id: 'academic', key: 'ACADEMIC_BLOCK', name: 'Academic Block', icon: '🎓', color: 'purple', x: -22, z: -14, badgeY: 18, hp: 400, maxHp: 400, status: 'INTACT', builder: createAcademicBlock },
       { id: 'library', key: 'LIBRARY', name: 'Library', icon: '📖', color: 'blue', x: 22, z: -14, badgeY: 18, hp: 350, maxHp: 350, status: 'INTACT', builder: createLibrary },
       { id: 'cafeteria', key: 'CAFETERIA', name: 'Cafeteria', icon: '☕', color: 'amber', x: 25, z: 5, badgeY: 14, hp: 300, maxHp: 300, status: 'INTACT', builder: createCafeteria },
@@ -1227,7 +1220,8 @@
     function initThree() {
       const container = document.getElementById('webgl-canvas');
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x01040a);
+      scene.background = new THREE.Color(0x020617); // Deep cosmic night
+      scene.fog = new THREE.FogExp2(0x020617, 0.007);
 
       camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 1500);
       camera.position.set(0, 52, 68);
@@ -1258,13 +1252,13 @@
     }
 
     function setupLighting() {
-      ambientLight = new THREE.AmbientLight(0x1e293b, 0.9);
+      ambientLight = new THREE.AmbientLight(0x0f172a, 1.1);
       scene.add(ambientLight);
 
-      hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.6);
+      hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x020617, 0.6);
       scene.add(hemiLight);
 
-      dirLight = new THREE.DirectionalLight(0xe0f2fe, 1.4);
+      dirLight = new THREE.DirectionalLight(0xe0f2fe, 1.5);
       dirLight.position.set(38, 55, 30);
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 1024;
@@ -1284,7 +1278,7 @@
       exteriorSceneGroup = new THREE.Group();
       scene.add(exteriorSceneGroup);
 
-      // 1. Cybernetic Island Platform Base
+      // 1. Sleek Cybernetic Island Platform Base
       const baseGeo = new THREE.CylinderGeometry(46, 49, 4, 64);
       const baseMat = new THREE.MeshStandardMaterial({ color: 0x090f1d, metalness: 0.85, roughness: 0.3 });
       const islandBase = new THREE.Mesh(baseGeo, baseMat);
@@ -1300,16 +1294,16 @@
       rimRing.position.y = 0.05;
       exteriorSceneGroup.add(rimRing);
 
-      // 2. Main Quad Grass
+      // 2. Main Quad Lawn (Rich Dark Forest Grass)
       const quadGeo = new THREE.CircleGeometry(44.5, 64);
-      const quadMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.85, metalness: 0.1 });
+      const quadMat = new THREE.MeshStandardMaterial({ color: 0x064e3b, roughness: 0.85, metalness: 0.1 });
       const quad = new THREE.Mesh(quadGeo, quadMat);
       quad.rotation.x = -Math.PI / 2;
       quad.position.y = 0.02;
       quad.receiveShadow = true;
       exteriorSceneGroup.add(quad);
 
-      // 3. Asphalt Loop Ring Road
+      // 3. Dark Asphalt Ring Road
       const roadGeo = new THREE.RingGeometry(35, 41, 64);
       const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.8 });
       const road = new THREE.Mesh(roadGeo, roadMat);
@@ -1319,15 +1313,13 @@
       exteriorSceneGroup.add(road);
 
       // 4. Stone Paver Walkways
-      const pathGeo = new THREE.PlaneGeometry(5.0, 36);
-      const pathMat = new THREE.MeshStandardMaterial({ map: paverTex, roughness: 0.6 });
-      const mainPath = new THREE.Mesh(pathGeo, pathMat);
+      const pathMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
+      const mainPath = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 36), pathMat);
       mainPath.rotation.x = -Math.PI / 2;
       mainPath.position.set(0, 0.04, 8);
       mainPath.receiveShadow = true;
       exteriorSceneGroup.add(mainPath);
 
-      // Crosswalk path
       const crossPath = new THREE.Mesh(new THREE.PlaneGeometry(36, 4.0), pathMat);
       crossPath.rotation.x = -Math.PI / 2;
       crossPath.position.set(0, 0.04, -8);
@@ -1339,7 +1331,7 @@
       const domeMat = new THREE.MeshBasicMaterial({
         map: hexDomeTex,
         transparent: true,
-        opacity: 0.35,
+        opacity: 0.3,
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide
       });
@@ -1347,7 +1339,7 @@
       domeMesh.position.y = -0.5;
       exteriorSceneGroup.add(domeMesh);
 
-      // 6. Buildings
+      // 6. Buildings (GLTF + Modern Architectural Meshes)
       campuses[currentCampusId].landmarks.forEach(lm => {
         if (lm.builder) {
           const bldGroup = lm.builder(lm);
@@ -1357,12 +1349,12 @@
         }
       });
 
-      // 7. Trees
+      // 7. Cypress & Pine Trees
       createRealisticTrees(exteriorSceneGroup);
     }
 
     // =========================================================================
-    // 6. SYNCHRONIZED SMART HOLOGRAPHIC BADGES (NON-OVERLAPPING)
+    // 6. SYNCHRONIZED SMART HOLOGRAPHIC BADGES
     // =========================================================================
     function createFloatingHTMLBadges(campusId) {
       const layer = document.getElementById('pin-layer');
@@ -1535,7 +1527,6 @@
 
       const isDem = room.status === 'DEMOLISHED';
 
-      // 1. Room Floor
       const floorMat = new THREE.MeshStandardMaterial({
         color: isDem ? 0x050505 : 0x1e293b,
         roughness: isDem ? 0.95 : 0.3
@@ -1544,7 +1535,6 @@
       floor.position.y = -0.4;
       interiorSceneGroup.add(floor);
 
-      // 2. Room Walls
       const wallMat = new THREE.MeshStandardMaterial({
         color: isDem ? 0x111111 : 0x0f172a,
         roughness: 0.6
@@ -1561,7 +1551,6 @@
       rightWall.position.set(10.6, 4.5, 0);
       interiorSceneGroup.add(rightWall);
 
-      // 3. Interior Props
       room.props.forEach(p => {
         const propGroup = new THREE.Group();
         const propMat = new THREE.MeshStandardMaterial({
@@ -1578,7 +1567,6 @@
         p.meshGroup = propGroup;
       });
 
-      // Ceiling Light
       const cLight = new THREE.PointLight(isDem ? 0xef4444 : 0x38bdf8, isDem ? 0.6 : 1.4, 25);
       cLight.position.set(0, 7.5, 0);
       interiorSceneGroup.add(cLight);
@@ -1587,7 +1575,6 @@
       controls.target.set(0, 2.5, 0);
     }
 
-    // Reticle Prop Aiming via Raycaster
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -1648,7 +1635,6 @@
       reticle.style.top = y + 'px';
     }
 
-    // Precision Strike on Selected Prop
     document.getElementById('precision-strike-btn').onclick = () => {
       if (!selectedProp || selectedProp.hp <= 0) return;
       if (userPoints < 50) {
@@ -1675,7 +1661,6 @@
       }
     };
 
-    // Whole-Room Demolition (400 PTS)
     document.getElementById('whole-room-demolish-btn').onclick = () => {
       if (!currentInteriorRoom) return;
       if (userPoints < 400) {
@@ -1686,7 +1671,6 @@
       updatePointsDisplay();
       playSound('nuke');
 
-      // Trigger screen shake
       document.getElementById('app-body').classList.add('shaking');
       setTimeout(() => document.getElementById('app-body').classList.remove('shaking'), 600);
 
@@ -1708,7 +1692,6 @@
       alert(`💥 KABOOM! ${currentInteriorRoom.name} Demolished to Ashes!`);
     };
 
-    // Messaging Simulation
     document.getElementById('send-msg-btn').onclick = () => {
       playSound('click');
       userPoints += 50;
@@ -1722,37 +1705,37 @@
       }
     }
 
-    // Audio Mute Toggle
     document.getElementById('sound-btn').onclick = () => {
       isSoundEnabled = !isSoundEnabled;
       document.getElementById('sound-btn').innerText = isSoundEnabled ? '🔊' : '🔇';
     };
 
-    // Day/Night Toggle
+    // Day/Night Toggle (Atmospheric Dusk / Cyber Night)
     document.getElementById('daynight-btn').onclick = () => {
       playSound('click');
       isNight = !isNight;
       if (isNight) {
-        scene.background = new THREE.Color(0x01040a);
+        scene.background = new THREE.Color(0x020617);
+        scene.fog.color.setHex(0x020617);
         dirLight.color.setHex(0xe0f2fe);
         dirLight.intensity = 1.4;
-        ambientLight.intensity = 0.9;
+        ambientLight.intensity = 1.0;
       } else {
-        scene.background = new THREE.Color(0x38bdf8);
+        // Sophisticated architectural twilight dusk (NOT electric cartoon cyan!)
+        scene.background = new THREE.Color(0x0f172a);
+        scene.fog.color.setHex(0x0f172a);
         dirLight.color.setHex(0xfef08a);
-        dirLight.intensity = 1.9;
-        ambientLight.intensity = 1.2;
+        dirLight.intensity = 1.8;
+        ambientLight.intensity = 1.3;
       }
     };
 
-    // Center View
     document.getElementById('center-btn').onclick = () => {
       playSound('click');
       camera.position.set(0, 52, 68);
       controls.target.set(0, 4, 4);
     };
 
-    // Orbit 360 Tour
     let isAutoTour = false;
     document.getElementById('tour-btn').onclick = () => {
       playSound('click');
@@ -1770,20 +1753,17 @@
 
       const time = clock.getElapsedTime();
 
-      // Fountain spray pulse
       if (fountainSprayMesh) {
         const s = 1.0 + Math.sin(time * 3.5) * 0.15;
         fountainSprayMesh.scale.set(s, s * 1.1, s);
       }
 
-      // Blinking Spire Beacon
       if (beaconMesh) {
         beaconMesh.material.color.setHex((Math.sin(time * 6) > 0) ? 0xef4444 : 0x7f1d1d);
       }
 
-      // Pulsing Forcefield Dome
       if (domeMesh) {
-        domeMesh.material.opacity = 0.3 + Math.sin(time * 1.8) * 0.12;
+        domeMesh.material.opacity = 0.25 + Math.sin(time * 1.8) * 0.1;
       }
 
       updateBadgePositions();

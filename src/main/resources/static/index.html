@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Nexus 3D Cyber Campus Tactical Realm</title>
+  <title>Nexus 3D Collegiate Realm</title>
   <script>
     window.onerror = function(msg, url, line) {
       console.error('JS Error: ' + msg + ' on line ' + line);
@@ -15,63 +15,88 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #01040a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #070d18; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
     #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; outline: none; }
     
     .hud-layer { position: absolute; z-index: 10; pointer-events: none; width: 100%; height: 100%; }
     .interactive { pointer-events: auto; }
 
-    /* Top Tactical Telemetry Header */
+    /* Top Section Bar */
     .tactical-header {
       position: absolute; top: 10px; left: 10px; right: 10px;
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
     .citadel-badge {
-      background: rgba(10, 15, 30, 0.92); backdrop-filter: blur(16px);
-      border: 1px solid rgba(56, 189, 248, 0.65); border-radius: 20px;
+      background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(16px);
+      border: 1.5px solid rgba(56, 189, 248, 0.7); border-radius: 20px;
       padding: 6px 14px; display: flex; align-items: center; gap: 8px;
       cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.85);
     }
+    .citadel-badge:active { transform: scale(0.97); }
     .citadel-name { font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 0.5px; }
-    .citadel-tag { font-size: 9px; padding: 2px 6px; border-radius: 6px; font-weight: 800; background: rgba(56, 189, 248, 0.25); color: #38bdf8; border: 1px solid #38bdf8; }
+    .citadel-tag { font-size: 9px; padding: 2px 6px; border-radius: 6px; font-weight: 800; }
+    .citadel-tag.home { background: rgba(16, 185, 129, 0.25); color: #10b981; border: 1px solid #10b981; }
+    .citadel-tag.rival { background: rgba(239, 68, 68, 0.25); color: #ef4444; border: 1px solid #ef4444; }
     
     .stats-group { display: flex; gap: 6px; align-items: center; }
     .stat-chip {
-      background: rgba(10, 15, 30, 0.92); backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px;
+      background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px;
       padding: 6px 10px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800;
     }
     .stat-chip.pts { color: #f59e0b; border-color: rgba(245, 158, 11, 0.5); }
     .stat-chip.shield { color: #38bdf8; border-color: rgba(56, 189, 248, 0.5); }
-    .stat-chip.bld { color: #10b981; border-color: rgba(16, 185, 129, 0.5); }
 
     .action-circle-btn {
-      background: rgba(10, 15, 30, 0.92); border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(15, 23, 42, 0.94); border: 1px solid rgba(255,255,255,0.15);
       border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
       cursor: pointer; font-size: 14px; color: #cbd5e1;
     }
 
+    /* Section Campus Switcher Modal (Scout & Attack Other Sections) */
+    .section-switch-modal {
+      position: absolute; top: 54px; left: 10px; width: 310px;
+      background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(20px);
+      border: 1.5px solid #38bdf8; border-radius: 16px;
+      padding: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.95);
+      display: none; flex-direction: column; gap: 8px; z-index: 60;
+    }
+    .section-switch-modal.open { display: flex; }
+    .switch-modal-title { font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: 900; letter-spacing: 0.8px; margin-bottom: 2px; }
+    .section-opt-btn {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 12px; font-weight: 800; cursor: pointer;
+    }
+    .section-opt-btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(14, 165, 233, 0.35)); border-color: #38bdf8;
+    }
+    .section-opt-btn:active { transform: scale(0.98); }
+    .opt-tag { font-size: 9px; padding: 2px 6px; border-radius: 6px; font-weight: 800; }
+    .opt-tag.home { background: rgba(16, 185, 129, 0.25); color: #10b981; }
+    .opt-tag.raid { background: rgba(239, 68, 68, 0.25); color: #ef4444; }
+
     /* Floating View Controls */
     .view-controls {
-      position: absolute; top: 54px; left: 10px; display: flex; gap: 6px;
+      position: absolute; top: 54px; right: 10px; display: flex; gap: 6px;
     }
     .view-btn {
-      background: rgba(10, 15, 30, 0.9); border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 12px; padding: 5px 10px; font-size: 10px; font-weight: 800; color: #cbd5e1;
+      background: rgba(15, 23, 42, 0.92); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px; padding: 6px 10px; font-size: 10px; font-weight: 800; color: #cbd5e1;
       cursor: pointer; display: flex; align-items: center; gap: 4px;
     }
     .view-btn:active { background: rgba(56, 189, 248, 0.3); color: #fff; }
 
-    /* Tactical Mini-Map Radar (Bottom Left) */
+    /* Mini-Map Radar */
     .tactical-radar {
-      position: absolute; bottom: 85px; left: 12px; width: 85px; height: 85px;
-      border-radius: 50%; background: rgba(10, 15, 30, 0.92); backdrop-filter: blur(12px);
+      position: absolute; bottom: 85px; left: 12px; width: 90px; height: 90px;
+      border-radius: 50%; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(12px);
       border: 2px solid rgba(56, 189, 248, 0.6); box-shadow: 0 0 25px rgba(0,0,0,0.9), 0 0 15px rgba(56, 189, 248, 0.3);
       overflow: hidden; pointer-events: auto; display: flex; align-items: center; justify-content: center;
     }
     .radar-sweep-beam {
       position: absolute; inset: 0;
-      background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0.35) 0deg, transparent 60deg, transparent 360deg);
+      background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0.4) 0deg, transparent 60deg, transparent 360deg);
       border-radius: 50%; animation: radarSpin 2.5s linear infinite;
     }
     .radar-rings {
@@ -108,7 +133,7 @@
     .pin-badge {
       display: flex; align-items: center; gap: 6px;
       padding: 5px 10px; border-radius: 18px;
-      background: rgba(10, 16, 32, 0.94); backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px);
       box-shadow: 0 4px 20px rgba(0,0,0,0.85);
       border: 1.5px solid #38bdf8;
       white-space: nowrap; font-size: 11px; font-weight: 800; color: #fff;
@@ -130,9 +155,9 @@
     /* Multi-Room Selection Modal (20 Rooms System) */
     .room-selector-modal {
       position: absolute; top: 50px; left: 14px; right: 14px; bottom: 85px;
-      background: rgba(10, 16, 32, 0.98); backdrop-filter: blur(20px);
-      border: 1px solid #38bdf8; border-radius: 18px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.9);
+      background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(20px);
+      border: 1.5px solid #38bdf8; border-radius: 18px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.95);
       display: none; flex-direction: column; z-index: 65; overflow: hidden;
     }
     .room-selector-modal.open { display: flex; }
@@ -177,12 +202,12 @@
       display: none; justify-content: space-between; align-items: center; z-index: 55;
     }
     .interior-back-btn {
-      background: rgba(10, 16, 32, 0.94); border: 1px solid #38bdf8;
+      background: rgba(15, 23, 42, 0.95); border: 1px solid #38bdf8;
       border-radius: 20px; padding: 6px 14px; font-size: 11px; font-weight: 800; color: #38bdf8;
       cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.8); display: flex; align-items: center; gap: 6px;
     }
     .interior-room-title {
-      background: rgba(10, 16, 32, 0.94); border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(255,255,255,0.15);
       border-radius: 16px; padding: 6px 14px; font-size: 11px; font-weight: 800; color: #fff;
     }
 
@@ -213,7 +238,7 @@
     }
     .precision-strike-btn {
       background: linear-gradient(135deg, #ef4444, #dc2626); border: 1px solid #f87171;
-      border-radius: 14px; padding: 10px; font-size: 13px; font-weight: 900; color: #fff;
+      border-radius: 14px; padding: 11px; font-size: 13px; font-weight: 900; color: #fff;
       display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
       box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
     }
@@ -232,7 +257,7 @@
       display: flex; flex-direction: column; gap: 6px; z-index: 20; pointer-events: none;
     }
     .compact-chat-pill {
-      pointer-events: auto; background: rgba(10, 16, 32, 0.92); backdrop-filter: blur(12px);
+      pointer-events: auto; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(12px);
       border: 1px solid rgba(16, 185, 129, 0.6); border-radius: 14px; padding: 8px 14px;
       display: flex; justify-content: space-between; align-items: center; cursor: pointer;
       box-shadow: 0 4px 18px rgba(0,0,0,0.8);
@@ -244,7 +269,7 @@
       pointer-events: auto; display: flex; gap: 6px;
     }
     .weapon-card {
-      flex: 1; background: rgba(10, 16, 32, 0.92); backdrop-filter: blur(14px);
+      flex: 1; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px);
       border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 7px 4px;
       display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
       box-shadow: 0 4px 16px rgba(0,0,0,0.7);
@@ -262,7 +287,6 @@
     }
     .fire-strike-trigger:disabled { background: #334155; border-color: #475569; color: #94a3b8; box-shadow: none; }
 
-    /* Screen Shake Animation on Detonation */
     @keyframes screenShake {
       0%, 100% { transform: translate(0, 0); }
       10%, 30%, 50%, 70%, 90% { transform: translate(-6px, 4px); }
@@ -280,9 +304,9 @@
     <!-- Top Tactical Telemetry Header -->
     <div class="tactical-header interactive" id="main-header">
       <div class="citadel-badge" id="campus-select-btn">
-        <span style="font-size: 13px;">🛡️</span>
+        <span style="font-size: 14px;">🛡️</span>
         <span class="citadel-name" id="current-campus-name">CSE-1 Citadel</span>
-        <span class="citadel-tag" id="campus-role-tag">MY BASE</span>
+        <span class="citadel-tag home" id="campus-role-tag">MY BASE ▾</span>
       </div>
       
       <div class="stats-group">
@@ -292,11 +316,47 @@
       </div>
     </div>
 
+    <!-- Section Campus Switcher Modal -->
+    <div class="section-switch-modal interactive" id="section-switch-modal">
+      <div class="switch-modal-title">Select Campus Territory (Scout & Raid)</div>
+      
+      <div class="section-opt-btn active" data-campus="cse1">
+        <div>
+          <div>🛡️ CSE-1 Citadel</div>
+          <div style="font-size: 10px; color: #94a3b8;">Home Territory • Level 5</div>
+        </div>
+        <span class="opt-tag home">MY BASE</span>
+      </div>
+
+      <div class="section-opt-btn" data-campus="cse2">
+        <div>
+          <div>⚔️ CSE-2 Outpost</div>
+          <div style="font-size: 10px; color: #94a3b8;">Rival Section • Level 4</div>
+        </div>
+        <span class="opt-tag raid">RAID</span>
+      </div>
+
+      <div class="section-opt-btn" data-campus="ise">
+        <div>
+          <div>⚔️ ISE Cyber Matrix</div>
+          <div style="font-size: 10px; color: #94a3b8;">Rival Section • Level 5</div>
+        </div>
+        <span class="opt-tag raid">RAID</span>
+      </div>
+
+      <div class="section-opt-btn" data-campus="ece">
+        <div>
+          <div>⚔️ ECE Power Grid</div>
+          <div style="font-size: 10px; color: #94a3b8;">Rival Section • Level 3</div>
+        </div>
+        <span class="opt-tag raid">RAID</span>
+      </div>
+    </div>
+
     <!-- View Controls -->
     <div class="view-controls interactive" id="view-controls">
       <div class="view-btn" id="center-btn">🎯 Center</div>
       <div class="view-btn" id="tour-btn">🔄 Orbit 360°</div>
-      <div class="view-btn" id="daynight-btn">☀️ Day/Night</div>
     </div>
 
     <!-- Mini-Map Radar -->
@@ -423,12 +483,12 @@
           osc.stop(now + 0.05);
         } else if (type === 'laser') {
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(1100, now);
-          osc.frequency.exponentialRampToValueAtTime(120, now + 0.25);
+          osc.frequency.setValueAtTime(1200, now);
+          osc.frequency.exponentialRampToValueAtTime(150, now + 0.22);
           gain.gain.setValueAtTime(0.35, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
           osc.start(now);
-          osc.stop(now + 0.25);
+          osc.stop(now + 0.22);
         } else if (type === 'missile') {
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(320, now);
@@ -440,19 +500,19 @@
         } else if (type === 'explosion') {
           osc.type = 'square';
           osc.frequency.setValueAtTime(180, now);
-          osc.frequency.exponentialRampToValueAtTime(40, now + 0.45);
-          gain.gain.setValueAtTime(0.4, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+          osc.frequency.exponentialRampToValueAtTime(35, now + 0.55);
+          gain.gain.setValueAtTime(0.45, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.6);
           osc.start(now);
-          osc.stop(now + 0.5);
+          osc.stop(now + 0.6);
         } else if (type === 'nuke') {
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(260, now);
-          osc.frequency.exponentialRampToValueAtTime(30, now + 0.9);
-          gain.gain.setValueAtTime(0.6, now);
-          gain.gain.linearRampToValueAtTime(0.01, now + 0.95);
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(25, now + 1.1);
+          gain.gain.setValueAtTime(0.65, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 1.15);
           osc.start(now);
-          osc.stop(now + 0.95);
+          osc.stop(now + 1.15);
         }
       } catch (e) {
         console.warn('Audio SFX error', e);
@@ -460,49 +520,41 @@
     }
 
     // =========================================================================
-    // 2. MODERN ARCHITECTURAL TEXTURES (CLEAN, SLEEK, NON-CHECKERED)
+    // 2. PROCEDURAL REALISTIC ARCHITECTURAL & INTERIOR TEXTURES
     // =========================================================================
     
-    // Sleek glass curtain wall with horizontal floor slabs and vertical architectural mullions
+    // Modern ribbon window curtain wall facade
     function createModernCurtainWallTexture(tintColor, glowColor) {
       const c = document.createElement('canvas');
       c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
 
-      // Base dark graphite panel
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, 512, 512);
 
-      // Floor horizontal spandrel bands (concrete/steel floor slabs)
       const floorHeight = 128;
       for (let y = 0; y < 512; y += floorHeight) {
-        // Floor spandrel plate
         ctx.fillStyle = '#1e293b';
         ctx.fillRect(0, y, 512, 28);
-        ctx.fillStyle = '#334155';
+        ctx.fillStyle = '#475569';
         ctx.fillRect(0, y + 26, 512, 2);
 
-        // Glass window section
         const glassTop = y + 28;
         const glassHeight = floorHeight - 32;
 
-        // Tinted glass gradient
         const grad = ctx.createLinearGradient(0, glassTop, 0, glassTop + glassHeight);
         grad.addColorStop(0, tintColor);
         grad.addColorStop(1, '#020617');
         ctx.fillStyle = grad;
         ctx.fillRect(0, glassTop, 512, glassHeight);
 
-        // Warm linear interior light strip (office lighting)
         ctx.fillStyle = glowColor;
-        ctx.globalAlpha = 0.5;
-        ctx.fillRect(0, glassTop + 14, 512, 6);
+        ctx.globalAlpha = 0.55;
+        ctx.fillRect(0, glassTop + 16, 512, 6);
         ctx.globalAlpha = 1.0;
 
-        // Vertical slender mullions (architectural window frames)
-        const mullionSpacing = 42;
         ctx.fillStyle = '#0a0f1d';
-        for (let x = 0; x < 512; x += mullionSpacing) {
+        for (let x = 0; x < 512; x += 44) {
           ctx.fillRect(x, glassTop, 3, glassHeight);
         }
       }
@@ -511,6 +563,54 @@
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
       return tex;
+    }
+
+    // Interior Room Ceramic Floor Tile Texture
+    function createRoomTileTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, 256, 256);
+
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(4, 4, 120, 120);
+      ctx.fillRect(132, 4, 120, 120);
+      ctx.fillRect(4, 132, 120, 120);
+      ctx.fillRect(132, 132, 120, 120);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(6, 6);
+      return tex;
+    }
+
+    // University Blackboard with Chalk Equations Texture
+    function createBlackboardTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 256;
+      const ctx = c.getContext('2d');
+
+      ctx.fillStyle = '#064e3b'; // Slate green chalkboard
+      ctx.fillRect(0, 0, 512, 256);
+
+      ctx.strokeStyle = '#78350f'; // Wooden frame
+      ctx.lineWidth = 14;
+      ctx.strokeRect(0, 0, 512, 256);
+
+      // Chalk text & formulas
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.font = 'bold 20px monospace';
+      ctx.fillText('NEXUS ALGORITHMS & QUANTUM LOGIC', 30, 48);
+      ctx.font = '16px monospace';
+      ctx.fillText('• E = mc^2  |  H|ψ⟩ = E|ψ⟩', 30, 85);
+      ctx.fillText('• O(N log N) Sorting Optimization', 30, 115);
+      ctx.fillText('• AI Neural Weights: W_t+1 = W_t - η∇L', 30, 145);
+      ctx.fillText('• Section Citadel Defense Matrix: 100% Intact', 30, 180);
+
+      return new THREE.CanvasTexture(c);
     }
 
     // Hexagonal forcefield dome texture
@@ -522,7 +622,7 @@
 
       const r = 28;
       const h = r * Math.sqrt(3);
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
       ctx.lineWidth = 1.5;
 
       for (let y = 0; y < 512 + h; y += h) {
@@ -555,33 +655,29 @@
       c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
 
-      ctx.fillStyle = '#c2410c'; // Burnt orange apron
+      ctx.fillStyle = '#c2410c';
       ctx.fillRect(0, 0, 512, 512);
 
-      ctx.fillStyle = '#1e3a8a'; // Navy blue court
+      ctx.fillStyle = '#1e3a8a';
       ctx.fillRect(36, 48, 440, 416);
 
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 4;
       ctx.strokeRect(36, 48, 440, 416);
 
-      // Half-court line
       ctx.beginPath();
       ctx.moveTo(256, 48); ctx.lineTo(256, 464);
       ctx.stroke();
 
-      // Center circle
       ctx.beginPath();
       ctx.arc(256, 256, 52, 0, Math.PI * 2);
       ctx.stroke();
       ctx.fillStyle = '#0284c7';
       ctx.fill();
 
-      // Key lanes
       ctx.strokeRect(36, 196, 96, 120);
       ctx.strokeRect(380, 196, 96, 120);
 
-      // 3-point arcs
       ctx.beginPath();
       ctx.arc(36, 256, 120, -Math.PI / 2.3, Math.PI / 2.3);
       ctx.stroke();
@@ -635,7 +731,7 @@
       return new THREE.CanvasTexture(c);
     }
 
-    // Dark Asphalt Road with dashed yellow line
+    // Dark Asphalt Road
     function createAsphaltRoadTexture() {
       const c = document.createElement('canvas');
       c.width = 256; c.height = 256;
@@ -658,10 +754,11 @@
     }
 
     // =========================================================================
-    // 3. ARCHITECTURAL 3D MESH GENERATION (GLTF + MODERN ARCHITECTURE)
+    // 3. ARCHITECTURAL 3D MESH GENERATION (GLTF + REALISTIC ROOM PROPS)
     // =========================================================================
     
     let facadeCyanTex, facadeAmberTex, courtTex, clockTex, roadTex, hexDomeTex;
+    let roomTileTex, blackboardTex;
     let beaconMesh, fountainSprayMesh, domeMesh;
     let gltfLoader = null;
 
@@ -670,14 +767,15 @@
         gltfLoader = new THREE.GLTFLoader();
       }
       hexDomeTex = createHexForcefieldTexture();
-      facadeCyanTex = createModernCurtainWallTexture('#0369a1', 'rgba(56, 189, 248, 0.4)');
-      facadeAmberTex = createModernCurtainWallTexture('#78350f', 'rgba(245, 158, 11, 0.4)');
+      facadeCyanTex = createModernCurtainWallTexture('#0369a1', 'rgba(56, 189, 248, 0.45)');
+      facadeAmberTex = createModernCurtainWallTexture('#78350f', 'rgba(245, 158, 11, 0.45)');
       courtTex = createBasketballCourtTexture();
       clockTex = createClockTexture();
       roadTex = createAsphaltRoadTexture();
+      roomTileTex = createRoomTileTexture();
+      blackboardTex = createBlackboardTexture();
     }
 
-    // Helper: Attempts to load GLB first, otherwise renders the fallback group
     function loadGLBWithFallback(lm, glbName, fallbackFn) {
       const g = new THREE.Group();
       g.position.set(lm.x, 0, lm.z);
@@ -696,7 +794,6 @@
                 child.receiveShadow = true;
               }
             });
-            // Replace fallback with real GLB model
             g.remove(fallbackGroup);
             model.position.set(0, 0, 0);
             g.add(model);
@@ -710,47 +807,41 @@
       return g;
     }
 
-    // 1. ADMIN BLOCK TOWER (CLEAN STEPPED CITADEL)
+    // 1. ADMIN BLOCK TOWER
     function createAdminFallback(lm) {
       const g = new THREE.Group();
 
-      // Base Podium (Dark slate with entrance portico)
-      const base = new THREE.Mesh(new THREE.BoxGeometry(18, 9, 15), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
-      base.position.y = 4.5;
+      const base = new THREE.Mesh(new THREE.BoxGeometry(22, 10, 18), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
+      base.position.y = 5.0;
       base.castShadow = true; base.receiveShadow = true;
       g.add(base);
 
-      // Floor slab trim
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(19, 0.8, 16), new THREE.MeshStandardMaterial({ color: 0x334155 }));
-      slab.position.y = 9.4;
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(23, 0.9, 19), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+      slab.position.y = 10.45;
       slab.castShadow = true;
       g.add(slab);
 
-      // Middle Tower Shaft
-      const tower = new THREE.Mesh(new THREE.BoxGeometry(9, 16, 9), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 }));
-      tower.position.y = 17.5;
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(11, 19, 11), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 }));
+      tower.position.y = 20.0;
       tower.castShadow = true;
       g.add(tower);
 
-      // 4 Roman Clock Faces
       for (let i = 0; i < 4; i++) {
-        const cf = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2), new THREE.MeshBasicMaterial({ map: clockTex }));
+        const cf = new THREE.Mesh(new THREE.PlaneGeometry(6.2, 6.2), new THREE.MeshBasicMaterial({ map: clockTex }));
         const rotY = (i * Math.PI) / 2;
-        cf.position.set(Math.sin(rotY) * 4.6, 19.5, Math.cos(rotY) * 4.6);
+        cf.position.set(Math.sin(rotY) * 5.6, 22.5, Math.cos(rotY) * 5.6);
         cf.rotation.y = rotY;
         g.add(cf);
       }
 
-      // Crown Beveled Spire (Slender Architectural Roof)
-      const spire = new THREE.Mesh(new THREE.ConeGeometry(5.0, 10, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.85, roughness: 0.2 }));
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(5.8, 12, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.85, roughness: 0.2 }));
       spire.rotation.y = Math.PI / 4;
-      spire.position.y = 30.5;
+      spire.position.y = 35.5;
       spire.castShadow = true;
       g.add(spire);
 
-      // Subtle Pulsing Red Warning Beacon (NO giant white beam!)
-      beaconMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-      beaconMesh.position.y = 36.0;
+      beaconMesh = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+      beaconMesh.position.y = 42.0;
       g.add(beaconMesh);
 
       return g;
@@ -760,25 +851,23 @@
       return loadGLBWithFallback(lm, 'admin_block.glb', createAdminFallback);
     }
 
-    // 2. ACADEMIC BLOCK (MODERN SLATE & GLASS)
+    // 2. ACADEMIC BLOCK
     function createAcademicFallback(lm) {
       const g = new THREE.Group();
 
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(18, 11, 13), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.3 }));
-      bld.position.y = 5.5;
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(22, 12, 16), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.3 }));
+      bld.position.y = 6.0;
       bld.castShadow = true; bld.receiveShadow = true;
       g.add(bld);
 
-      // Overhanging cantilever wing
-      const wing = new THREE.Mesh(new THREE.BoxGeometry(11, 4.5, 15), new THREE.MeshStandardMaterial({ color: 0x0369a1, metalness: 0.7 }));
-      wing.position.set(-3.5, 8.5, 1.0);
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(13, 5.0, 18), new THREE.MeshStandardMaterial({ color: 0x0369a1, metalness: 0.7 }));
+      wing.position.set(-4.5, 9.5, 1.0);
       wing.castShadow = true;
       g.add(wing);
 
-      // Rooftop solar / AC units
       for (let i = 0; i < 3; i++) {
-        const vent = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.5, 2.5), new THREE.MeshStandardMaterial({ color: 0x475569 }));
-        vent.position.set(-4.5 + i * 4.5, 11.8, -2.5);
+        const vent = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.6, 2.8), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+        vent.position.set(-5.5 + i * 5.5, 13.0, -3.0);
         vent.castShadow = true;
         g.add(vent);
       }
@@ -793,13 +882,13 @@
     function createLibraryFallback(lm) {
       const g = new THREE.Group();
 
-      const rot = new THREE.Mesh(new THREE.CylinderGeometry(8.5, 9.0, 11, 24), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
-      rot.position.y = 5.5;
+      const rot = new THREE.Mesh(new THREE.CylinderGeometry(10.5, 11.0, 12, 24), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
+      rot.position.y = 6.0;
       rot.castShadow = true; rot.receiveShadow = true;
       g.add(rot);
 
-      const dome = new THREE.Mesh(new THREE.SphereGeometry(6.5, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.15, transparent: true, opacity: 0.8 }));
-      dome.position.y = 11.0;
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(8.0, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.15, transparent: true, opacity: 0.85 }));
+      dome.position.y = 12.0;
       dome.castShadow = true;
       g.add(dome);
 
@@ -810,32 +899,30 @@
       return loadGLBWithFallback(lm, 'library.glb', createLibraryFallback);
     }
 
-    // 4. CAFETERIA & LOUNGE ATRIUM
+    // 4. CAFETERIA & LOUNGE
     function createCafeteriaFallback(lm) {
       const g = new THREE.Group();
 
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(16, 7.5, 11), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.4 }));
-      bld.position.y = 3.75;
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(19, 8.5, 13), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.4 }));
+      bld.position.y = 4.25;
       bld.castShadow = true; bld.receiveShadow = true;
       g.add(bld);
 
-      // Wooden terrace deck
-      const deck = new THREE.Mesh(new THREE.BoxGeometry(16, 0.4, 7), new THREE.MeshStandardMaterial({ color: 0x582900 }));
-      deck.position.set(0, 0.2, 8.5);
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(19, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x582900 }));
+      deck.position.set(0, 0.2, 10.0);
       deck.receiveShadow = true;
       g.add(deck);
 
-      // Cafe Umbrellas & Tables
       const uCols = [0xd97706, 0x0284c7, 0x16a34a, 0xd97706];
       for (let t = 0; t < 4; t++) {
-        const ox = -5.5 + t * 3.6;
-        const table = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.8, 12), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        table.position.set(ox, 0.8, 8.5);
+        const ox = -6.5 + t * 4.3;
+        const table = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.85, 12), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        table.position.set(ox, 0.85, 10.0);
         table.castShadow = true;
         g.add(table);
 
-        const umb = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.4, 12), new THREE.MeshStandardMaterial({ color: uCols[t] }));
-        umb.position.set(ox, 3.2, 8.5);
+        const umb = new THREE.Mesh(new THREE.ConeGeometry(2.0, 1.5, 12), new THREE.MeshStandardMaterial({ color: uCols[t] }));
+        umb.position.set(ox, 3.4, 10.0);
         umb.castShadow = true;
         g.add(umb);
       }
@@ -846,111 +933,109 @@
       return loadGLBWithFallback(lm, 'cafeteria.glb', createCafeteriaFallback);
     }
 
-    // 5. TOURNAMENT BASKETBALL ARENA (HIGH DETAIL)
+    // 5. BASKETBALL ARENA
     function createSportsCourt(lm) {
       const g = new THREE.Group();
       g.position.set(lm.x, 0, lm.z);
 
-      const court = new THREE.Mesh(new THREE.BoxGeometry(22, 0.4, 14), new THREE.MeshStandardMaterial({ map: courtTex, roughness: 0.5 }));
+      const court = new THREE.Mesh(new THREE.BoxGeometry(26, 0.4, 16), new THREE.MeshStandardMaterial({ map: courtTex, roughness: 0.5 }));
       court.position.y = 0.2;
       court.receiveShadow = true;
       g.add(court);
 
-      // 3D Hoops (Both Ends)
       for (let h = -1; h <= 1; h += 2) {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 5.0, 8), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 }));
-        pole.position.set(h * 9.5, 2.5, 0);
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.20, 5.5, 8), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 }));
+        pole.position.set(h * 11.2, 2.75, 0);
         pole.castShadow = true;
         g.add(pole);
 
-        const board = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 2.8), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
-        board.position.set(h * 9.1, 4.6, 0);
+        const board = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.0, 3.2), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+        board.position.set(h * 10.7, 5.0, 0);
         board.castShadow = true;
         g.add(board);
 
-        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 6, 16), new THREE.MeshBasicMaterial({ color: 0xea580c }));
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.06, 6, 16), new THREE.MeshBasicMaterial({ color: 0xea580c }));
         rim.rotation.x = Math.PI / 2;
-        rim.position.set(h * 8.4, 4.1, 0);
+        rim.position.set(h * 9.9, 4.4, 0);
         g.add(rim);
 
-        const net = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.35, 0.7, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true }));
-        net.position.set(h * 8.4, 3.7, 0);
+        const net = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.38, 0.8, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true }));
+        net.position.set(h * 9.9, 4.0, 0);
         g.add(net);
       }
 
-      // 4 Floodlight Pylons
       for (let px = -1; px <= 1; px += 2) {
         for (let pz = -1; pz <= 1; pz += 2) {
-          const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 8.0, 8), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
-          tower.position.set(px * 10.5, 4.0, pz * 6.5);
+          const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 9.0, 8), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
+          tower.position.set(px * 12.5, 4.5, pz * 7.5);
           tower.castShadow = true;
           g.add(tower);
 
-          const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 0.6), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
-          lamp.position.set(px * 10.5, 8.2, pz * 6.5);
+          const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.45, 0.7), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+          lamp.position.set(px * 12.5, 9.2, pz * 7.5);
           g.add(lamp);
         }
       }
       return g;
     }
 
-    // 6. CENTRAL FOUNTAIN & PLAZA
+    // 6. CENTRAL FOUNTAIN
     function createCentralFountain(lm) {
       const g = new THREE.Group();
       g.position.set(lm.x, 0, lm.z);
 
-      const basin = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 6.2, 0.9, 24), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }));
-      basin.position.y = 0.45;
+      const basin = new THREE.Mesh(new THREE.CylinderGeometry(7.0, 7.5, 1.0, 24), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }));
+      basin.position.y = 0.5;
       basin.castShadow = true; basin.receiveShadow = true;
       g.add(basin);
 
-      const water = new THREE.Mesh(new THREE.CylinderGeometry(5.3, 5.3, 0.7, 24), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.1, metalness: 0.8 }));
-      water.position.y = 0.55;
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(6.4, 6.4, 0.8, 24), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.1, metalness: 0.8 }));
+      water.position.y = 0.65;
       g.add(water);
 
-      const tier2 = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.8, 1.6, 16), new THREE.MeshStandardMaterial({ color: 0x475569 }));
-      tier2.position.y = 1.3;
+      const tier2 = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.4, 1.8, 16), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+      tier2.position.y = 1.4;
       tier2.castShadow = true;
       g.add(tier2);
 
-      fountainSprayMesh = new THREE.Mesh(new THREE.ConeGeometry(1.2, 4.0, 12), new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.7 }));
-      fountainSprayMesh.position.y = 3.4;
+      fountainSprayMesh = new THREE.Mesh(new THREE.ConeGeometry(1.5, 4.5, 12), new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.75 }));
+      fountainSprayMesh.position.y = 3.6;
       g.add(fountainSprayMesh);
 
-      const fLight = new THREE.PointLight(0x06b6d4, 1.2, 14);
-      fLight.position.y = 2.2;
+      const fLight = new THREE.PointLight(0x06b6d4, 1.4, 16);
+      fLight.position.y = 2.4;
       g.add(fLight);
 
       return g;
     }
 
-    // 7. PARKING LOT WITH 6 METALLIC CARS
+    // 7. PARKING LOT
     function createParkingCars(lm) {
       const g = new THREE.Group();
       g.position.set(lm.x, 0, lm.z);
 
-      const lot = new THREE.Mesh(new THREE.BoxGeometry(18, 0.3, 13), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 }));
-      lot.position.y = 0.15;
+      const lot = new THREE.Mesh(new THREE.BoxGeometry(22, 0.35, 15), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 }));
+      lot.position.y = 0.18;
       lot.receiveShadow = true;
       g.add(lot);
 
-      const carColors = [0xef4444, 0x0284c7, 0xe2e8f0, 0xf59e0b, 0x10b981, 0x8b5cf6];
+      const carColors = [0xef4444, 0x0284c7, 0xe2e8f0, 0xf59e0b, 0x10b981, 0x8b5cf6, 0x06b6d4, 0xf97316];
       const carSlots = [
-        { x: -6, z: -3.5 }, { x: -2, z: -3.5 }, { x: 2, z: -3.5 }, { x: 6, z: -3.5 },
-        { x: -3, z: 3.5 }, { x: 3, z: 3.5 }
+        { x: -8, z: -4 }, { x: -3, z: -4 }, { x: 2, z: -4 }, { x: 7, z: -4 },
+        { x: -8, z: 4 }, { x: -3, z: 4 }, { x: 2, z: 4 }, { x: 7, z: 4 }
       ];
 
       carSlots.forEach((slot, idx) => {
         const car = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.7, 1.4), new THREE.MeshStandardMaterial({ color: carColors[idx], metalness: 0.8, roughness: 0.25 }));
-        body.position.y = 0.55; body.castShadow = true;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.8, 1.5), new THREE.MeshStandardMaterial({ color: carColors[idx], metalness: 0.8, roughness: 0.25 }));
+        body.position.y = 0.6; body.castShadow = true;
         car.add(body);
 
-        const cab = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.65, 1.2), new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.1 }));
-        cab.position.set(-0.25, 1.1, 0); cab.castShadow = true;
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 1.3), new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.1 }));
+        cab.position.set(-0.3, 1.25, 0); cab.castShadow = true;
         car.add(cab);
 
-        car.position.set(slot.x, 0.15, slot.z);
+        car.position.set(slot.x, 0.18, slot.z);
         g.add(car);
       });
 
@@ -960,18 +1045,18 @@
     // 8. RESEARCH LABS
     function createLabsFallback(lm) {
       const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(15, 9.5, 12), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
-      bld.position.y = 4.75;
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(18, 11, 14), new THREE.MeshStandardMaterial({ map: facadeCyanTex, roughness: 0.35 }));
+      bld.position.y = 5.5;
       bld.castShadow = true; bld.receiveShadow = true;
       g.add(bld);
 
-      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 4.5, 8), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
-      mast.position.y = 11.5;
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 5.0, 8), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
+      mast.position.y = 13.5;
       g.add(mast);
 
-      const dish = new THREE.Mesh(new THREE.SphereGeometry(1.8, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, side: THREE.DoubleSide }));
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(2.0, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, side: THREE.DoubleSide }));
       dish.rotation.x = -Math.PI / 3;
-      dish.position.y = 13.5;
+      dish.position.y = 15.5;
       g.add(dish);
 
       return g;
@@ -984,8 +1069,8 @@
     // 9. STUDENT HOSTEL
     function createHostelFallback(lm) {
       const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(16, 10.5, 11), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.45 }));
-      bld.position.y = 5.25;
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(19, 12, 13), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.45 }));
+      bld.position.y = 6.0;
       bld.castShadow = true; bld.receiveShadow = true;
       g.add(bld);
       return g;
@@ -1000,43 +1085,42 @@
       const g = new THREE.Group();
       g.position.set(lm.x, 0, lm.z);
       for (let p = -1; p <= 1; p += 2) {
-        const pillar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 6.5, 2.4), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6 }));
-        pillar.position.set(p * 6, 3.25, 0);
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(2.8, 7.5, 2.8), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6 }));
+        pillar.position.set(p * 7, 3.75, 0);
         pillar.castShadow = true;
         g.add(pillar);
       }
-      const arch = new THREE.Mesh(new THREE.BoxGeometry(14.4, 1.4, 2.4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8 }));
-      arch.position.set(0, 7.0, 0);
+      const arch = new THREE.Mesh(new THREE.BoxGeometry(16.8, 1.6, 2.8), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8 }));
+      arch.position.set(0, 8.0, 0);
       arch.castShadow = true;
       g.add(arch);
 
       return g;
     }
 
-    // REALISTIC ARCHITECTURAL CYPRESS & PINE TREES
+    // CYPRESS & PINE TREES
     function createRealisticTrees(parent) {
       const treeCoords = [
-        { x: -14, z: 12 }, { x: -8, z: 16 }, { x: 8, z: 16 }, { x: 14, z: 12 },
-        { x: -24, z: -2 }, { x: -28, z: 8 }, { x: 26, z: -6 }, { x: 22, z: 16 },
-        { x: 0, z: 22 }, { x: -6, z: 24 }, { x: 6, z: 24 }
+        { x: -16, z: 14 }, { x: -9, z: 18 }, { x: 9, z: 18 }, { x: 16, z: 14 },
+        { x: -28, z: -4 }, { x: -32, z: 6 }, { x: 30, z: -8 }, { x: 26, z: 18 },
+        { x: 0, z: 26 }, { x: -8, z: 28 }, { x: 8, z: 28 },
+        { x: -38, z: 22 }, { x: 36, z: 24 }, { x: -18, z: 36 }, { x: 18, z: 36 }
       ];
 
       treeCoords.forEach((tc) => {
         const tree = new THREE.Group();
-        // Slender Dark Trunk
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 3.2, 8), new THREE.MeshStandardMaterial({ color: 0x271911 }));
-        trunk.position.y = 1.6;
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.4, 3.6, 8), new THREE.MeshStandardMaterial({ color: 0x271911 }));
+        trunk.position.y = 1.8;
         trunk.castShadow = true;
         tree.add(trunk);
 
-        // Slender Architectural Cypress / Pine Foliage
         const colors = [0x064e3b, 0x14532d, 0x166534];
         for (let i = 0; i < 3; i++) {
           const cone = new THREE.Mesh(
-            new THREE.ConeGeometry(2.0 - i * 0.45, 2.8, 8),
+            new THREE.ConeGeometry(2.4 - i * 0.5, 3.2, 8),
             new THREE.MeshStandardMaterial({ color: colors[i], roughness: 0.8 })
           );
-          cone.position.y = 3.2 + i * 1.5;
+          cone.position.y = 3.6 + i * 1.8;
           cone.castShadow = true;
           tree.add(cone);
         }
@@ -1047,7 +1131,43 @@
     }
 
     // =========================================================================
-    // 4. CAMPUS DATA & MULTI-ROOM INTERIOR DEFINITIONS (20 ROOMS SYSTEM)
+    // 3B. SHATTERED DEBRIS / BROKEN RUBBLE GENERATOR
+    // =========================================================================
+    function createShatteredRubble(x, y, z, parent) {
+      const rubbleGroup = new THREE.Group();
+      rubbleGroup.position.set(x, 0.2, z);
+
+      // Charred mound base
+      const mound = new THREE.Mesh(
+        new THREE.CylinderGeometry(2.2, 2.8, 0.4, 8),
+        new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.95 })
+      );
+      rubbleGroup.add(mound);
+
+      // Jagged rubble chunks
+      const chunkMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.9 });
+      for (let i = 0; i < 8; i++) {
+        const sz = 0.4 + Math.random() * 0.5;
+        const chunk = new THREE.Mesh(new THREE.DodecahedronGeometry(sz), chunkMat);
+        const ang = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 1.8;
+        chunk.position.set(Math.cos(ang) * dist, sz * 0.5, Math.sin(ang) * dist);
+        chunk.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+        chunk.castShadow = true;
+        rubbleGroup.add(chunk);
+      }
+
+      // Glowing Ember Smoke Light
+      const emberLight = new THREE.PointLight(0xef4444, 1.2, 6);
+      emberLight.position.set(0, 0.8, 0);
+      rubbleGroup.add(emberLight);
+
+      parent.add(rubbleGroup);
+      return rubbleGroup;
+    }
+
+    // =========================================================================
+    // 4. MULTI-SECTION REALMS & RICH REALISTIC INTERIOR DEFINITIONS
     // =========================================================================
     
     function generateBuildingRooms(buildingKey) {
@@ -1055,35 +1175,37 @@
         return [
           {
             id: 'room_101', floor: 1, num: 'Room 101', name: 'Main Lecture Hall', status: 'INTACT',
-            desc: 'High-capacity lecture theater with podium and student workstations.',
+            desc: 'Tiered university lecture theater with professor podium, chalkboard, and student desks.',
             props: [
-              { key: 'podium', name: 'Professor Podium', hp: 100, maxHp: 100, x: 0, y: 1.2, z: -6, size: [2.2, 2.4, 1.6], col: 0x0284c7 },
-              { key: 'smart_board', name: 'Interactive Smart Board', hp: 80, maxHp: 80, x: 0, y: 3.5, z: -8.8, size: [8, 3.2, 0.4], col: 0x38bdf8 },
-              { key: 'student_desks', name: 'Student Workstations', hp: 90, maxHp: 90, x: 0, y: 0.8, z: 2, size: [7, 1.2, 5], col: 0x334155 }
+              { key: 'podium', name: 'Professor Quantum Podium', hp: 100, maxHp: 100, x: 0, y: 1.2, z: -7, size: [2.6, 2.4, 1.8], col: 0x0284c7, type: 'podium' },
+              { key: 'blackboard', name: 'Mathematical Blackboard', hp: 80, maxHp: 80, x: 0, y: 4.2, z: -10.4, size: [14, 4.2, 0.4], col: 0x064e3b, type: 'blackboard' },
+              { key: 'desks_tier1', name: 'Front Student Workstations', hp: 90, maxHp: 90, x: 0, y: 0.8, z: -1, size: [12, 1.3, 2.5], col: 0x334155, type: 'desks' },
+              { key: 'desks_tier2', name: 'Rear Student Workstations', hp: 90, maxHp: 90, x: 0, y: 1.4, z: 5, size: [14, 1.3, 2.5], col: 0x334155, type: 'desks' }
             ]
           },
           {
             id: 'room_102', floor: 1, num: 'Room 102', name: 'AI Coding Workshop', status: 'INTACT',
-            desc: 'Equipped with dual-monitor developer pods and neural network terminals.',
+            desc: 'Equipped with dual-monitor developer pods, neural terminal clusters, and server banks.',
             props: [
-              { key: 'dev_pods', name: 'Coder Terminal Cluster', hp: 90, maxHp: 90, x: -4, y: 1.0, z: -2, size: [4, 1.4, 4], col: 0x06b6d4 },
-              { key: 'debug_server', name: 'Build Server Station', hp: 100, maxHp: 100, x: 4, y: 2.2, z: -5, size: [2.5, 4.4, 2.5], col: 0x10b981 }
+              { key: 'dev_pods', name: 'Dual-Screen Coder Pods', hp: 90, maxHp: 90, x: -5, y: 1.0, z: -3, size: [6, 1.6, 4], col: 0x06b6d4, type: 'terminal' },
+              { key: 'neural_server', name: 'Deep Learning Server Rack', hp: 110, maxHp: 110, x: 5, y: 2.5, z: -6, size: [3, 5.0, 3], col: 0x10b981, type: 'server' },
+              { key: 'ai_core', name: 'Quantum Core Incubator', hp: 100, maxHp: 100, x: 0, y: 2.2, z: 3, size: [3, 4, 3], col: 0xa855f7, wire: true, type: 'core' }
             ]
           },
           {
             id: 'room_201', floor: 2, num: 'Room 201', name: 'Cyber Defense Lab', status: 'INTACT',
-            desc: 'Isolated cyber security room with locked server arrays and network consoles.',
+            desc: 'Isolated cyber security room with locked server arrays and network threat screens.',
             props: [
-              { key: 'firewall_server', name: 'Firewall Matrix', hp: 100, maxHp: 100, x: -5, y: 2.5, z: -5, size: [2.5, 5, 4], col: 0x06b6d4 },
-              { key: 'threat_map', name: 'Cyber Threat Screen', hp: 80, maxHp: 80, x: 0, y: 3.2, z: -9, size: [8, 3.2, 0.4], col: 0xef4444 }
+              { key: 'firewall_server', name: 'Firewall Mainframe Array', hp: 110, maxHp: 110, x: -6, y: 2.6, z: -5, size: [3.5, 5.2, 4], col: 0x06b6d4, type: 'server' },
+              { key: 'threat_map', name: 'Holographic Threat Wall', hp: 80, maxHp: 80, x: 0, y: 3.8, z: -10.4, size: [12, 3.8, 0.4], col: 0xef4444, type: 'blackboard' }
             ]
           },
           {
             id: 'room_301', floor: 3, num: 'Room 301', name: 'VR Simulation Chamber', status: 'INTACT',
-            desc: 'Rooftop sensory simulation pod with holographic projection core.',
+            desc: 'Rooftop sensory simulation pod with holographic projection core and power cells.',
             props: [
-              { key: 'vr_pod', name: 'Combat VR Simulator Pod', hp: 110, maxHp: 110, x: 0, y: 1.8, z: 0, size: [3.5, 3.2, 3.5], col: 0xa855f7, wire: true },
-              { key: 'power_cell', name: 'Auxiliary Power Battery', hp: 80, maxHp: 80, x: 6, y: 2.0, z: -5, size: [2.5, 3.8, 2.5], col: 0x10b981 }
+              { key: 'vr_pod', name: 'Combat VR Simulator Pod', hp: 120, maxHp: 120, x: 0, y: 2.0, z: 0, size: [4.5, 3.8, 4.5], col: 0xa855f7, wire: true, type: 'core' },
+              { key: 'power_cell', name: 'Auxiliary High-Voltage Battery', hp: 90, maxHp: 90, x: 7, y: 2.2, z: -6, size: [3, 4.2, 3], col: 0x10b981, type: 'server' }
             ]
           }
         ];
@@ -1093,44 +1215,25 @@
             id: 'room_101', floor: 1, num: 'Room 101', name: 'Security & Surveillance', status: 'INTACT',
             desc: 'Main campus security desk and barrier override controls.',
             props: [
-              { key: 'cctv_bank', name: 'CCTV Monitor Wall', hp: 90, maxHp: 90, x: 0, y: 3.0, z: -8, size: [9, 3.5, 0.5], col: 0x0284c7 },
-              { key: 'guard_desk', name: 'Command Dispatch Desk', hp: 80, maxHp: 80, x: 0, y: 1.0, z: -2, size: [5, 1.4, 2.2], col: 0x334155 }
+              { key: 'cctv_bank', name: 'Multi-CCTV Monitor Wall', hp: 100, maxHp: 100, x: 0, y: 3.5, z: -9.5, size: [12, 4.0, 0.6], col: 0x0284c7, type: 'blackboard' },
+              { key: 'guard_desk', name: 'Executive Security Desk', hp: 80, maxHp: 80, x: 0, y: 1.0, z: -2, size: [6, 1.5, 2.5], col: 0x334155, type: 'desks' }
             ]
           },
           {
             id: 'room_201', floor: 2, num: 'Room 201', name: 'War Council Chamber', status: 'INTACT',
             desc: 'Executive meeting hall with chancellor podium and live campus holo-projector.',
             props: [
-              { key: 'admin_podium', name: 'Chancellor Podium', hp: 80, maxHp: 80, x: 0, y: 1.2, z: -6, size: [2.2, 2.4, 1.6], col: 0x0284c7 },
-              { key: 'admin_table', name: 'Council Obsidian Table', hp: 120, maxHp: 120, x: 0, y: 0.9, z: 0, size: [8, 1.2, 4], col: 0x1e293b },
-              { key: 'admin_holo', name: 'Holo-Map Projector', hp: 70, maxHp: 70, x: 0, y: 2.4, z: 0, size: [2, 2, 2], col: 0x38bdf8, wire: true }
+              { key: 'admin_podium', name: 'Chancellor Podium', hp: 90, maxHp: 90, x: 0, y: 1.2, z: -7, size: [2.5, 2.5, 1.8], col: 0x0284c7, type: 'podium' },
+              { key: 'admin_table', name: 'Council Obsidian Table', hp: 130, maxHp: 130, x: 0, y: 1.0, z: 0, size: [10, 1.4, 4.5], col: 0x1e293b, type: 'desks' },
+              { key: 'admin_holo', name: 'Holo-Map Projector', hp: 80, maxHp: 80, x: 0, y: 2.5, z: 0, size: [2.5, 2.5, 2.5], col: 0x38bdf8, wire: true, type: 'core' }
             ]
           },
           {
             id: 'room_301', floor: 3, num: 'Room 301', name: 'Clock Spire Vault & Armory', status: 'INTACT',
             desc: 'Top spire room housing the section treasury safe and orbital missile key console.',
             props: [
-              { key: 'vault_safe', name: 'Section Treasury Safe', hp: 140, maxHp: 140, x: -4, y: 2.2, z: -5, size: [3, 4.2, 3], col: 0xf59e0b },
-              { key: 'strike_console', name: 'Orbital Missile Console', hp: 90, maxHp: 90, x: 4, y: 1.4, z: -5, size: [3, 2.2, 2], col: 0xef4444 }
-            ]
-          }
-        ];
-      } else if (buildingKey === 'LABS') {
-        return [
-          {
-            id: 'room_101', floor: 1, num: 'Room 101', name: 'Supercomputer Server Matrix', status: 'INTACT',
-            desc: 'High-density computational servers and liquid nitrogen cooling pipes.',
-            props: [
-              { key: 'main_servers', name: 'Mainframe Server Rack', hp: 100, maxHp: 100, x: -5, y: 2.8, z: -5, size: [2.5, 5.2, 5], col: 0x0284c7 },
-              { key: 'ai_core', name: 'Central AI Neural Core', hp: 110, maxHp: 110, x: 0, y: 2.2, z: 0, size: [2.5, 3.8, 2.5], col: 0xa855f7, wire: true }
-            ]
-          },
-          {
-            id: 'room_201', floor: 2, num: 'Room 201', name: 'Robotics Workshop', status: 'INTACT',
-            desc: 'Hardware fabrication bench with robotic testing arms and circuit printers.',
-            props: [
-              { key: 'robot_arm', name: 'Robotics Assembly Bench', hp: 80, maxHp: 80, x: 0, y: 1.2, z: -4, size: [6, 1.8, 2.5], col: 0x334155 },
-              { key: 'drone_dock', name: 'Autonomous Drone Bay', hp: 90, maxHp: 90, x: 5, y: 2.0, z: 3, size: [3, 3.5, 3], col: 0x10b981 }
+              { key: 'vault_safe', name: 'Titanium Treasury Vault', hp: 160, maxHp: 160, x: -5, y: 2.5, z: -6, size: [3.8, 5.0, 3.8], col: 0xf59e0b, type: 'server' },
+              { key: 'strike_console', name: 'Orbital Missile Console', hp: 100, maxHp: 100, x: 5, y: 1.6, z: -6, size: [3.5, 2.6, 2.5], col: 0xef4444, type: 'terminal' }
             ]
           }
         ];
@@ -1138,19 +1241,19 @@
         return [
           {
             id: 'room_101', floor: 1, num: 'Room 101', name: 'Campus Food Court & Cafe', status: 'INTACT',
-            desc: 'Student cafeteria dining area with beverage bars and snack machines.',
+            desc: 'Student cafeteria dining area with espresso beverage bars and snack machines.',
             props: [
-              { key: 'cafe_bar', name: 'Espresso & Food Bar', hp: 90, maxHp: 90, x: -5, y: 1.5, z: -5, size: [3, 2.2, 6], col: 0xd97706 },
-              { key: 'dining_booth', name: 'Central Dining Booth', hp: 70, maxHp: 70, x: 3, y: 0.9, z: 0, size: [4, 1.2, 3], col: 0x78350f },
-              { key: 'vending_depot', name: 'Energy Drink Depot', hp: 60, maxHp: 60, x: 6, y: 2.2, z: 4, size: [2, 4, 2], col: 0x0284c7 }
+              { key: 'cafe_bar', name: 'Italian Espresso Counter', hp: 100, maxHp: 100, x: -6, y: 1.6, z: -6, size: [3.5, 2.4, 7], col: 0xd97706, type: 'podium' },
+              { key: 'dining_booth', name: 'Central Dining Booths', hp: 80, maxHp: 80, x: 3, y: 1.0, z: 0, size: [6, 1.4, 4], col: 0x78350f, type: 'desks' },
+              { key: 'vending_depot', name: 'Cold Beverage Vending Depot', hp: 70, maxHp: 70, x: 7, y: 2.5, z: 5, size: [2.5, 4.8, 2.5], col: 0x0284c7, type: 'server' }
             ]
           },
           {
-            id: 'room_201', floor: 2, num: 'Room 201', name: 'Rogue Arcade & Lounge', status: 'INTACT',
-            desc: 'Recreational student lounge with arcade game cabinets and sofa booths.',
+            id: 'room_201', floor: 2, num: 'Room 201', name: 'Rogue Arcade & Student Lounge', status: 'INTACT',
+            desc: 'Recreational student lounge with arcade game cabinets and leather sofa booths.',
             props: [
-              { key: 'arcade_cab', name: 'Retro Cyber Arcade Machine', hp: 80, maxHp: 80, x: -4, y: 2.0, z: -4, size: [2, 3.8, 2], col: 0xa855f7 },
-              { key: 'lounge_sofa', name: 'VIP Leather Lounge Sofa', hp: 70, maxHp: 70, x: 3, y: 0.8, z: 0, size: [5, 1.2, 2.5], col: 0xef4444 }
+              { key: 'arcade_cab', name: 'Cyberpunk Arcade Machine', hp: 90, maxHp: 90, x: -5, y: 2.2, z: -5, size: [2.5, 4.4, 2.5], col: 0xa855f7, type: 'terminal' },
+              { key: 'lounge_sofa', name: 'VIP Leather Sectional Sofa', hp: 80, maxHp: 80, x: 3, y: 0.9, z: 0, size: [7, 1.3, 3], col: 0xef4444, type: 'desks' }
             ]
           }
         ];
@@ -1160,8 +1263,19 @@
             id: 'room_101', floor: 1, num: 'Room 101', name: 'Main Book Archive', status: 'INTACT',
             desc: 'Multi-aisle digital and physical book stacks with research desks.',
             props: [
-              { key: 'book_stacks', name: 'Digital Bookshelves', hp: 100, maxHp: 100, x: -6, y: 2.5, z: -4, size: [2, 5, 8], col: 0x0369a1 },
-              { key: 'study_table', name: 'Quiet Study Desks', hp: 80, maxHp: 80, x: 2, y: 0.9, z: 0, size: [6, 1.2, 3], col: 0x475569 }
+              { key: 'book_stacks', name: 'High-Density Book Stacks', hp: 110, maxHp: 110, x: -7, y: 2.8, z: -5, size: [2.8, 5.6, 9], col: 0x0369a1, type: 'server' },
+              { key: 'study_table', name: 'Silent Study Table & Lamps', hp: 90, maxHp: 90, x: 3, y: 1.0, z: 0, size: [8, 1.4, 3.5], col: 0x475569, type: 'desks' }
+            ]
+          }
+        ];
+      } else if (buildingKey === 'LABS') {
+        return [
+          {
+            id: 'room_101', floor: 1, num: 'Room 101', name: 'Supercomputer Server Matrix', status: 'INTACT',
+            desc: 'High-density computational servers and liquid nitrogen cooling pipes.',
+            props: [
+              { key: 'main_servers', name: 'Mainframe Server Rack', hp: 120, maxHp: 120, x: -6, y: 3.0, z: -6, size: [3.2, 5.8, 6], col: 0x0284c7, type: 'server' },
+              { key: 'ai_core', name: 'Central AI Neural Core', hp: 110, maxHp: 110, x: 0, y: 2.4, z: 0, size: [3, 4.2, 3], col: 0xa855f7, wire: true, type: 'core' }
             ]
           }
         ];
@@ -1169,31 +1283,35 @@
       return [];
     }
 
-    const LANDMARKS_DEF = [
-      { id: 'admin', key: 'ADMIN_BLOCK', name: 'Admin Block', icon: '🏛️', color: 'blue', x: 0, z: -16, badgeY: 38, hp: 500, maxHp: 500, status: 'INTACT', builder: createAdminBlock },
-      { id: 'academic', key: 'ACADEMIC_BLOCK', name: 'Academic Block', icon: '🎓', color: 'purple', x: -22, z: -14, badgeY: 18, hp: 400, maxHp: 400, status: 'INTACT', builder: createAcademicBlock },
-      { id: 'library', key: 'LIBRARY', name: 'Library', icon: '📖', color: 'blue', x: 22, z: -14, badgeY: 18, hp: 350, maxHp: 350, status: 'INTACT', builder: createLibrary },
-      { id: 'cafeteria', key: 'CAFETERIA', name: 'Cafeteria', icon: '☕', color: 'amber', x: 25, z: 5, badgeY: 14, hp: 300, maxHp: 300, status: 'INTACT', builder: createCafeteria },
-      { id: 'sports', key: 'SPORTS', name: 'Sports Ground', icon: '🏀', color: 'red', x: 16, z: 22, badgeY: 12, hp: 250, maxHp: 250, status: 'INTACT', builder: createSportsCourt },
-      { id: 'garden', key: 'GARDEN', name: 'Central Fountain', icon: '⛲', color: 'green', x: 0, z: 4, badgeY: 12, hp: 200, maxHp: 200, status: 'INTACT', builder: createCentralFountain },
-      { id: 'parking', key: 'PARKING', name: 'Parking Lot', icon: '🚗', color: 'blue', x: -16, z: -2, badgeY: 12, hp: 200, maxHp: 200, status: 'INTACT', builder: createParkingCars },
-      { id: 'labs', key: 'LABS', name: 'Labs', icon: '🔬', color: 'purple', x: -27, z: 8, badgeY: 16, hp: 350, maxHp: 350, status: 'INTACT', builder: createLabs },
-      { id: 'hostel', key: 'HOSTEL', name: 'Hostel', icon: '🛏️', color: 'blue', x: -22, z: 24, badgeY: 16, hp: 300, maxHp: 300, status: 'INTACT', builder: createHostel },
-      { id: 'gate', key: 'GATE', name: 'Main Gate', icon: '🏛️', color: 'blue', x: 0, z: 32, badgeY: 12, hp: 250, maxHp: 250, status: 'INTACT', builder: createMainGate }
+    const LANDMARKS_TEMPLATE = [
+      { id: 'admin', key: 'ADMIN_BLOCK', name: 'Admin Block', icon: '🏛️', color: 'blue', x: 0, z: -22, badgeY: 46, hp: 500, maxHp: 500, status: 'INTACT', builder: createAdminBlock },
+      { id: 'academic', key: 'ACADEMIC_BLOCK', name: 'Academic Block', icon: '🎓', color: 'purple', x: -30, z: -18, badgeY: 22, hp: 400, maxHp: 400, status: 'INTACT', builder: createAcademicBlock },
+      { id: 'library', key: 'LIBRARY', name: 'Library', icon: '📖', color: 'blue', x: 30, z: -18, badgeY: 22, hp: 350, maxHp: 350, status: 'INTACT', builder: createLibrary },
+      { id: 'cafeteria', key: 'CAFETERIA', name: 'Cafeteria', icon: '☕', color: 'amber', x: 32, z: 8, badgeY: 16, hp: 300, maxHp: 300, status: 'INTACT', builder: createCafeteria },
+      { id: 'sports', key: 'SPORTS', name: 'Sports Ground', icon: '🏀', color: 'red', x: 22, z: 28, badgeY: 14, hp: 250, maxHp: 250, status: 'INTACT', builder: createSportsCourt },
+      { id: 'garden', key: 'GARDEN', name: 'Central Fountain', icon: '⛲', color: 'green', x: 0, z: 4, badgeY: 14, hp: 200, maxHp: 200, status: 'INTACT', builder: createCentralFountain },
+      { id: 'parking', key: 'PARKING', name: 'Parking Lot', icon: '🚗', color: 'blue', x: -24, z: -2, badgeY: 14, hp: 200, maxHp: 200, status: 'INTACT', builder: createParkingCars },
+      { id: 'labs', key: 'LABS', name: 'Labs', icon: '🔬', color: 'purple', x: -35, z: 10, badgeY: 20, hp: 350, maxHp: 350, status: 'INTACT', builder: createLabs },
+      { id: 'hostel', key: 'HOSTEL', name: 'Hostel', icon: '🛏️', color: 'blue', x: -28, z: 32, badgeY: 18, hp: 300, maxHp: 300, status: 'INTACT', builder: createHostel },
+      { id: 'gate', key: 'GATE', name: 'Main Gate', icon: '🏛️', color: 'blue', x: 0, z: 42, badgeY: 14, hp: 250, maxHp: 250, status: 'INTACT', builder: createMainGate }
     ];
 
-    const campuses = {
-      'cse1': {
-        id: 'cse1', name: 'CSE-1 Citadel', role: 'MY BASE',
-        landmarks: JSON.parse(JSON.stringify(LANDMARKS_DEF))
-      }
-    };
+    function createCampusState(id, name, role, shieldPct) {
+      const lms = JSON.parse(JSON.stringify(LANDMARKS_TEMPLATE));
+      lms.forEach(lm => {
+        lm.rooms = generateBuildingRooms(lm.key);
+        const def = LANDMARKS_TEMPLATE.find(d => d.id === lm.id);
+        if (def) lm.builder = def.builder;
+      });
+      return { id, name, role, shieldPct, landmarks: lms };
+    }
 
-    campuses['cse1'].landmarks.forEach(lm => {
-      lm.rooms = generateBuildingRooms(lm.key);
-      const def = LANDMARKS_DEF.find(d => d.id === lm.id);
-      if (def) lm.builder = def.builder;
-    });
+    const campuses = {
+      'cse1': createCampusState('cse1', 'CSE-1 Citadel', 'MY BASE', 94),
+      'cse2': createCampusState('cse2', 'CSE-2 Outpost', 'RIVAL BASE', 72),
+      'ise':  createCampusState('ise',  'ISE Cyber Matrix', 'RIVAL BASE', 88),
+      'ece':  createCampusState('ece',  'ECE Power Grid', 'RIVAL BASE', 45)
+    };
 
     let currentCampusId = 'cse1';
     let userPoints = 410;
@@ -1212,19 +1330,19 @@
     let scene, camera, renderer, controls;
     let dirLight, ambientLight, hemiLight;
     let clock = new THREE.Clock();
-    let isNight = true;
 
     // =========================================================================
-    // 5. THREE.JS INITIALIZATION & REALISTIC RENDERING
+    // 5. THREE.JS INITIALIZATION & BRIGHT REALISTIC WORLD
     // =========================================================================
     function initThree() {
       const container = document.getElementById('webgl-canvas');
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x020617); // Deep cosmic night
-      scene.fog = new THREE.FogExp2(0x020617, 0.007);
+      
+      // Vibrant architectural dusk/twilight sky (Brighter & Clear Visibility)
+      scene.background = new THREE.Color(0x0b172a);
 
-      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 1500);
-      camera.position.set(0, 52, 68);
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 2000);
+      camera.position.set(0, 70, 92);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1232,79 +1350,85 @@
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.35;
+      renderer.toneMappingExposure = 1.45; // Boosted brightness
       container.appendChild(renderer.domElement);
 
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.06;
       controls.maxPolarAngle = Math.PI / 2.05;
-      controls.minDistance = 15;
-      controls.maxDistance = 180;
-      controls.target.set(0, 4, 4);
+      controls.minDistance = 20;
+      controls.maxDistance = 240; // Bigger map exploration
+      controls.target.set(0, 6, 6);
 
       initMaterials();
       setupLighting();
       buildExteriorWorld();
 
       setupInteractions();
+      setupSectionSwitcher();
       createFloatingHTMLBadges(currentCampusId);
     }
 
     function setupLighting() {
-      ambientLight = new THREE.AmbientLight(0x0f172a, 1.1);
+      // Brighter ambient lighting for clear visibility
+      ambientLight = new THREE.AmbientLight(0xe0f2fe, 1.35);
       scene.add(ambientLight);
 
-      hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x020617, 0.6);
+      hemiLight = new THREE.HemisphereLight(0x60a5fa, 0x14532d, 0.85);
       scene.add(hemiLight);
 
-      dirLight = new THREE.DirectionalLight(0xe0f2fe, 1.5);
-      dirLight.position.set(38, 55, 30);
+      // Warm directional sunlight casting soft shadows
+      dirLight = new THREE.DirectionalLight(0xfffbeb, 2.2);
+      dirLight.position.set(45, 75, 40);
       dirLight.castShadow = true;
       dirLight.shadow.mapSize.width = 1024;
       dirLight.shadow.mapSize.height = 1024;
       dirLight.shadow.camera.near = 10;
-      dirLight.shadow.camera.far = 160;
-      const d = 48;
+      dirLight.shadow.camera.far = 240;
+      const d = 65; // Cover expanded map
       dirLight.shadow.camera.left = -d;
       dirLight.shadow.camera.right = d;
       dirLight.shadow.camera.top = d;
       dirLight.shadow.camera.bottom = -d;
-      dirLight.shadow.bias = -0.001;
+      dirLight.shadow.bias = -0.0008;
       scene.add(dirLight);
     }
 
     function buildExteriorWorld() {
+      if (exteriorSceneGroup) scene.remove(exteriorSceneGroup);
       exteriorSceneGroup = new THREE.Group();
       scene.add(exteriorSceneGroup);
 
-      // 1. Sleek Cybernetic Island Platform Base
-      const baseGeo = new THREE.CylinderGeometry(46, 49, 4, 64);
-      const baseMat = new THREE.MeshStandardMaterial({ color: 0x090f1d, metalness: 0.85, roughness: 0.3 });
+      const cData = campuses[currentCampusId];
+
+      // 1. Expanded Island Platform Base (Radius 60)
+      const baseGeo = new THREE.CylinderGeometry(60, 64, 5, 64);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.3 });
       const islandBase = new THREE.Mesh(baseGeo, baseMat);
-      islandBase.position.y = -2;
+      islandBase.position.y = -2.5;
       islandBase.receiveShadow = true;
       exteriorSceneGroup.add(islandBase);
 
-      // Neon rim ring
-      const ringGeo = new THREE.TorusGeometry(46.2, 0.45, 12, 64);
+      // Glowing Cyan Perimeter Rim
+      const ringGeo = new THREE.TorusGeometry(60.2, 0.55, 12, 64);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
       const rimRing = new THREE.Mesh(ringGeo, ringMat);
       rimRing.rotation.x = Math.PI / 2;
       rimRing.position.y = 0.05;
       exteriorSceneGroup.add(rimRing);
 
-      // 2. Main Quad Lawn (Rich Dark Forest Grass)
-      const quadGeo = new THREE.CircleGeometry(44.5, 64);
-      const quadMat = new THREE.MeshStandardMaterial({ color: 0x064e3b, roughness: 0.85, metalness: 0.1 });
+      // 2. Main Quad Lawn (Radius 58, Rich Emerald Green)
+      const quadGeo = new THREE.CircleGeometry(58, 64);
+      const quadMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.8, metalness: 0.1 });
       const quad = new THREE.Mesh(quadGeo, quadMat);
       quad.rotation.x = -Math.PI / 2;
       quad.position.y = 0.02;
       quad.receiveShadow = true;
       exteriorSceneGroup.add(quad);
 
-      // 3. Dark Asphalt Ring Road
-      const roadGeo = new THREE.RingGeometry(35, 41, 64);
+      // 3. Expanded Asphalt Ring Road
+      const roadGeo = new THREE.RingGeometry(44, 52, 64);
       const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.8 });
       const road = new THREE.Mesh(roadGeo, roadMat);
       road.rotation.x = -Math.PI / 2;
@@ -1313,25 +1437,25 @@
       exteriorSceneGroup.add(road);
 
       // 4. Stone Paver Walkways
-      const pathMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
-      const mainPath = new THREE.Mesh(new THREE.PlaneGeometry(5.0, 36), pathMat);
+      const pathMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+      const mainPath = new THREE.Mesh(new THREE.PlaneGeometry(6.0, 48), pathMat);
       mainPath.rotation.x = -Math.PI / 2;
-      mainPath.position.set(0, 0.04, 8);
+      mainPath.position.set(0, 0.04, 10);
       mainPath.receiveShadow = true;
       exteriorSceneGroup.add(mainPath);
 
-      const crossPath = new THREE.Mesh(new THREE.PlaneGeometry(36, 4.0), pathMat);
+      const crossPath = new THREE.Mesh(new THREE.PlaneGeometry(48, 5.0), pathMat);
       crossPath.rotation.x = -Math.PI / 2;
-      crossPath.position.set(0, 0.04, -8);
+      crossPath.position.set(0, 0.04, -10);
       crossPath.receiveShadow = true;
       exteriorSceneGroup.add(crossPath);
 
-      // 5. Hexagonal Pulsing Forcefield Dome
-      const domeGeo = new THREE.SphereGeometry(52, 32, 24, 0, Math.PI * 2, 0, Math.PI / 2);
+      // 5. Expanded Hexagonal Forcefield Dome (Radius 68)
+      const domeGeo = new THREE.SphereGeometry(68, 32, 24, 0, Math.PI * 2, 0, Math.PI / 2);
       const domeMat = new THREE.MeshBasicMaterial({
         map: hexDomeTex,
         transparent: true,
-        opacity: 0.3,
+        opacity: 0.32,
         blending: THREE.AdditiveBlending,
         side: THREE.DoubleSide
       });
@@ -1339,8 +1463,8 @@
       domeMesh.position.y = -0.5;
       exteriorSceneGroup.add(domeMesh);
 
-      // 6. Buildings (GLTF + Modern Architectural Meshes)
-      campuses[currentCampusId].landmarks.forEach(lm => {
+      // 6. Buildings for Active Campus
+      cData.landmarks.forEach(lm => {
         if (lm.builder) {
           const bldGroup = lm.builder(lm);
           bldGroup.userData = { landmarkId: lm.id };
@@ -1349,12 +1473,66 @@
         }
       });
 
-      // 7. Cypress & Pine Trees
+      // 7. Trees
       createRealisticTrees(exteriorSceneGroup);
     }
 
     // =========================================================================
-    // 6. SYNCHRONIZED SMART HOLOGRAPHIC BADGES
+    // 6. MULTI-SECTION REALM SWITCHER (SCOUT & ATTACK OTHER SECTIONS)
+    // =========================================================================
+    function setupSectionSwitcher() {
+      const selectBtn = document.getElementById('campus-select-btn');
+      const modal = document.getElementById('section-switch-modal');
+
+      selectBtn.onclick = () => {
+        playSound('click');
+        modal.classList.toggle('open');
+      };
+
+      document.querySelectorAll('.section-opt-btn').forEach(btn => {
+        btn.onclick = () => {
+          playSound('click');
+          const targetId = btn.dataset.campus;
+          modal.classList.remove('open');
+          switchCampusTerritory(targetId);
+        };
+      });
+    }
+
+    function switchCampusTerritory(campusId) {
+      if (!campuses[campusId]) return;
+      currentCampusId = campusId;
+      const cData = campuses[campusId];
+
+      // Update UI Header
+      document.getElementById('current-campus-name').innerText = cData.name;
+      const roleTag = document.getElementById('campus-role-tag');
+      if (cData.role === 'MY BASE') {
+        roleTag.className = 'citadel-tag home';
+        roleTag.innerText = 'MY BASE ▾';
+      } else {
+        roleTag.className = 'citadel-tag rival';
+        roleTag.innerText = 'RAID ACTIVE ▾';
+      }
+
+      document.getElementById('shield-badge').innerText = cData.shieldPct + '%';
+
+      // Update active button state
+      document.querySelectorAll('.section-opt-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.campus === campusId);
+      });
+
+      // Rebuild 3D world with target campus state
+      buildExteriorWorld();
+      createFloatingHTMLBadges(currentCampusId);
+
+      // Smooth camera transition
+      camera.position.set(0, 70, 92);
+      controls.target.set(0, 6, 6);
+    }
+
+    // =========================================================================
+    // 7. SYNCHRONIZED SMART HOLOGRAPHIC BADGES
     // =========================================================================
     function createFloatingHTMLBadges(campusId) {
       const layer = document.getElementById('pin-layer');
@@ -1398,7 +1576,7 @@
 
       cData.landmarks.forEach(lm => {
         if (!lm.badgeEl) return;
-        const pos = new THREE.Vector3(lm.x, lm.badgeY || 14, lm.z);
+        const pos = new THREE.Vector3(lm.x, lm.badgeY || 16, lm.z);
         pos.project(camera);
 
         if (pos.z > 1) {
@@ -1413,7 +1591,7 @@
     }
 
     // =========================================================================
-    // 7. MULTI-ROOM PICKER MODAL (20 ROOMS)
+    // 8. MULTI-ROOM PICKER MODAL (20 ROOMS)
     // =========================================================================
     function openRoomPicker(lm) {
       playSound('click');
@@ -1470,7 +1648,7 @@
     }
 
     // =========================================================================
-    // 8. 3D INTERIOR ENGINE & PRECISION RETICLE AIMING
+    // 9. REALISTIC 3D ROOM INTERIOR ARCHITECTURE & DISAPPEAR-TO-RUBBLE DESTRUCTION
     // =========================================================================
     function enterRoom3DView(building, room) {
       playSound('click');
@@ -1489,7 +1667,7 @@
       document.getElementById('interior-action-dock').style.display = 'flex';
       document.getElementById('precision-strike-btn').disabled = true;
 
-      buildInteriorScene(building, room);
+      buildRealisticInteriorScene(building, room);
     }
 
     function exitRoom3DView() {
@@ -1514,65 +1692,133 @@
       document.getElementById('radar-container').style.display = 'flex';
       document.getElementById('bottom-hud-container').style.display = 'flex';
 
-      camera.position.set(0, 52, 68);
-      controls.target.set(0, 4, 4);
+      camera.position.set(0, 70, 92);
+      controls.target.set(0, 6, 6);
     }
 
     document.getElementById('interior-back-btn').onclick = exitRoom3DView;
 
-    function buildInteriorScene(building, room) {
+    function buildRealisticInteriorScene(building, room) {
       if (interiorSceneGroup) scene.remove(interiorSceneGroup);
       interiorSceneGroup = new THREE.Group();
       scene.add(interiorSceneGroup);
 
       const isDem = room.status === 'DEMOLISHED';
 
+      // 1. Tiled / Parquet Ceramic Floor (28 x 26)
       const floorMat = new THREE.MeshStandardMaterial({
-        color: isDem ? 0x050505 : 0x1e293b,
-        roughness: isDem ? 0.95 : 0.3
+        map: isDem ? null : roomTileTex,
+        color: isDem ? 0x0a0a0a : 0xffffff,
+        roughness: isDem ? 0.95 : 0.35
       });
-      const floor = new THREE.Mesh(new THREE.BoxGeometry(22, 0.8, 22), floorMat);
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(28, 0.8, 26), floorMat);
       floor.position.y = -0.4;
+      floor.receiveShadow = true;
       interiorSceneGroup.add(floor);
 
+      // 2. Realistic Room Walls with Door & Window Cutouts
       const wallMat = new THREE.MeshStandardMaterial({
         color: isDem ? 0x111111 : 0x0f172a,
         roughness: 0.6
       });
-      const backWall = new THREE.Mesh(new THREE.BoxGeometry(22, 9, 0.8), wallMat);
-      backWall.position.set(0, 4.5, -10.6);
+      
+      // Back wall
+      const backWall = new THREE.Mesh(new THREE.BoxGeometry(28, 11, 0.8), wallMat);
+      backWall.position.set(0, 5.5, -12.6);
+      backWall.receiveShadow = true;
       interiorSceneGroup.add(backWall);
 
-      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, 9, 22), wallMat);
-      leftWall.position.set(-10.6, 4.5, 0);
+      // Left wall with window opening
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, 11, 26), wallMat);
+      leftWall.position.set(-13.6, 5.5, 0);
+      leftWall.receiveShadow = true;
       interiorSceneGroup.add(leftWall);
 
-      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, 9, 22), wallMat);
-      rightWall.position.set(10.6, 4.5, 0);
+      // Right wall with doorframe
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, 11, 26), wallMat);
+      rightWall.position.set(13.6, 5.5, 0);
+      rightWall.receiveShadow = true;
       interiorSceneGroup.add(rightWall);
 
+      // Ceiling Beams with warm recessed lights
+      for (let b = -8; b <= 8; b += 8) {
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(28, 0.8, 1.2), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
+        beam.position.set(0, 10.6, b);
+        interiorSceneGroup.add(beam);
+      }
+
+      // Ceiling Fluorescent LED Panels
+      const ledMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: isDem ? 0xef4444 : 0x38bdf8, emissiveIntensity: isDem ? 0.4 : 0.9 });
+      for (let lx = -6; lx <= 6; lx += 12) {
+        for (let lz = -6; lz <= 6; lz += 12) {
+          const ledPanel = new THREE.Mesh(new THREE.BoxGeometry(4.0, 0.2, 2.0), ledMat);
+          ledPanel.position.set(lx, 10.8, lz);
+          interiorSceneGroup.add(ledPanel);
+        }
+      }
+
+      // Interior Room Props
       room.props.forEach(p => {
         const propGroup = new THREE.Group();
-        const propMat = new THREE.MeshStandardMaterial({
-          color: isDem ? 0x1f1f1f : p.col,
-          roughness: isDem ? 0.95 : 0.4,
-          wireframe: !isDem && !!p.wire
-        });
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]), propMat);
-        mesh.userData = { propData: p };
-        propGroup.add(mesh);
 
-        propGroup.position.set(p.x, p.y, p.z);
-        interiorSceneGroup.add(propGroup);
-        p.meshGroup = propGroup;
+        if (p.hp > 0 && !isDem) {
+          // Intact Detailed Prop Modeling
+          if (p.type === 'blackboard') {
+            const board = new THREE.Mesh(new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]), new THREE.MeshStandardMaterial({ map: blackboardTex }));
+            board.castShadow = true;
+            propGroup.add(board);
+          } else if (p.type === 'podium') {
+            const stand = new THREE.Mesh(new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.6 }));
+            stand.castShadow = true;
+            propGroup.add(stand);
+            // Mic & Laptop
+            const laptop = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 0.7), new THREE.MeshStandardMaterial({ color: 0xe2e8f0 }));
+            laptop.position.set(0, p.size[1] * 0.5 + 0.05, 0);
+            propGroup.add(laptop);
+          } else if (p.type === 'desks') {
+            const desk = new THREE.Mesh(new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }));
+            desk.castShadow = true;
+            propGroup.add(desk);
+            // Laptops on desks
+            for (let d = -p.size[0] * 0.35; d <= p.size[0] * 0.35; d += p.size[0] * 0.35) {
+              const lap = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.08, 0.6), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
+              lap.position.set(d, p.size[1] * 0.5 + 0.05, 0);
+              propGroup.add(lap);
+            }
+          } else if (p.type === 'server') {
+            const rack = new THREE.Mesh(new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 }));
+            rack.castShadow = true;
+            propGroup.add(rack);
+            // Blinking green/cyan status LEDs
+            for (let s = -p.size[1] * 0.4; s <= p.size[1] * 0.4; s += 0.8) {
+              const led = new THREE.Mesh(new THREE.BoxGeometry(p.size[0] * 0.8, 0.1, 0.1), new THREE.MeshBasicMaterial({ color: (s > 0) ? 0x10b981 : 0x06b6d4 }));
+              led.position.set(0, s, p.size[2] * 0.5 + 0.05);
+              propGroup.add(led);
+            }
+          } else {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]), new THREE.MeshStandardMaterial({ color: p.col, wireframe: !!p.wire }));
+            mesh.castShadow = true;
+            propGroup.add(mesh);
+          }
+
+          propGroup.position.set(p.x, p.y, p.z);
+          interiorSceneGroup.add(propGroup);
+          p.meshGroup = propGroup;
+          p.rubbleGroup = null;
+        } else {
+          // Object is destroyed: Completely disappeared and replaced with broken rubble!
+          p.meshGroup = null;
+          p.rubbleGroup = createShatteredRubble(p.x, p.y, p.z, interiorSceneGroup);
+        }
       });
 
-      const cLight = new THREE.PointLight(isDem ? 0xef4444 : 0x38bdf8, isDem ? 0.6 : 1.4, 25);
-      cLight.position.set(0, 7.5, 0);
+      // Ceiling Light
+      const cLight = new THREE.PointLight(isDem ? 0xef4444 : 0xe0f2fe, isDem ? 0.8 : 1.6, 32);
+      cLight.position.set(0, 9.0, 0);
       interiorSceneGroup.add(cLight);
 
-      camera.position.set(0, 7, 18);
-      controls.target.set(0, 2.5, 0);
+      camera.position.set(0, 8, 22);
+      controls.target.set(0, 3.0, 0);
     }
 
     const raycaster = new THREE.Raycaster();
@@ -1635,6 +1881,7 @@
       reticle.style.top = y + 'px';
     }
 
+    // PRECISION STRIKE: PROP FULLY DISAPPEARS & IS REPLACED WITH BROKEN RUBBLE
     document.getElementById('precision-strike-btn').onclick = () => {
       if (!selectedProp || selectedProp.hp <= 0) return;
       if (userPoints < 50) {
@@ -1645,15 +1892,21 @@
       updatePointsDisplay();
       playSound('laser');
 
-      selectedProp.hp = Math.max(0, selectedProp.hp - 45);
+      selectedProp.hp = Math.max(0, selectedProp.hp - 50);
+
       if (selectedProp.hp <= 0) {
         playSound('explosion');
-        selectedProp.meshGroup.traverse(child => {
-          if (child.isMesh) {
-            child.material.color.setHex(0x18181b);
-            child.scale.set(0.85, 0.5, 0.85);
-          }
-        });
+
+        // Intact prop disappears completely!
+        if (selectedProp.meshGroup) {
+          selectedProp.meshGroup.visible = false;
+        }
+
+        // Replaced on the spot by shattered broken wreckage
+        selectedProp.rubbleGroup = createShatteredRubble(
+          selectedProp.x, selectedProp.y, selectedProp.z, interiorSceneGroup
+        );
+
         document.getElementById('crosshair-tag').innerText = `${selectedProp.name} DESTROYED!`;
         document.getElementById('precision-strike-btn').disabled = true;
       } else {
@@ -1661,6 +1914,7 @@
       }
     };
 
+    // WHOLE-ROOM DEMOLITION: ALL INTACT PROPS DISAPPEAR, REPLACED BY SCATTERED RUBBLE MOUNDS
     document.getElementById('whole-room-demolish-btn').onclick = () => {
       if (!currentInteriorRoom) return;
       if (userPoints < 400) {
@@ -1675,21 +1929,20 @@
       setTimeout(() => document.getElementById('app-body').classList.remove('shaking'), 600);
 
       currentInteriorRoom.status = 'DEMOLISHED';
+
       currentInteriorRoom.props.forEach(p => {
         p.hp = 0;
         if (p.meshGroup) {
-          p.meshGroup.traverse(child => {
-            if (child.isMesh) {
-              child.material.color.setHex(0x111111);
-              child.scale.set(0.7, 0.3, 0.7);
-            }
-          });
+          p.meshGroup.visible = false; // Vanishes!
+        }
+        if (!p.rubbleGroup) {
+          p.rubbleGroup = createShatteredRubble(p.x, p.y, p.z, interiorSceneGroup);
         }
       });
 
       document.getElementById('crosshair-reticle').style.display = 'none';
       document.getElementById('precision-strike-btn').disabled = true;
-      alert(`💥 KABOOM! ${currentInteriorRoom.name} Demolished to Ashes!`);
+      alert(`💥 KABOOM! ${currentInteriorRoom.name} Demolished to Ashes & Rubble!`);
     };
 
     document.getElementById('send-msg-btn').onclick = () => {
@@ -1710,30 +1963,10 @@
       document.getElementById('sound-btn').innerText = isSoundEnabled ? '🔊' : '🔇';
     };
 
-    // Day/Night Toggle (Atmospheric Dusk / Cyber Night)
-    document.getElementById('daynight-btn').onclick = () => {
-      playSound('click');
-      isNight = !isNight;
-      if (isNight) {
-        scene.background = new THREE.Color(0x020617);
-        scene.fog.color.setHex(0x020617);
-        dirLight.color.setHex(0xe0f2fe);
-        dirLight.intensity = 1.4;
-        ambientLight.intensity = 1.0;
-      } else {
-        // Sophisticated architectural twilight dusk (NOT electric cartoon cyan!)
-        scene.background = new THREE.Color(0x0f172a);
-        scene.fog.color.setHex(0x0f172a);
-        dirLight.color.setHex(0xfef08a);
-        dirLight.intensity = 1.8;
-        ambientLight.intensity = 1.3;
-      }
-    };
-
     document.getElementById('center-btn').onclick = () => {
       playSound('click');
-      camera.position.set(0, 52, 68);
-      controls.target.set(0, 4, 4);
+      camera.position.set(0, 70, 92);
+      controls.target.set(0, 6, 6);
     };
 
     let isAutoTour = false;
@@ -1745,7 +1978,7 @@
     };
 
     // =========================================================================
-    // 9. ANIMATION & RENDER LOOP
+    // 10. ANIMATION & RENDER LOOP
     // =========================================================================
     function animate() {
       requestAnimationFrame(animate);
@@ -1763,7 +1996,7 @@
       }
 
       if (domeMesh) {
-        domeMesh.material.opacity = 0.25 + Math.sin(time * 1.8) * 0.1;
+        domeMesh.material.opacity = 0.28 + Math.sin(time * 1.8) * 0.08;
       }
 
       updateBadgePositions();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Nexus 3D College Campus Realm</title>
+  <title>Nexus 3D Cyber Campus Tactical Realm</title>
   <script>
     window.onerror = function(msg, url, line) {
       console.error('JS Error: ' + msg + ' on line ' + line);
@@ -14,39 +14,40 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #020409; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #01040a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #fff; }
     #webgl-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; outline: none; }
     
     .hud-layer { position: absolute; z-index: 10; pointer-events: none; width: 100%; height: 100%; }
     .interactive { pointer-events: auto; }
 
-    /* Top Navigation Bar */
-    .top-header {
+    /* Top Tactical Telemetry Header */
+    .tactical-header {
       position: absolute; top: 10px; left: 10px; right: 10px;
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
-    .campus-badge-btn {
-      background: rgba(10, 15, 28, 0.94); backdrop-filter: blur(14px);
+    .citadel-badge {
+      background: rgba(10, 15, 30, 0.92); backdrop-filter: blur(16px);
       border: 1px solid rgba(56, 189, 248, 0.65); border-radius: 20px;
       padding: 6px 14px; display: flex; align-items: center; gap: 8px;
-      cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.85);
     }
-    .campus-badge-name { font-size: 13px; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
-    .campus-badge-tag { font-size: 9px; padding: 2px 6px; border-radius: 6px; font-weight: 700; background: rgba(16, 185, 129, 0.25); color: #10b981; border: 1px solid #10b981; }
+    .citadel-name { font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 0.5px; }
+    .citadel-tag { font-size: 9px; padding: 2px 6px; border-radius: 6px; font-weight: 800; background: rgba(56, 189, 248, 0.25); color: #38bdf8; border: 1px solid #38bdf8; }
     
-    .stats-pill-group { display: flex; gap: 6px; align-items: center; }
+    .stats-group { display: flex; gap: 6px; align-items: center; }
     .stat-chip {
-      background: rgba(10, 15, 28, 0.94); backdrop-filter: blur(14px);
+      background: rgba(10, 15, 30, 0.92); backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 16px;
-      padding: 6px 10px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
+      padding: 6px 10px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800;
     }
-    .stat-chip.pts { color: #f59e0b; border-color: rgba(245, 158, 11, 0.4); }
-    .stat-chip.bld { color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); }
+    .stat-chip.pts { color: #f59e0b; border-color: rgba(245, 158, 11, 0.5); }
+    .stat-chip.shield { color: #38bdf8; border-color: rgba(56, 189, 248, 0.5); }
+    .stat-chip.bld { color: #10b981; border-color: rgba(16, 185, 129, 0.5); }
 
-    .sound-toggle-btn {
-      background: rgba(10, 15, 28, 0.94); border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 14px;
+    .action-circle-btn {
+      background: rgba(10, 15, 30, 0.92); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px; color: #cbd5e1;
     }
 
     /* Floating View Controls */
@@ -54,30 +55,43 @@
       position: absolute; top: 54px; left: 10px; display: flex; gap: 6px;
     }
     .view-btn {
-      background: rgba(10, 15, 28, 0.92); border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 12px; padding: 5px 9px; font-size: 10px; font-weight: 700; color: #cbd5e1;
+      background: rgba(10, 15, 30, 0.9); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px; padding: 5px 10px; font-size: 10px; font-weight: 800; color: #cbd5e1;
       cursor: pointer; display: flex; align-items: center; gap: 4px;
     }
     .view-btn:active { background: rgba(56, 189, 248, 0.3); color: #fff; }
 
-    /* Dropdown Modal for Switching Section Campuses */
-    .campus-modal {
-      position: absolute; top: 52px; left: 10px; width: 280px;
-      background: rgba(10, 14, 26, 0.98); backdrop-filter: blur(16px);
-      border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 16px;
-      padding: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.9);
-      display: none; flex-direction: column; gap: 8px; z-index: 60;
+    /* Tactical Mini-Map Radar (Bottom Left) */
+    .tactical-radar {
+      position: absolute; bottom: 85px; left: 12px; width: 85px; height: 85px;
+      border-radius: 50%; background: rgba(10, 15, 30, 0.92); backdrop-filter: blur(12px);
+      border: 2px solid rgba(56, 189, 248, 0.6); box-shadow: 0 0 25px rgba(0,0,0,0.9), 0 0 15px rgba(56, 189, 248, 0.3);
+      overflow: hidden; pointer-events: auto; display: flex; align-items: center; justify-content: center;
     }
-    .campus-modal.open { display: flex; }
-    .modal-title { font-size: 11px; text-transform: uppercase; color: #38bdf8; font-weight: 800; letter-spacing: 0.8px; margin-bottom: 2px; }
-    .campus-opt-btn {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+    .radar-sweep-beam {
+      position: absolute; inset: 0;
+      background: conic-gradient(from 0deg at 50% 50%, rgba(56, 189, 248, 0.35) 0deg, transparent 60deg, transparent 360deg);
+      border-radius: 50%; animation: radarSpin 2.5s linear infinite;
     }
-    .campus-opt-btn.active { background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(162, 48, 237, 0.35)); border-color: #38bdf8; }
+    .radar-rings {
+      position: absolute; inset: 6px; border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+    .radar-rings-inner {
+      position: absolute; inset: 18px; border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    .radar-blip {
+      position: absolute; width: 5px; height: 5px; border-radius: 50%;
+    }
+    .radar-blip.friendly { background: #10b981; box-shadow: 0 0 8px #10b981; }
+    .radar-blip.scout { background: #ef4444; box-shadow: 0 0 8px #ef4444; animation: blipPing 1.2s infinite; }
+    .radar-tag {
+      position: absolute; bottom: 4px; font-size: 8px; font-weight: 900; color: #38bdf8; letter-spacing: 1px;
+    }
 
-    /* 3D Floating Holographic Pins (Synchronized to 3D mesh positions) */
+    @keyframes radarSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes blipPing { 0%, 100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.3); } }
+
+    /* 3D Floating Smart Holographic Pins */
     .pin-layer {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 15;
     }
@@ -88,30 +102,21 @@
       transform: translate(-50%, -100%);
     }
     .campus-pin-3d:hover, .campus-pin-3d.active {
-      transform: translate(-50%, -110%) scale(1.08);
-      z-index: 25;
+      transform: translate(-50%, -110%) scale(1.08); z-index: 25;
     }
     .pin-badge {
       display: flex; align-items: center; gap: 6px;
       padding: 5px 10px; border-radius: 18px;
-      background: rgba(10, 16, 32, 0.94); backdrop-filter: blur(8px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.85);
+      background: rgba(10, 16, 32, 0.94); backdrop-filter: blur(10px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.85);
       border: 1.5px solid #38bdf8;
       white-space: nowrap; font-size: 11px; font-weight: 800; color: #fff;
     }
-    .pin-badge.blue { border-color: #38bdf8; color: #e0f2fe; box-shadow: 0 0 12px rgba(56, 189, 248, 0.45); }
-    .pin-badge.purple { border-color: #a855f7; color: #f3e8ff; box-shadow: 0 0 12px rgba(168, 85, 247, 0.45); }
-    .pin-badge.green { border-color: #10b981; color: #d1fae5; box-shadow: 0 0 12px rgba(168, 85, 247, 0.45); }
-    .pin-badge.amber { border-color: #f59e0b; color: #fef3c7; box-shadow: 0 0 12px rgba(245, 158, 11, 0.45); }
-    .pin-badge.red { border-color: #ef4444; color: #fee2e2; box-shadow: 0 0 12px rgba(239, 68, 68, 0.45); }
-    .pin-badge.locked {
-      background: rgba(15, 23, 42, 0.85); border-color: #64748b; color: #94a3b8; box-shadow: none;
-    }
-    .pin-icon-wrap {
-      width: 18px; height: 18px; border-radius: 50%;
-      background: rgba(255, 255, 255, 0.15);
-      display: flex; align-items: center; justify-content: center; font-size: 10px;
-    }
+    .pin-badge.blue { border-color: #38bdf8; color: #e0f2fe; box-shadow: 0 0 15px rgba(56, 189, 248, 0.45); }
+    .pin-badge.purple { border-color: #a855f7; color: #f3e8ff; box-shadow: 0 0 15px rgba(168, 85, 247, 0.45); }
+    .pin-badge.green { border-color: #10b981; color: #d1fae5; box-shadow: 0 0 15px rgba(16, 185, 129, 0.45); }
+    .pin-badge.amber { border-color: #f59e0b; color: #fef3c7; box-shadow: 0 0 15px rgba(245, 158, 11, 0.45); }
+    .pin-badge.red { border-color: #ef4444; color: #fee2e2; box-shadow: 0 0 15px rgba(239, 68, 68, 0.45); }
     .pin-stem {
       width: 2px; height: 12px; background: linear-gradient(to bottom, #38bdf8, transparent);
       box-shadow: 0 0 5px #38bdf8;
@@ -121,7 +126,7 @@
       border: 1px solid #38bdf8; background: rgba(56, 189, 248, 0.4);
     }
 
-    /* Multi-Room Selection Modal */
+    /* Multi-Room Selection Modal (20 Rooms System) */
     .room-selector-modal {
       position: absolute; top: 50px; left: 14px; right: 14px; bottom: 85px;
       background: rgba(10, 16, 32, 0.98); backdrop-filter: blur(20px);
@@ -143,508 +148,933 @@
     }
     .floor-tab-btn {
       flex: 1; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-size: 11px; font-weight: 700;
+      border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; font-size: 11px; font-weight: 800;
       cursor: pointer; text-align: center;
     }
     .floor-tab-btn.active {
       background: linear-gradient(135deg, #0284c7, #38bdf8); color: #fff; border-color: #38bdf8;
     }
 
-    .rooms-list {
-      flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;
+    .room-cards-grid {
+      flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
     }
     .room-card-btn {
-      padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between;
-      align-items: center; cursor: pointer; transition: all 0.2s;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); cursor: pointer; text-align: left;
     }
     .room-card-btn:active { background: rgba(56, 189, 248, 0.2); border-color: #38bdf8; }
-    .room-card-left { display: flex; flex-direction: column; gap: 2px; }
-    .room-card-num { font-size: 13px; font-weight: 800; color: #fff; }
-    .room-card-desc { font-size: 10px; color: #94a3b8; }
-    .room-status-badge {
-      font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 8px;
-    }
-    .room-status-badge.ok { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
-    .room-status-badge.ruin { background: rgba(239, 68, 68, 0.25); color: #ef4444; border: 1px solid #ef4444; }
+    .room-card-name { font-size: 12px; font-weight: 800; color: #fff; }
+    .room-card-desc { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+    .room-card-status { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
+    .room-card-status.intact { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
+    .room-card-status.demolished { background: rgba(239, 68, 68, 0.25); color: #ef4444; border: 1px solid #ef4444; }
 
-    /* Tactical Interior Aim HUD Overlay */
-    .tactical-aim-hud {
-      position: absolute; top: 54px; right: 10px; left: 10px;
-      background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(14px);
-      border: 1px solid #38bdf8; border-radius: 14px; padding: 10px 12px;
-      display: none; flex-direction: column; gap: 6px; z-index: 50;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    /* Interior 3D Room Mode HUD Overlay */
+    .interior-hud-bar {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      display: none; justify-content: space-between; align-items: center; z-index: 55;
     }
-    .tactical-aim-hud.active { display: flex; }
-    .tactical-top-row { display: flex; justify-content: space-between; align-items: center; }
-    .target-title { font-size: 11px; font-weight: 800; color: #38bdf8; text-transform: uppercase; }
-    .target-name { font-size: 13px; font-weight: 800; color: #fff; }
-    .target-hp { font-size: 11px; font-weight: 700; color: #10b981; }
-    
-    .tactical-actions-row { display: flex; gap: 6px; margin-top: 4px; }
-    .btn-nuke-room {
-      flex: 1; padding: 8px 10px; border-radius: 10px;
-      background: linear-gradient(135deg, #b91c1c, #dc2626);
-      border: none; color: #fff; font-size: 11px; font-weight: 800;
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+    .interior-back-btn {
+      background: rgba(10, 16, 32, 0.94); border: 1px solid #38bdf8;
+      border-radius: 20px; padding: 6px 14px; font-size: 11px; font-weight: 800; color: #38bdf8;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(0,0,0,0.8); display: flex; align-items: center; gap: 6px;
     }
-    .btn-change-room {
-      padding: 8px 10px; border-radius: 10px; background: #334155;
-      border: none; color: #fff; font-size: 11px; font-weight: 700; cursor: pointer;
-    }
-    .btn-exit-interior {
-      padding: 8px 10px; border-radius: 10px; background: #1e293b;
-      border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; font-size: 11px; font-weight: 700; cursor: pointer;
+    .interior-room-title {
+      background: rgba(10, 16, 32, 0.94); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px; padding: 6px 14px; font-size: 11px; font-weight: 800; color: #fff;
     }
 
-    /* Notification Ticker */
-    .ticker {
-      position: absolute; bottom: 82px; left: 14px; right: 14px;
-      text-align: center; font-size: 11px; color: #94a3b8; pointer-events: none;
-      background: rgba(0,0,0,0.75); padding: 5px 10px; border-radius: 8px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      border: 1px solid rgba(255,255,255,0.1);
+    /* Precision Aim Crosshair Reticle (3D Prop Aiming) */
+    .crosshair-reticle {
+      position: absolute; pointer-events: none; z-index: 45; display: none;
+      transform: translate(-50%, -50%); width: 70px; height: 70px;
+    }
+    .crosshair-ring {
+      position: absolute; inset: 0; border: 2px dashed #ef4444; border-radius: 50%;
+      animation: rotateCrosshair 3s linear infinite; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+    }
+    .crosshair-dot {
+      position: absolute; top: 50%; left: 50%; width: 6px; height: 6px;
+      background: #ef4444; border-radius: 50%; transform: translate(-50%, -50%);
+    }
+    .crosshair-tag {
+      position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 6px;
+      background: rgba(15, 23, 42, 0.95); border: 1px solid #ef4444; border-radius: 6px;
+      padding: 2px 6px; font-size: 9px; font-weight: 800; color: #fee2e2; white-space: nowrap;
+    }
+    @keyframes rotateCrosshair { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* Interior Tactical Action Dock */
+    .interior-action-dock {
+      position: absolute; bottom: 12px; left: 12px; right: 12px;
+      display: none; flex-direction: column; gap: 8px; z-index: 55;
+    }
+    .precision-strike-btn {
+      background: linear-gradient(135deg, #ef4444, #dc2626); border: 1px solid #f87171;
+      border-radius: 14px; padding: 10px; font-size: 13px; font-weight: 900; color: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+    }
+    .precision-strike-btn:disabled { background: #334155; border-color: #475569; color: #94a3b8; box-shadow: none; }
+
+    .whole-room-demolish-btn {
+      background: linear-gradient(135deg, #7c2d12, #991b1b); border: 1.5px solid #ef4444;
+      border-radius: 14px; padding: 10px; font-size: 12px; font-weight: 900; color: #fee2e2;
+      display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+      box-shadow: 0 4px 25px rgba(239, 68, 68, 0.5);
     }
 
-    /* Bottom Action Controls */
-    .bottom-dock {
-      position: absolute; bottom: 10px; left: 10px; right: 10px;
-      display: flex; flex-direction: column; gap: 6px;
+    /* Bottom Streamlined Action Deck */
+    .bottom-action-container {
+      position: absolute; bottom: 8px; left: 10px; right: 10px;
+      display: flex; flex-direction: column; gap: 6px; z-index: 20; pointer-events: none;
     }
-    .msg-btn {
-      width: 100%; padding: 12px 14px; border-radius: 14px;
-      background: linear-gradient(135deg, #059669, #10b981);
-      border: none; color: #fff; font-size: 13px; font-weight: 800;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      box-shadow: 0 4px 18px rgba(16, 185, 129, 0.45); cursor: pointer;
-      letter-spacing: 0.3px;
+    .compact-chat-pill {
+      pointer-events: auto; background: rgba(10, 16, 32, 0.92); backdrop-filter: blur(12px);
+      border: 1px solid rgba(16, 185, 129, 0.6); border-radius: 14px; padding: 8px 14px;
+      display: flex; justify-content: space-between; align-items: center; cursor: pointer;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.8);
     }
-    .msg-btn:active { transform: scale(0.98); }
+    .compact-chat-text { font-size: 11px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 6px; }
+    .compact-chat-badge { font-size: 10px; font-weight: 900; color: #10b981; background: rgba(16, 185, 129, 0.2); padding: 2px 8px; border-radius: 8px; }
 
-    .weapon-dock-row {
-      display: flex; gap: 6px; align-items: center; justify-content: space-between;
-      background: rgba(10, 15, 28, 0.96); backdrop-filter: blur(14px);
-      padding: 8px 10px; border-radius: 16px; border: 1px solid rgba(56, 189, 248, 0.4);
+    .tactical-arsenal-deck {
+      pointer-events: auto; display: flex; gap: 6px;
     }
-    .weapon-chip {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      padding: 6px 4px; border-radius: 10px; background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08); cursor: pointer; gap: 2px;
+    .weapon-card {
+      flex: 1; background: rgba(10, 16, 32, 0.92); backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 7px 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.7);
     }
-    .weapon-chip.active { background: rgba(239, 68, 68, 0.22); border-color: #ef4444; }
-    .w-icon { font-size: 14px; }
-    .w-name { font-size: 10px; font-weight: 700; color: #e2e8f0; }
-    .w-cost { font-size: 9px; color: #f59e0b; font-weight: 700; }
+    .weapon-card.active { border-color: #ef4444; background: rgba(239, 68, 68, 0.2); }
+    .weapon-card-title { font-size: 10px; font-weight: 800; color: #fff; }
+    .weapon-card-cost { font-size: 9px; font-weight: 700; color: #f59e0b; }
 
-    .fire-action-btn {
-      padding: 8px 14px; border-radius: 12px;
-      background: linear-gradient(135deg, #dc2626, #ef4444);
-      border: none; color: #fff; font-size: 12px; font-weight: 800;
-      display: flex; flex-direction: column; align-items: center; gap: 2px;
-      cursor: pointer; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+    .fire-strike-trigger {
+      width: 65px; background: linear-gradient(135deg, #ef4444, #b91c1c);
+      border: 1px solid #f87171; border-radius: 12px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 900; color: #fff; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
     }
-    .fire-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .fire-strike-trigger:disabled { background: #334155; border-color: #475569; color: #94a3b8; box-shadow: none; }
 
-    /* Building Inspector Bottom Sheet */
-    .inspector-sheet {
-      position: absolute; bottom: 120px; left: 14px; right: 14px;
-      background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px);
-      border: 1px solid rgba(56, 189, 248, 0.6); border-radius: 16px;
-      padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.85);
-      display: none; flex-direction: column; gap: 6px; z-index: 55;
+    /* Screen Shake Animation on Detonation */
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0); }
+      10%, 30%, 50%, 70%, 90% { transform: translate(-6px, 4px); }
+      20%, 40%, 60%, 80% { transform: translate(6px, -4px); }
     }
-    .inspector-sheet.open { display: flex; }
-    .sheet-header { display: flex; justify-content: space-between; align-items: center; }
-    .sheet-title { font-size: 13px; font-weight: 800; color: #38bdf8; }
-    .sheet-close { background: none; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; }
-    .sheet-campus { font-size: 10px; color: #cbd5e1; }
-    .hp-bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-top: 2px; }
-    .hp-bar-fill { height: 100%; width: 100%; background: #10b981; transition: width 0.3s; }
-    .hp-row { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: #94a3b8; }
-    .sheet-actions { display: flex; gap: 6px; margin-top: 4px; }
-    
-    .tactical-btn {
-      flex: 1; padding: 7px; border-radius: 8px; background: linear-gradient(135deg, #0284c7, #38bdf8);
-      border: none; color: #fff; font-size: 11px; font-weight: 800; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 4px;
-    }
-    .repair-btn {
-      flex: 1; padding: 7px; border-radius: 8px; background: rgba(16, 185, 129, 0.2);
-      border: 1px solid #10b981; color: #10b981; font-size: 11px; font-weight: 700; cursor: pointer;
-    }
+    .shaking { animation: screenShake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
   </style>
 </head>
-<body>
-  <canvas id="webgl-canvas"></canvas>
-
-  <!-- 3D Synchronized Floating Pins Layer -->
-  <div class="pin-layer" id="pin-layer"></div>
+<body id="app-body">
+  <div id="webgl-canvas"></div>
 
   <!-- HUD Layer -->
   <div class="hud-layer">
-    <!-- Top Header -->
-    <div class="top-header interactive">
-      <div class="campus-badge-btn" id="campus-badge-btn">
-        <span class="campus-badge-name" id="badge-campus-name">CSE-1 Campus</span>
-        <span class="campus-badge-tag" id="badge-campus-tag">MY BASE</span>
-        <span style="font-size: 10px; color: #38bdf8;">▾</span>
+    
+    <!-- Top Tactical Telemetry Header -->
+    <div class="tactical-header interactive" id="main-header">
+      <div class="citadel-badge" id="campus-select-btn">
+        <span style="font-size: 13px;">🛡️</span>
+        <span class="citadel-name" id="current-campus-name">CSE-1 Citadel</span>
+        <span class="citadel-tag" id="campus-role-tag">MY BASE</span>
       </div>
-
-      <div class="stats-pill-group">
-        <div class="stat-chip pts" title="Personal Points">
-          <span>💰</span>
-          <span id="hud-pts">100 PTS</span>
-        </div>
-        <div class="stat-chip bld" title="Constructed Buildings">
-          <span>🧱</span>
-          <span id="hud-units">1 / 7 STAGES</span>
-        </div>
-        <button class="sound-toggle-btn" id="btn-sound" title="Sound FX">🔊</button>
+      
+      <div class="stats-group">
+        <div class="stat-chip pts"><span style="color: #f59e0b;">💰</span> <span id="user-points-badge">410 PTS</span></div>
+        <div class="stat-chip shield"><span style="color: #38bdf8;">⚡</span> <span id="shield-badge">94%</span></div>
+        <div class="action-circle-btn" id="sound-btn">🔊</div>
       </div>
     </div>
 
-    <!-- Quick View Controls -->
-    <div class="view-controls interactive">
-      <button class="view-btn" id="btn-reset-cam">🎯 Center View</button>
-      <button class="view-btn" id="btn-tour">🔄 Auto Tour</button>
-      <button class="view-btn" id="btn-restart" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.4);">⏮️ Reset to Stage 1</button>
+    <!-- View Controls -->
+    <div class="view-controls interactive" id="view-controls">
+      <div class="view-btn" id="center-btn">🎯 Center</div>
+      <div class="view-btn" id="tour-btn">🔄 Orbit 360°</div>
+      <div class="view-btn" id="daynight-btn">☀️ Day/Night</div>
     </div>
 
-    <!-- Tactical Aim Info Box (Inside Room) -->
-    <div class="tactical-aim-hud interactive" id="tactical-aim-hud">
-      <div class="tactical-top-row">
-        <div>
-          <div class="target-title" id="tactical-room-title">ROOM 101 • LECTURE HALL</div>
-          <div class="target-name" id="target-prop-name">Professor Podium</div>
-        </div>
-        <div class="target-hp" id="target-prop-hp">Integrity: 80 / 80 HP</div>
-      </div>
-      <div class="tactical-actions-row">
-        <button class="btn-nuke-room" id="btn-nuke-room">💣 DEMOLISH WHOLE ROOM (400p)</button>
-        <button class="btn-change-room" id="btn-change-room">🚪 Switch Room</button>
-        <button class="btn-exit-interior" id="btn-exit-interior">🌐 Campus View</button>
-      </div>
+    <!-- Mini-Map Radar -->
+    <div class="tactical-radar interactive" id="radar-container">
+      <div class="radar-sweep-beam"></div>
+      <div class="radar-rings"></div>
+      <div class="radar-rings-inner"></div>
+      <div class="radar-blip friendly" style="top: 25px; left: 30px;"></div>
+      <div class="radar-blip friendly" style="bottom: 28px; right: 26px;"></div>
+      <div class="radar-blip scout" style="top: 22px; right: 28px;"></div>
+      <div class="radar-tag">RADAR</div>
     </div>
+
+    <!-- Floating 3D Holographic Pin Markers Layer -->
+    <div class="pin-layer" id="pin-layer"></div>
 
     <!-- Multi-Room Selection Modal -->
     <div class="room-selector-modal interactive" id="room-selector-modal">
       <div class="room-modal-header">
-        <span class="room-modal-title" id="room-modal-building-name">Academic Block • Select Room</span>
+        <div class="room-modal-title" id="room-modal-building-name">🏛️ Admin Block • 20 Rooms</div>
         <button class="room-modal-close" id="room-modal-close">✕</button>
       </div>
-      <div class="floor-tabs" id="floor-tabs">
-        <button class="floor-tab-btn active" data-f="1">Floor 1</button>
-        <button class="floor-tab-btn" data-f="2">Floor 2</button>
-        <button class="floor-tab-btn" data-f="3">Floor 3</button>
+      <div class="floor-tabs">
+        <div class="floor-tab-btn active" data-floor="1">FL 1: Ground</div>
+        <div class="floor-tab-btn" data-floor="2">FL 2: Faculty & Labs</div>
+        <div class="floor-tab-btn" data-floor="3">FL 3: Council & Vault</div>
       </div>
-      <div class="rooms-list" id="rooms-list"></div>
+      <div class="room-cards-grid" id="room-cards-grid"></div>
     </div>
 
-    <!-- Campus Dropdown Selector Modal -->
-    <div class="campus-modal interactive" id="campus-modal">
-      <div class="modal-title">Switch Section Campus</div>
-      <div id="modal-campus-options" style="display: flex; flex-direction: column; gap: 6px;"></div>
+    <!-- Interior 3D Room Mode HUD -->
+    <div class="interior-hud-bar interactive" id="interior-hud-bar">
+      <div class="interior-back-btn" id="interior-back-btn">
+        <span>←</span> Exit to Campus
+      </div>
+      <div class="interior-room-title" id="interior-room-title">
+        Room 101: Lecture Hall
+      </div>
     </div>
 
-    <!-- Live Event Ticker -->
-    <div class="ticker" id="event-ticker">
-      ✨ Expansive 3D Collegiate Base. Tap any building -> [Select Room & Aim] to view rooms or demolish!
+    <!-- Crosshair Aim Reticle -->
+    <div class="crosshair-reticle" id="crosshair-reticle">
+      <div class="crosshair-ring"></div>
+      <div class="crosshair-dot"></div>
+      <div class="crosshair-tag" id="crosshair-tag">AIM TARGET</div>
     </div>
 
-    <!-- Building Inspector Bottom Sheet -->
-    <div class="inspector-sheet interactive" id="inspector-sheet">
-      <div class="sheet-header">
-        <span class="sheet-title" id="insp-name">Academic Block</span>
-        <button class="sheet-close" id="insp-close">✕</button>
-      </div>
-      <div class="sheet-campus" id="insp-campus">CSE-1 Campus (My Base) • Status: INTACT</div>
-      <div class="hp-bar-bg">
-        <div class="hp-bar-fill" id="insp-hp-bar"></div>
-      </div>
-      <div class="hp-row">
-        <span>Structural Integrity</span>
-        <span id="insp-hp-text">160 / 160 HP</span>
-      </div>
-      <div class="sheet-actions" id="insp-action-slot"></div>
-    </div>
-
-    <!-- Bottom Action Dock -->
-    <div class="bottom-dock interactive">
-      <button class="msg-btn" id="btn-msg">
-        <span>💬</span>
-        <span>SEND 5 MESSAGES (+BUILD NEXT BUILDING)</span>
+    <!-- Interior Tactical Action Dock -->
+    <div class="interior-action-dock interactive" id="interior-action-dock">
+      <button class="precision-strike-btn" id="precision-strike-btn">
+        <span>🎯</span> PRECISION STRIKE TARGET (50p)
       </button>
+      <button class="whole-room-demolish-btn" id="whole-room-demolish-btn">
+        <span>💣</span> DEMOLISH WHOLE ROOM (400p)
+      </button>
+    </div>
 
-      <div class="weapon-dock-row">
-        <div class="weapon-chip active" data-w="GUN" data-cost="50" data-dmg="40">
-          <span class="w-icon">🔫</span>
-          <span class="w-name">Plasma</span>
-          <span class="w-cost">50p</span>
+    <!-- Bottom Tactical Arsenal Action Deck -->
+    <div class="bottom-action-container" id="bottom-hud-container">
+      <div class="compact-chat-pill" id="send-msg-btn">
+        <div class="compact-chat-text">
+          <span>💬</span> Chat in Section (+50 PTS)
         </div>
-        <div class="weapon-chip" data-w="MISSILE" data-cost="150" data-dmg="80">
-          <span class="w-icon">🚀</span>
-          <span class="w-name">Missile</span>
-          <span class="w-cost">150p</span>
+        <div class="compact-chat-badge">+50p per msg</div>
+      </div>
+      
+      <div class="tactical-arsenal-deck">
+        <div class="weapon-card active" data-weapon="plasma" data-cost="50">
+          <span style="font-size: 14px;">⚡</span>
+          <div class="weapon-card-title">Plasma</div>
+          <div class="weapon-card-cost">50p</div>
         </div>
-        <div class="weapon-chip" data-w="BOMB" data-cost="350" data-dmg="150">
-          <span class="w-icon">💣</span>
-          <span class="w-name">C4 Bomb</span>
-          <span class="w-cost">350p</span>
+        <div class="weapon-card" data-weapon="missile" data-cost="150">
+          <span style="font-size: 14px;">🚀</span>
+          <div class="weapon-card-title">Missile</div>
+          <div class="weapon-card-cost">150p</div>
         </div>
-
-        <button class="fire-action-btn" id="btn-fire" disabled>
-          <span>🎯</span>
-          <span id="fire-btn-label">STRIKE</span>
+        <div class="weapon-card" data-weapon="icbm" data-cost="400">
+          <span style="font-size: 14px;">💣</span>
+          <div class="weapon-card-title">Room Buster</div>
+          <div class="weapon-card-cost">400p</div>
+        </div>
+        <button class="fire-strike-trigger" id="strike-btn" disabled>
+          <span>🎯</span> STRIKE
         </button>
       </div>
     </div>
-  </div>
 
+  </div>
   <script>
     // =========================================================================
-    // 1. PROCEDURAL SOUND FX (WEB AUDIO API)
+    // 1. AUDIO SYNTHESIS ENGINE (SFX)
     // =========================================================================
     let audioCtx = null;
-    let soundEnabled = true;
+    let isSoundEnabled = true;
 
     function initAudio() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
     }
 
     function playSound(type) {
-      if (!soundEnabled) return;
-      initAudio();
-      if (!audioCtx) return;
+      if (!isSoundEnabled) return;
+      try {
+        initAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
 
-      const now = audioCtx.currentTime;
-      if (type === 'click') {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.exponentialRampToValueAtTime(400, now + 0.06);
-        g.gain.setValueAtTime(0.12, now);
-        g.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.06);
-      } else if (type === 'build') {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(320, now);
-        osc.frequency.linearRampToValueAtTime(740, now + 0.2);
-        g.gain.setValueAtTime(0.25, now);
-        g.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.25);
-      } else if (type === 'laser') {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
-        g.gain.setValueAtTime(0.3, now);
-        g.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.15);
-      } else if (type === 'explosion') {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(140, now);
-        osc.frequency.exponentialRampToValueAtTime(25, now + 0.6);
-        g.gain.setValueAtTime(0.5, now);
-        g.gain.linearRampToValueAtTime(0.01, now + 0.6);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.6);
-      } else if (type === 'nuke') {
-        // Massive Rumble Explosion for Demolishing Whole Room
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(90, now);
-        osc.frequency.exponentialRampToValueAtTime(15, now + 1.2);
-        g.gain.setValueAtTime(0.65, now);
-        g.gain.linearRampToValueAtTime(0.01, now + 1.2);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 1.2);
-      } else if (type === 'repair') {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.frequency.setValueAtTime(500, now);
-        osc.frequency.linearRampToValueAtTime(900, now + 0.2);
-        g.gain.setValueAtTime(0.15, now);
-        g.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(now); osc.stop(now + 0.2);
+        if (type === 'click') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(800, now);
+          osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === 'laser') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(1100, now);
+          osc.frequency.exponentialRampToValueAtTime(120, now + 0.25);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === 'missile') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.linearRampToValueAtTime(700, now + 0.3);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === 'explosion') {
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.45);
+          gain.gain.setValueAtTime(0.4, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        } else if (type === 'nuke') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(260, now);
+          osc.frequency.exponentialRampToValueAtTime(30, now + 0.9);
+          gain.gain.setValueAtTime(0.6, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.95);
+          osc.start(now);
+          osc.stop(now + 0.95);
+        }
+      } catch (e) {
+        console.warn('Audio SFX error', e);
       }
     }
 
-    document.getElementById('btn-sound').onclick = () => {
-      soundEnabled = !soundEnabled;
-      document.getElementById('btn-sound').innerText = soundEnabled ? '🔊' : '🔇';
-    };
-
     // =========================================================================
-    // 2. PROCEDURAL TEXTURES
+    // 2. PROCEDURAL HIGH-RESOLUTION TEXTURE GENERATORS
     // =========================================================================
-    function makeFacadeTexture(baseColor, windowTheme) {
-      const c = document.createElement('canvas'); c.width = 512; c.height = 512;
+    
+    // Hexagonal glowing forcefield dome texture
+    function createHexForcefieldTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = baseColor || '#1e293b'; ctx.fillRect(0, 0, 512, 512);
+      ctx.clearRect(0, 0, 512, 512);
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-      for (let x = 0; x < 512; x += 64) ctx.fillRect(x, 0, 8, 512);
+      const r = 24;
+      const h = r * Math.sqrt(3);
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+      ctx.lineWidth = 1.5;
 
-      const floors = 5;
-      const floorH = 512 / floors;
-      for (let f = 0; f < floors; f++) {
-        const yTop = f * floorH;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'; ctx.fillRect(0, yTop, 512, 8);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; ctx.fillRect(0, yTop + 8, 512, 2);
-
-        const winW = 44, winH = floorH - 24;
-        for (let w = 0; w < 7; w++) {
-          const winX = 18 + w * 68;
-          const winY = yTop + 14;
-          ctx.fillStyle = '#0a0f1d'; ctx.fillRect(winX - 2, winY - 2, winW + 4, winH + 4);
-
-          const grad = ctx.createLinearGradient(winX, winY, winX, winY + winH);
-          if (windowTheme === 'amber') {
-            grad.addColorStop(0, '#fef08a'); grad.addColorStop(1, '#f59e0b');
-          } else {
-            grad.addColorStop(0, '#7dd3fc'); grad.addColorStop(1, '#0284c7');
-          }
-          ctx.fillStyle = grad; ctx.fillRect(winX, winY, winW, winH);
-
-          ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.5;
+      for (let y = 0; y < 512 + h; y += h) {
+        for (let x = 0, j = 0; x < 512 + r * 3; x += r * 3, j++) {
+          const cx = x + ((j % 2) ? 0 : r * 1.5);
+          const cy = y;
           ctx.beginPath();
-          ctx.moveTo(winX + winW / 2, winY); ctx.lineTo(winX + winW / 2, winY + winH);
-          ctx.moveTo(winX, winY + winH * 0.45); ctx.lineTo(winX + winW, winY + winH * 0.45);
+          for (let a = 0; a < 6; a++) {
+            const angle = (a * Math.PI) / 3;
+            const px = cx + r * Math.cos(angle);
+            const py = cy + r * Math.sin(angle);
+            if (a === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
           ctx.stroke();
         }
       }
-      return new THREE.CanvasTexture(c);
+
+      // Pulse gradient glow
+      const grad = ctx.createRadialGradient(256, 256, 10, 256, 256, 256);
+      grad.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
+      grad.addColorStop(1, 'rgba(2, 6, 23, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 512, 512);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(8, 4);
+      return tex;
     }
 
-    function makeSolarRoofTexture() {
-      const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+    // High-tech glass curtain wall facade texture
+    function createFacadeGlassTexture(baseHex, winHex) {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, 256, 256);
-      for (let x = 12; x < 244; x += 30) {
-        for (let y = 12; y < 244; y += 30) {
-          ctx.fillStyle = '#0369a1'; ctx.fillRect(x, y, 26, 26);
-          ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1; ctx.strokeRect(x, y, 26, 26);
+
+      // Base wall gradient
+      ctx.fillStyle = baseHex;
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Floor horizontal steel bands
+      ctx.fillStyle = '#0f172a';
+      for (let f = 0; f < 512; f += 64) {
+        ctx.fillRect(0, f, 512, 8);
+      }
+
+      // Windows grid
+      const cols = 8;
+      const rows = 8;
+      const w = 512 / cols;
+      const h = 512 / rows;
+
+      for (let r = 0; r < rows; r++) {
+        for (let col = 0; col < cols; col++) {
+          const isLit = (r + col * 3) % 4 !== 0;
+          const grad = ctx.createLinearGradient(col * w + 4, r * h + 10, col * w + 4, (r + 1) * h - 4);
+          if (isLit) {
+            grad.addColorStop(0, winHex);
+            grad.addColorStop(1, '#0284c7');
+          } else {
+            grad.addColorStop(0, '#0a101d');
+            grad.addColorStop(1, '#020617');
+          }
+          ctx.fillStyle = grad;
+          ctx.fillRect(col * w + 4, r * h + 10, w - 8, h - 14);
+
+          // Glass reflection highlight
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(col * w + 4, r * h + 10, w - 8, h - 14);
         }
       }
-      return new THREE.CanvasTexture(c);
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
     }
 
-    function makeClockTexture() {
-      const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+    // Regulation Collegiate Basketball Court Texture
+    function createBasketballCourtTexture() {
+      const c = document.createElement('canvas');
+      c.width = 512; c.height = 512;
       const ctx = c.getContext('2d');
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 128, 128);
-      ctx.fillStyle = '#38bdf8'; ctx.beginPath(); ctx.arc(64, 64, 54, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#0284c7'; ctx.beginPath(); ctx.arc(64, 64, 48, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+
+      // Burnt orange outer court perimeter
+      ctx.fillStyle = '#c2410c';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // Navy blue inner playing surface
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(32, 48, 448, 416);
+
+      // Regulation White Lines
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(32, 48, 448, 416);
+
+      // Half-court line
+      ctx.beginPath();
+      ctx.moveTo(256, 48);
+      ctx.lineTo(256, 464);
+      ctx.stroke();
+
+      // Center circle
+      ctx.beginPath();
+      ctx.arc(256, 256, 50, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#0369a1';
+      ctx.fill();
+
+      // Key areas (left and right)
+      ctx.strokeRect(32, 196, 96, 120);
+      ctx.strokeRect(384, 196, 96, 120);
+
+      // 3-point arcs
+      ctx.beginPath();
+      ctx.arc(32, 256, 120, -Math.PI / 2.3, Math.PI / 2.3);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(480, 256, 120, Math.PI - Math.PI / 2.3, Math.PI + Math.PI / 2.3);
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
+    }
+
+    // Roman Numerals Clock Dial Texture
+    function createClockTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, 256, 256);
+
+      ctx.beginPath();
+      ctx.arc(128, 128, 116, 0, Math.PI * 2);
+      ctx.fillStyle = '#020617';
+      ctx.fill();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#f59e0b';
+      ctx.stroke();
+
+      // Hour markers
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 4;
       for (let i = 0; i < 12; i++) {
-        const a = (i * Math.PI) / 6;
+        const ang = (i * Math.PI) / 6;
         ctx.beginPath();
-        ctx.moveTo(64 + Math.cos(a) * 36, 64 + Math.sin(a) * 36);
-        ctx.lineTo(64 + Math.cos(a) * 44, 64 + Math.sin(a) * 44);
+        ctx.moveTo(128 + Math.cos(ang) * 92, 128 + Math.sin(ang) * 92);
+        ctx.lineTo(128 + Math.cos(ang) * 110, 128 + Math.sin(ang) * 110);
         ctx.stroke();
       }
-      ctx.beginPath(); ctx.moveTo(64, 64); ctx.lineTo(64 + Math.cos(-Math.PI/3)*26, 64 + Math.sin(-Math.PI/3)*26); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(64, 64); ctx.lineTo(64 + Math.cos(Math.PI/6)*32, 64 + Math.sin(Math.PI/6)*32); ctx.stroke();
-      return new THREE.CanvasTexture(c);
+
+      // Hands
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(128, 128);
+      ctx.lineTo(128, 50);
+      ctx.stroke();
+
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.moveTo(128, 128);
+      ctx.lineTo(180, 128);
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(c);
+      return tex;
     }
 
-    // EXPANDED 1024x1024 Campus Grounds Texture
-    function makeGroundsTexture() {
-      const c = document.createElement('canvas'); c.width = 1024; c.height = 1024;
+    // Stone Pavers Texture
+    function createStonePaverTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
       const ctx = c.getContext('2d');
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, 256, 256);
 
-      ctx.fillStyle = '#183c20'; ctx.fillRect(0, 0, 1024, 1024);
-      ctx.fillStyle = '#204d2b';
-      for (let i = 0; i < 4000; i++) ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 4, 4);
-
-      // Central Plaza Pavers
-      ctx.fillStyle = '#222938'; ctx.beginPath(); ctx.arc(512, 512, 380, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.5;
-      for (let x = 160; x <= 864; x += 36) {
-        ctx.beginPath(); ctx.moveTo(x, 160); ctx.lineTo(x, 864); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 2;
+      for (let x = 0; x < 256; x += 32) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 256); ctx.stroke();
       }
-      for (let y = 160; y <= 864; y += 36) {
-        ctx.beginPath(); ctx.moveTo(160, y); ctx.lineTo(864, y); ctx.stroke();
+      for (let y = 0; y < 256; y += 32) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(256, y); ctx.stroke();
       }
-      ctx.globalAlpha = 1.0;
-
-      ctx.strokeStyle = '#06b6d4'; ctx.lineWidth = 3.5;
-      ctx.beginPath(); ctx.arc(512, 512, 360, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(512, 512, 220, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(512, 512, 90, 0, Math.PI * 2); ctx.stroke();
-
-      // Main Entrance Road
-      ctx.fillStyle = '#334155'; ctx.fillRect(468, 512, 88, 512);
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.setLineDash([16, 16]);
-      ctx.beginPath(); ctx.moveTo(512, 512); ctx.lineTo(512, 1024); ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Circular Garden Pond
-      ctx.fillStyle = '#0284c7'; ctx.beginPath(); ctx.arc(740, 740, 75, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 4; ctx.stroke();
-
-      // Sports Court
-      const courtX = 730, courtY = 530, courtW = 230, courtH = 150;
-      ctx.fillStyle = '#dc2626'; ctx.fillRect(courtX - 10, courtY - 10, courtW + 20, courtH + 20);
-      ctx.fillStyle = '#1d4ed8'; ctx.fillRect(courtX, courtY, courtW, courtH);
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
-      ctx.strokeRect(courtX + 10, courtY + 10, courtW - 20, courtH - 20);
-      ctx.beginPath(); ctx.moveTo(courtX + courtW / 2, courtY + 10); ctx.lineTo(courtX + courtW / 2, courtY + courtH - 10); ctx.stroke();
-      ctx.beginPath(); ctx.arc(courtX + courtW / 2, courtY + courtH / 2, 26, 0, Math.PI * 2); ctx.stroke();
-
-      // Parking Lot
-      const pkX = 110, pkY = 400, pkW = 200, pkH = 140;
-      ctx.fillStyle = '#0f172a'; ctx.fillRect(pkX, pkY, pkW, pkH);
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
-      for (let px = pkX + 18; px < pkX + pkW - 12; px += 28) {
-        ctx.beginPath(); ctx.moveTo(px, pkY + 10); ctx.lineTo(px, pkY + 60); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(px, pkY + 80); ctx.lineTo(px, pkY + 130); ctx.stroke();
-      }
-
-      return new THREE.CanvasTexture(c);
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(12, 12);
+      return tex;
     }
 
-    const facadeBlueTex = makeFacadeTexture('#1e293b', 'cyan');
-    const facadeAmberTex = makeFacadeTexture('#262018', 'amber');
-    const solarTex = makeSolarRoofTexture();
-    const clockTex = makeClockTexture();
-    const groundsTex = makeGroundsTexture();
+    // Asphalt Road Texture
+    function createAsphaltRoadTexture() {
+      const c = document.createElement('canvas');
+      c.width = 256; c.height = 256;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, 256, 256);
+
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([16, 16]);
+      ctx.beginPath();
+      ctx.moveTo(128, 0);
+      ctx.lineTo(128, 256);
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(1, 16);
+      return tex;
+    }
 
     // =========================================================================
-    // 3. MULTI-ROOM EXPANDED BUILDING DIRECTORY & ROOM TEMPLATES
+    // 3. ARCHITECTURAL 3D MESH GENERATION (HIGH FIDELITY)
     // =========================================================================
+    
+    let facadeBlueTex, facadeAmberTex, courtTex, clockTex, roadTex, paverTex, hexDomeTex;
+    let beaconMesh, searchlightMesh, fountainSprayMesh;
+    let domeMesh;
+
+    function initMaterials() {
+      hexDomeTex = createHexForcefieldTexture();
+      facadeBlueTex = createFacadeGlassTexture('#0b1329', '#38bdf8');
+      facadeAmberTex = createFacadeGlassTexture('#1c1306', '#f59e0b');
+      courtTex = createBasketballCourtTexture();
+      clockTex = createClockTexture();
+      roadTex = createAsphaltRoadTexture();
+      paverTex = createStonePaverTexture();
+    }
+
+    // 1. ADMIN BLOCK TOWER & ARMORY
+    function createAdminBlock(lm) {
+      const g = new THREE.Group();
+
+      // Main lower terrace base
+      const baseGeo = new THREE.BoxGeometry(18, 12, 16);
+      const baseMat = new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.35, metalness: 0.2 });
+      const base = new THREE.Mesh(baseGeo, baseMat);
+      base.position.set(lm.x, 6.0, lm.z);
+      base.castShadow = true; base.receiveShadow = true;
+      g.add(base);
+
+      // Entrance Portico with columns
+      const portico = new THREE.Mesh(new THREE.BoxGeometry(10, 1.2, 4), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 }));
+      portico.position.set(lm.x, 5.0, lm.z + 9.5);
+      portico.castShadow = true;
+      g.add(portico);
+
+      for (let p = -1; p <= 1; p += 2) {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 5.0, 12), new THREE.MeshStandardMaterial({ color: 0xe2e8f0 }));
+        col.position.set(lm.x + p * 4.2, 2.5, lm.z + 10.5);
+        col.castShadow = true;
+        g.add(col);
+      }
+
+      // Central Clock Tower Shaft
+      const tower = new THREE.Mesh(new THREE.BoxGeometry(8.5, 18, 8.5), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 }));
+      tower.position.set(lm.x, 21.0, lm.z);
+      tower.castShadow = true;
+      g.add(tower);
+
+      // 4 Roman Clock Faces
+      for (let i = 0; i < 4; i++) {
+        const cf = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2), new THREE.MeshBasicMaterial({ map: clockTex }));
+        const rotY = (i * Math.PI) / 2;
+        cf.position.set(lm.x + Math.sin(rotY) * 4.35, 23, lm.z + Math.cos(rotY) * 4.35);
+        cf.rotation.y = rotY;
+        g.add(cf);
+      }
+
+      // Top Glass Spire
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(4.8, 14, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.9, roughness: 0.15 }));
+      spire.rotation.y = Math.PI / 4;
+      spire.position.set(lm.x, 37.0, lm.z);
+      spire.castShadow = true;
+      g.add(spire);
+
+      // Searchlight Beam shooting into space
+      const beamGeo = new THREE.CylinderGeometry(0.5, 4.5, 55, 16);
+      const beamMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending });
+      searchlightMesh = new THREE.Mesh(beamGeo, beamMat);
+      searchlightMesh.position.set(lm.x, 65, lm.z);
+      g.add(searchlightMesh);
+
+      // Blinking Warning Beacon
+      beaconMesh = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+      beaconMesh.position.set(lm.x, 44.5, lm.z);
+      g.add(beaconMesh);
+
+      return g;
+    }
+
+    // 2. ACADEMIC BLOCK (MODERN GLASS CANTILEVER)
+    function createAcademicBlock(lm) {
+      const g = new THREE.Group();
+
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(18, 12, 14), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.3 }));
+      bld.position.set(lm.x, 6.0, lm.z);
+      bld.castShadow = true; bld.receiveShadow = true;
+      g.add(bld);
+
+      // Cantilever wing
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(10, 4.5, 16), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8 }));
+      wing.position.set(lm.x - 3.5, 9.5, lm.z + 1.5);
+      wing.castShadow = true;
+      g.add(wing);
+
+      // Rooftop ventilation
+      for (let i = 0; i < 3; i++) {
+        const vent = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 2.0, 10), new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 }));
+        vent.position.set(lm.x - 4.5 + i * 4.5, 13.0, lm.z - 2.5);
+        vent.castShadow = true;
+        g.add(vent);
+      }
+      return g;
+    }
+
+    // 3. LIBRARY ROTUNDA & ARCHIVE
+    function createLibrary(lm) {
+      const g = new THREE.Group();
+
+      // Curved Cylindrical Rotunda
+      const rot = new THREE.Mesh(new THREE.CylinderGeometry(8.5, 9.0, 12, 20), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.35 }));
+      rot.position.set(lm.x, 6.0, lm.z);
+      rot.castShadow = true; rot.receiveShadow = true;
+      g.add(rot);
+
+      // Glass Dome Skylight
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(6.5, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x38bdf8, metalness: 0.9, roughness: 0.1, transparent: true, opacity: 0.7 }));
+      dome.position.set(lm.x, 12.0, lm.z);
+      dome.castShadow = true;
+      g.add(dome);
+
+      return g;
+    }
+
+    // 4. CAFETERIA & LOUNGE ATRIUM
+    function createCafeteria(lm) {
+      const g = new THREE.Group();
+
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(16, 8, 12), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.4 }));
+      bld.position.set(lm.x, 4.0, lm.z);
+      bld.castShadow = true; bld.receiveShadow = true;
+      g.add(bld);
+
+      // Outdoor wooden deck
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(16, 0.4, 7), new THREE.MeshStandardMaterial({ color: 0x78350f }));
+      deck.position.set(lm.x, 0.2, lm.z + 8.5);
+      deck.receiveShadow = true;
+      g.add(deck);
+
+      // Umbrella Cafe Tables
+      const uColors = [0xef4444, 0x06b6d4, 0xf59e0b, 0x10b981];
+      for (let t = 0; t < 4; t++) {
+        const ox = lm.x - 5.5 + t * 3.6;
+        const oz = lm.z + 8.5;
+        const table = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.8, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        table.position.set(ox, 0.8, oz);
+        table.castShadow = true;
+        g.add(table);
+
+        const umb = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.4, 8), new THREE.MeshBasicMaterial({ color: uColors[t] }));
+        umb.position.set(ox, 3.2, oz);
+        umb.castShadow = true;
+        g.add(umb);
+      }
+      return g;
+    }
+
+    // 5. TOURNAMENT BASKETBALL ARENA (HIGH DETAIL)
+    function createSportsCourt(lm) {
+      const g = new THREE.Group();
+
+      // Outer Court Perimeter
+      const court = new THREE.Mesh(new THREE.BoxGeometry(22, 0.6, 14), new THREE.MeshStandardMaterial({ map: courtTex, roughness: 0.5 }));
+      court.position.set(lm.x, 0.3, lm.z);
+      court.receiveShadow = true;
+      g.add(court);
+
+      // 3D Basketball Hoops (Both Ends)
+      for (let h = -1; h <= 1; h += 2) {
+        // Steel Pole
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 5.2, 8), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 }));
+        pole.position.set(lm.x + h * 9.5, 2.6, lm.z);
+        pole.castShadow = true;
+        g.add(pole);
+
+        // Acrylic Backboard
+        const board = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.8, 2.8), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 }));
+        board.position.set(lm.x + h * 9.1, 4.8, lm.z);
+        board.castShadow = true;
+        g.add(board);
+
+        // Orange Rim
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 6, 16), new THREE.MeshBasicMaterial({ color: 0xea580c }));
+        rim.rotation.x = Math.PI / 2;
+        rim.position.set(lm.x + h * 8.4, 4.3, lm.z);
+        g.add(rim);
+
+        // Net (white cylinder wireframe)
+        const net = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.35, 0.7, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true }));
+        net.position.set(lm.x + h * 8.4, 3.9, lm.z);
+        g.add(net);
+      }
+
+      // 4 Corner Stadium Floodlight Towers
+      for (let px = -1; px <= 1; px += 2) {
+        for (let pz = -1; pz <= 1; pz += 2) {
+          const tower = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.24, 8.5, 8), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
+          tower.position.set(lm.x + px * 10.5, 4.25, lm.z + pz * 6.5);
+          tower.castShadow = true;
+          g.add(tower);
+
+          const lamp = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 0.7), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+          lamp.position.set(lm.x + px * 10.5, 8.6, lm.z + pz * 6.5);
+          g.add(lamp);
+        }
+      }
+      return g;
+    }
+
+    // 6. CENTRAL FOUNTAIN & PLAZA
+    function createCentralFountain(lm) {
+      const g = new THREE.Group();
+
+      const basin = new THREE.Mesh(new THREE.CylinderGeometry(5.8, 6.2, 1.0, 24), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }));
+      basin.position.set(lm.x, 0.5, lm.z);
+      basin.castShadow = true; basin.receiveShadow = true;
+      g.add(basin);
+
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(5.3, 5.3, 0.8, 24), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.1, metalness: 0.8 }));
+      water.position.set(lm.x, 0.65, lm.z);
+      g.add(water);
+
+      const tier2 = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.8, 1.8, 16), new THREE.MeshStandardMaterial({ color: 0x475569 }));
+      tier2.position.set(lm.x, 1.4, lm.z);
+      tier2.castShadow = true;
+      g.add(tier2);
+
+      fountainSprayMesh = new THREE.Mesh(new THREE.ConeGeometry(1.2, 4.5, 12), new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.75 }));
+      fountainSprayMesh.position.set(lm.x, 3.8, lm.z);
+      g.add(fountainSprayMesh);
+
+      // Cyan light inside fountain
+      const fLight = new THREE.PointLight(0x06b6d4, 1.2, 15);
+      fLight.position.set(lm.x, 2.5, lm.z);
+      g.add(fLight);
+
+      return g;
+    }
+
+    // 7. PARKING LOT WITH 6 3D CARS
+    function createParkingCars(lm) {
+      const g = new THREE.Group();
+
+      const lot = new THREE.Mesh(new THREE.BoxGeometry(18, 0.4, 13), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85 }));
+      lot.position.set(lm.x, 0.2, lm.z);
+      lot.receiveShadow = true;
+      g.add(lot);
+
+      const carColors = [0xef4444, 0x38bdf8, 0xffffff, 0xf59e0b, 0x10b981, 0xa855f7];
+      const carSlots = [
+        { x: -6, z: -3.5 }, { x: -2, z: -3.5 }, { x: 2, z: -3.5 }, { x: 6, z: -3.5 },
+        { x: -3, z: 3.5 }, { x: 3, z: 3.5 }
+      ];
+
+      carSlots.forEach((slot, idx) => {
+        const car = new THREE.Group();
+        const body = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.8, 1.5), new THREE.MeshStandardMaterial({ color: carColors[idx], metalness: 0.85, roughness: 0.2 }));
+        body.position.y = 0.6; body.castShadow = true;
+        car.add(body);
+
+        const cab = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 1.3), new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.1 }));
+        cab.position.set(-0.25, 1.2, 0); cab.castShadow = true;
+        car.add(cab);
+
+        car.position.set(lm.x + slot.x, 0.2, lm.z + slot.z);
+        g.add(car);
+      });
+
+      return g;
+    }
+
+    // 8. RESEARCH LABS & SATELLITE MAST
+    function createLabs(lm) {
+      const g = new THREE.Group();
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(15, 10, 12), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.35 }));
+      bld.position.set(lm.x, 5.0, lm.z);
+      bld.castShadow = true; bld.receiveShadow = true;
+      g.add(bld);
+
+      // Satellite Dish
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 5, 8), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
+      mast.position.set(lm.x, 12.5, lm.z);
+      g.add(mast);
+
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(1.8, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, side: THREE.DoubleSide }));
+      dish.rotation.x = -Math.PI / 3;
+      dish.position.set(lm.x, 14.5, lm.z);
+      g.add(dish);
+
+      return g;
+    }
+
+    // 9. STUDENT HOSTEL
+    function createHostel(lm) {
+      const g = new THREE.Group();
+      const bld = new THREE.Mesh(new THREE.BoxGeometry(16, 11, 11), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.5 }));
+      bld.position.set(lm.x, 5.5, lm.z);
+      bld.castShadow = true; bld.receiveShadow = true;
+      g.add(bld);
+      return g;
+    }
+
+    // 10. MAIN CAMPUS GATE
+    function createMainGate(lm) {
+      const g = new THREE.Group();
+      for (let p = -1; p <= 1; p += 2) {
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 7, 2.4), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6 }));
+        pillar.position.set(lm.x + p * 6, 3.5, lm.z);
+        pillar.castShadow = true;
+        g.add(pillar);
+      }
+      const arch = new THREE.Mesh(new THREE.BoxGeometry(14.4, 1.4, 2.4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8 }));
+      arch.position.set(lm.x, 7.2, lm.z);
+      arch.castShadow = true;
+      g.add(arch);
+
+      return g;
+    }
+
+    // LUSH 3D PINE & OAK TREES
+    function createRealisticTrees(parent) {
+      const treeCoords = [
+        { x: -14, z: 12 }, { x: -8, z: 16 }, { x: 8, z: 16 }, { x: 14, z: 12 },
+        { x: -24, z: -2 }, { x: -28, z: 8 }, { x: 26, z: -6 }, { x: 22, z: 16 },
+        { x: 0, z: 22 }, { x: -6, z: 24 }, { x: 6, z: 24 }
+      ];
+
+      treeCoords.forEach((tc, idx) => {
+        const tree = new THREE.Group();
+        // Trunk
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 3.5, 8), new THREE.MeshStandardMaterial({ color: 0x3d2817 }));
+        trunk.position.y = 1.75;
+        trunk.castShadow = true;
+        tree.add(trunk);
+
+        if (idx % 2 === 0) {
+          // Pine tree (tiered cones)
+          const colors = [0x15803d, 0x16a34a, 0x22c55e];
+          for (let i = 0; i < 3; i++) {
+            const cone = new THREE.Mesh(new THREE.ConeGeometry(2.4 - i * 0.5, 2.6, 8), new THREE.MeshStandardMaterial({ color: colors[i], roughness: 0.8 }));
+            cone.position.y = 3.6 + i * 1.6;
+            cone.castShadow = true;
+            tree.add(cone);
+          }
+        } else {
+          // Rounded leafy oak tree
+          const foliage = new THREE.Mesh(new THREE.SphereGeometry(2.5, 8, 8), new THREE.MeshStandardMaterial({ color: 0x16a34a, roughness: 0.8 }));
+          foliage.position.y = 4.2;
+          foliage.castShadow = true;
+          tree.add(foliage);
+        }
+
+        tree.position.set(tc.x, 0, tc.z);
+        parent.add(tree);
+      });
+    }
+
+    // =========================================================================
+    // 4. CAMPUS DATA & MULTI-ROOM INTERIOR DEFINITIONS (20 ROOMS SYSTEM)
+    // =========================================================================
+    
     function generateBuildingRooms(buildingKey) {
       if (buildingKey === 'ACADEMIC_BLOCK') {
         return [
           {
             id: 'room_101', floor: 1, num: 'Room 101', name: 'Main Lecture Hall', status: 'INTACT',
-            desc: 'Grand tiered classroom with professor podium, smart screens, and student desks.',
+            desc: 'High-capacity lecture theater with podium and student workstations.',
             props: [
-              { key: 'prof_podium', name: 'Professor Podium', hp: 80, maxHp: 80, x: 0, y: 1.2, z: -6, size: [2.2, 2.4, 1.6], col: 0x78350f },
-              { key: 'smart_board', name: 'Smart Holographic Board', hp: 70, maxHp: 70, x: 0, y: 3.5, z: -9.5, size: [10, 3.5, 0.4], col: 0x0f172a },
-              { key: 'front_desks', name: 'Front Student Desks', hp: 90, maxHp: 90, x: -3.5, y: 0.8, z: -1.5, size: [5, 1.4, 1.8], col: 0x1e293b },
-              { key: 'back_desks', name: 'Rear Student Desks', hp: 90, maxHp: 90, x: 3.5, y: 0.8, z: 3.5, size: [5, 1.4, 1.8], col: 0x1e293b }
+              { key: 'podium', name: 'Professor Podium', hp: 100, maxHp: 100, x: 0, y: 1.2, z: -6, size: [2.2, 2.4, 1.6], col: 0x0284c7 },
+              { key: 'smart_board', name: 'Interactive Smart Board', hp: 80, maxHp: 80, x: 0, y: 3.5, z: -8.8, size: [8, 3.2, 0.4], col: 0x38bdf8 },
+              { key: 'student_desks', name: 'Student Workstations', hp: 90, maxHp: 90, x: 0, y: 0.8, z: 2, size: [7, 1.2, 5], col: 0x334155 }
             ]
           },
           {
             id: 'room_102', floor: 1, num: 'Room 102', name: 'AI Coding Workshop', status: 'INTACT',
-            desc: 'High-tech computer lab with developer workstations and server terminals.',
+            desc: 'Equipped with dual-monitor developer pods and neural network terminals.',
             props: [
-              { key: 'dev_bench_1', name: 'Dual-Monitor Workstations', hp: 80, maxHp: 80, x: -4, y: 1.0, z: -3, size: [5, 1.6, 2], col: 0x0284c7 },
-              { key: 'dev_bench_2', name: 'Projector Console', hp: 70, maxHp: 70, x: 4, y: 1.2, z: -3, size: [4, 1.8, 2], col: 0x334155 },
-              { key: 'trophy_case', name: 'Section Hackathon Trophy Case', hp: 60, maxHp: 60, x: 0, y: 2.2, z: -8, size: [6, 4, 1.2], col: 0xf59e0b }
+              { key: 'dev_pods', name: 'Coder Terminal Cluster', hp: 90, maxHp: 90, x: -4, y: 1.0, z: -2, size: [4, 1.4, 4], col: 0x06b6d4 },
+              { key: 'debug_server', name: 'Build Server Station', hp: 100, maxHp: 100, x: 4, y: 2.2, z: -5, size: [2.5, 4.4, 2.5], col: 0x10b981 }
             ]
           },
           {
@@ -747,519 +1177,192 @@
     }
 
     const LANDMARKS_DEF = [
-      {
-        key: 'ADMIN_BLOCK', name: 'Admin Block', icon: '🏛️', color: 'blue', stage: 3,
-        x: 0, z: -20, badgeY: 34, maxHp: 200, hasRooms: true,
-        desc: 'Centerpiece administrative clock tower building with cyan glass elevator, four clock faces, and pointed spire beacon.'
-      },
-      {
-        key: 'ACADEMIC_BLOCK', name: 'Academic Block', icon: '🎓', color: 'purple', stage: 4,
-        x: -22, z: -20, badgeY: 18, maxHp: 160, hasRooms: true,
-        desc: 'Multi-story classroom building with lecture halls, smart classrooms, and faculty suites.'
-      },
-      {
-        key: 'LIBRARY', name: 'Library', icon: '📖', color: 'blue', stage: 5,
-        x: 22, z: -20, badgeY: 18, maxHp: 150, hasRooms: true,
-        desc: 'Central modern university library with full rooftop solar panels and digital reading halls.'
-      },
-      {
-        key: 'CAFETERIA', name: 'Cafeteria', icon: '☕', color: 'green', stage: 5,
-        x: 28, z: 2, badgeY: 13, maxHp: 120, hasRooms: true,
-        desc: 'Student food court & cafe pavilion with outdoor dining terraces, sun umbrellas, and lawn tables.'
-      },
-      {
-        key: 'SPORTS_GROUND', name: 'Sports Ground', icon: '🏀', color: 'red', stage: 6,
-        x: 28, z: 20, badgeY: 10, maxHp: 100,
-        desc: 'All-weather campus sports complex with red athletic running track, blue basketball court, and floodlights.'
-      },
-      {
-        key: 'GARDEN', name: 'Garden', icon: '🌲', color: 'green', stage: 2,
-        x: 12, z: 20, badgeY: 10, maxHp: 80,
-        desc: 'Manicured circular botanical garden quad with central reflecting pond, gazebo, and flowerbeds.'
-      },
-      {
-        key: 'PARKING', name: 'Parking', icon: '🅿️', color: 'blue', stage: 6,
-        x: -28, z: -2, badgeY: 8, maxHp: 100,
-        desc: 'Dedicated paved campus parking grounds with student and faculty vehicle stalls.'
-      },
-      {
-        key: 'LABS', name: 'Labs', icon: '🔬', color: 'purple', stage: 4,
-        x: -28, z: 12, badgeY: 16, maxHp: 140, hasRooms: true,
-        desc: 'Advanced computer science, robotics, and cyber laboratories with rooftop cooling units.'
-      },
-      {
-        key: 'HOSTEL', name: 'Hostel', icon: '🛏️', color: 'blue', stage: 6,
-        x: -18, z: 24, badgeY: 14, maxHp: 130,
-        desc: 'Multi-tier student residential dormitory halls with living quarters and recreation rooms.'
-      },
-      {
-        key: 'MAIN_GATE', name: 'Main Gate', icon: '🏛️', color: 'blue', stage: 1,
-        x: 0, z: 34, badgeY: 9, maxHp: 120,
-        desc: 'Collegiate grand security entrance gate with guardhouses, boom barriers, and illuminated stone road.'
-      },
-      {
-        key: 'CENTRAL_FOUNTAIN', name: 'You are here', icon: '📍', color: 'blue', stage: 2,
-        x: -5, z: 4, badgeY: 9, maxHp: 80,
-        desc: 'Central quad plaza with illuminated blue holographic water fountain and radiating pedestrian boulevards.'
+      { id: 'admin', key: 'ADMIN_BLOCK', name: 'Admin Block', icon: '🏛️', color: 'blue', x: 0, z: -16, badgeY: 48, hp: 500, maxHp: 500, status: 'INTACT', builder: createAdminBlock },
+      { id: 'academic', key: 'ACADEMIC_BLOCK', name: 'Academic Block', icon: '🎓', color: 'purple', x: -22, z: -14, badgeY: 18, hp: 400, maxHp: 400, status: 'INTACT', builder: createAcademicBlock },
+      { id: 'library', key: 'LIBRARY', name: 'Library', icon: '📖', color: 'blue', x: 22, z: -14, badgeY: 18, hp: 350, maxHp: 350, status: 'INTACT', builder: createLibrary },
+      { id: 'cafeteria', key: 'CAFETERIA', name: 'Cafeteria', icon: '☕', color: 'amber', x: 25, z: 5, badgeY: 14, hp: 300, maxHp: 300, status: 'INTACT', builder: createCafeteria },
+      { id: 'sports', key: 'SPORTS', name: 'Sports Ground', icon: '🏀', color: 'red', x: 16, z: 22, badgeY: 12, hp: 250, maxHp: 250, status: 'INTACT', builder: createSportsCourt },
+      { id: 'garden', key: 'GARDEN', name: 'Central Fountain', icon: '⛲', color: 'green', x: 0, z: 4, badgeY: 12, hp: 200, maxHp: 200, status: 'INTACT', builder: createCentralFountain },
+      { id: 'parking', key: 'PARKING', name: 'Parking Lot', icon: '🚗', color: 'blue', x: -16, z: -2, badgeY: 12, hp: 200, maxHp: 200, status: 'INTACT', builder: createParkingCars },
+      { id: 'labs', key: 'LABS', name: 'Labs', icon: '🔬', color: 'purple', x: -27, z: 8, badgeY: 16, hp: 350, maxHp: 350, status: 'INTACT', builder: createLabs },
+      { id: 'hostel', key: 'HOSTEL', name: 'Hostel', icon: '🛏️', color: 'blue', x: -22, z: 24, badgeY: 16, hp: 300, maxHp: 300, status: 'INTACT', builder: createHostel },
+      { id: 'gate', key: 'GATE', name: 'Main Gate', icon: '🏛️', color: 'blue', x: 0, z: 32, badgeY: 12, hp: 250, maxHp: 250, status: 'INTACT', builder: createMainGate }
+    ];
+
+    const campuses = {
+      'cse1': {
+        id: 'cse1', name: 'CSE-1 Citadel', role: 'MY BASE',
+        landmarks: JSON.parse(JSON.stringify(LANDMARKS_DEF))
       }
-    ];
+    };
 
-    const SECTIONS = [
-      { id: 'CSE-1', name: 'CSE-1 Campus', color: 0x38bdf8, isMySection: true },
-      { id: 'CSE-2', name: 'CSE-2 Campus', color: 0xef4444, isMySection: false },
-      { id: 'ECE-1', name: 'ECE-1 Campus', color: 0x10b981, isMySection: false }
-    ];
-
-    const campuses = {};
-    SECTIONS.forEach(s => {
-      campuses[s.id] = {
-        config: s,
-        currentStage: s.isMySection ? 1 : 7,
-        landmarks: LANDMARKS_DEF.map(d => {
-          let status = 'INTACT';
-          let hp = d.maxHp;
-          if (s.isMySection) {
-            status = d.stage === 1 ? 'INTACT' : 'LOCKED';
-            hp = d.stage === 1 ? d.maxHp : 0;
-          } else if (s.id === 'CSE-2') {
-            if (d.key === 'ADMIN_BLOCK') { status = 'DAMAGED'; hp = Math.floor(d.maxHp * 0.45); }
-          }
-          const rooms = d.hasRooms ? generateBuildingRooms(d.key) : [];
-          return { ...d, status, hp, rooms, mesh: null, badgeEl: null };
-        }),
-        group: null,
-        shieldMesh: null
-      };
+    campuses['cse1'].landmarks.forEach(lm => {
+      lm.rooms = generateBuildingRooms(lm.key);
+      const def = LANDMARKS_DEF.find(d => d.id === lm.id);
+      if (def) lm.builder = def.builder;
     });
 
-    let currentCampusId = 'CSE-1';
-    let selectedLandmark = null;
-    let selectedRoom = null;
-    let selectedProp = null;
+    let currentCampusId = 'cse1';
+    let userPoints = 410;
+    let selectedWeapon = 'plasma';
+    let selectedWeaponCost = 50;
+
+    // Interior view state
     let isInteriorView = false;
     let currentInteriorBuilding = null;
-    let interiorRoomGroup = null;
+    let currentInteriorRoom = null;
+    let selectedProp = null;
+    let interiorSceneGroup = null;
+    let exteriorSceneGroup = null;
 
-    let userPoints = 100;
-    let selectedWeapon = { type: 'GUN', cost: 50, dmg: 40 };
-    let isAutoTour = false;
-
-    let fountainSprayMesh = null;
-    let beaconMesh = null;
+    // Three.js Core
+    let scene, camera, renderer, controls;
+    let dirLight, ambientLight, hemiLight;
+    let clock = new THREE.Clock();
+    let isNight = true;
 
     // =========================================================================
-    // 4. THREE.JS 3D SCENE & CONTROLS SETUP
+    // 5. THREE.JS INITIALIZATION & REALISTIC RENDERING
     // =========================================================================
-    const canvas = document.getElementById('webgl-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    function initThree() {
+      const container = document.getElementById('webgl-canvas');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x01040a);
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x04060d);
-    scene.fog = new THREE.FogExp2(0x04060d, 0.0035);
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 1500);
+      camera.position.set(0, 52, 68);
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.set(0, 60, 80);
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.35;
+      container.appendChild(renderer.domElement);
 
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.maxPolarAngle = Math.PI / 2.05;
-    controls.minDistance = 10;
-    controls.maxDistance = 180;
-    controls.target.set(0, 4, 2);
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI / 2.05;
+      controls.minDistance = 15;
+      controls.maxDistance = 180;
+      controls.target.set(0, 4, 4);
 
-    const starGeo = new THREE.BufferGeometry();
-    const starPos = [];
-    for (let i = 0; i < 2400; i++) {
-      starPos.push((Math.random() - 0.5) * 800, Math.random() * 400 - 40, (Math.random() - 0.5) * 800);
+      initMaterials();
+      setupLighting();
+      buildExteriorWorld();
+
+      setupInteractions();
+      createFloatingHTMLBadges(currentCampusId);
     }
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x93c5fd, size: 1.3, transparent: true, opacity: 0.85 })));
 
-    scene.add(new THREE.AmbientLight(0x272e48, 1.5));
-    const sunLight = new THREE.DirectionalLight(0xfff5e6, 2.0);
-    sunLight.position.set(50, 90, 40);
-    sunLight.castShadow = true;
-    scene.add(sunLight);
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.3);
-    rimLight.position.set(-50, 30, -50);
-    scene.add(rimLight);
+    function setupLighting() {
+      ambientLight = new THREE.AmbientLight(0x1e293b, 0.9);
+      scene.add(ambientLight);
 
-    const clickables = [];
-    const interiorClickables = [];
+      hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.6);
+      scene.add(hemiLight);
 
-    // =========================================================================
-    // 5. EXPANDED 3D CAMPUS BUILDER ENGINE
-    // =========================================================================
-    function buildCampus3D(campusId) {
-      SECTIONS.forEach(s => {
-        if (campuses[s.id].group) scene.remove(campuses[s.id].group);
+      dirLight = new THREE.DirectionalLight(0xe0f2fe, 1.4);
+      dirLight.position.set(38, 55, 30);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+      dirLight.shadow.camera.near = 10;
+      dirLight.shadow.camera.far = 160;
+      const d = 48;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      dirLight.shadow.bias = -0.001;
+      scene.add(dirLight);
+    }
+
+    function buildExteriorWorld() {
+      exteriorSceneGroup = new THREE.Group();
+      scene.add(exteriorSceneGroup);
+
+      // 1. Cybernetic Island Platform Base
+      const baseGeo = new THREE.CylinderGeometry(46, 49, 4, 64);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0x090f1d, metalness: 0.85, roughness: 0.3 });
+      const islandBase = new THREE.Mesh(baseGeo, baseMat);
+      islandBase.position.y = -2;
+      islandBase.receiveShadow = true;
+      exteriorSceneGroup.add(islandBase);
+
+      // Neon rim ring
+      const ringGeo = new THREE.TorusGeometry(46.2, 0.45, 12, 64);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+      const rimRing = new THREE.Mesh(ringGeo, ringMat);
+      rimRing.rotation.x = Math.PI / 2;
+      rimRing.position.y = 0.05;
+      exteriorSceneGroup.add(rimRing);
+
+      // 2. Main Quad Grass
+      const quadGeo = new THREE.CircleGeometry(44.5, 64);
+      const quadMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.85, metalness: 0.1 });
+      const quad = new THREE.Mesh(quadGeo, quadMat);
+      quad.rotation.x = -Math.PI / 2;
+      quad.position.y = 0.02;
+      quad.receiveShadow = true;
+      exteriorSceneGroup.add(quad);
+
+      // 3. Asphalt Loop Ring Road
+      const roadGeo = new THREE.RingGeometry(35, 41, 64);
+      const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.8 });
+      const road = new THREE.Mesh(roadGeo, roadMat);
+      road.rotation.x = -Math.PI / 2;
+      road.position.y = 0.03;
+      road.receiveShadow = true;
+      exteriorSceneGroup.add(road);
+
+      // 4. Stone Paver Walkways
+      const pathGeo = new THREE.PlaneGeometry(5.0, 36);
+      const pathMat = new THREE.MeshStandardMaterial({ map: paverTex, roughness: 0.6 });
+      const mainPath = new THREE.Mesh(pathGeo, pathMat);
+      mainPath.rotation.x = -Math.PI / 2;
+      mainPath.position.set(0, 0.04, 8);
+      mainPath.receiveShadow = true;
+      exteriorSceneGroup.add(mainPath);
+
+      // Crosswalk path
+      const crossPath = new THREE.Mesh(new THREE.PlaneGeometry(36, 4.0), pathMat);
+      crossPath.rotation.x = -Math.PI / 2;
+      crossPath.position.set(0, 0.04, -8);
+      crossPath.receiveShadow = true;
+      exteriorSceneGroup.add(crossPath);
+
+      // 5. Hexagonal Pulsing Forcefield Dome
+      const domeGeo = new THREE.SphereGeometry(52, 32, 24, 0, Math.PI * 2, 0, Math.PI / 2);
+      const domeMat = new THREE.MeshBasicMaterial({
+        map: hexDomeTex,
+        transparent: true,
+        opacity: 0.35,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
       });
-      clickables.length = 0;
-      document.getElementById('pin-layer').innerHTML = '';
+      domeMesh = new THREE.Mesh(domeGeo, domeMat);
+      domeMesh.position.y = -0.5;
+      exteriorSceneGroup.add(domeMesh);
 
-      const cData = campuses[campusId];
-      const root = new THREE.Group();
-      cData.group = root;
-
-      const islandGeo = new THREE.CylinderGeometry(46, 28, 14, 36);
-      const islandMat = new THREE.MeshStandardMaterial({ color: 0x161a24, roughness: 0.85 });
-      const islandBase = new THREE.Mesh(islandGeo, islandMat);
-      islandBase.position.y = -7;
-      root.add(islandBase);
-
-      const topGeo = new THREE.CylinderGeometry(45.8, 45.8, 1.0, 48);
-      const topMat = new THREE.MeshStandardMaterial({ map: groundsTex, roughness: 0.65 });
-      const topMesh = new THREE.Mesh(topGeo, topMat);
-      topMesh.position.y = 0.5;
-      topMesh.receiveShadow = true;
-      root.add(topMesh);
-
-      const ringGeo = new THREE.TorusGeometry(46, 0.45, 8, 64);
-      const ringMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.8 });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = Math.PI / 2;
-      ring.position.y = 1.2;
-      root.add(ring);
-
-      for (let i = 0; i < 8; i++) {
-        const ang = (i * Math.PI) / 4;
-        const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 10, 8), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 }));
-        pylon.position.set(Math.cos(ang) * 46, 5, Math.sin(ang) * 46);
-        root.add(pylon);
-
-        const lightTip = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
-        lightTip.position.set(Math.cos(ang) * 46, 10.3, Math.sin(ang) * 46);
-        root.add(lightTip);
-      }
-
-      cData.landmarks.forEach(lm => {
-        if (lm.status === 'LOCKED') return;
-
-        let bMesh = null;
-        if (lm.key === 'ADMIN_BLOCK') bMesh = createAdminBlock(lm);
-        else if (lm.key === 'ACADEMIC_BLOCK') bMesh = createAcademicBlock(lm);
-        else if (lm.key === 'LIBRARY') bMesh = createLibrary(lm);
-        else if (lm.key === 'CAFETERIA') bMesh = createCafeteria(lm);
-        else if (lm.key === 'SPORTS_GROUND') bMesh = createSportsCourt(lm);
-        else if (lm.key === 'GARDEN') bMesh = createGardenGazebo(lm);
-        else if (lm.key === 'PARKING') bMesh = createParkingCars(lm);
-        else if (lm.key === 'LABS') bMesh = createLabs(lm);
-        else if (lm.key === 'HOSTEL') bMesh = createHostel(lm);
-        else if (lm.key === 'MAIN_GATE') bMesh = createMainGate(lm);
-        else if (lm.key === 'CENTRAL_FOUNTAIN') bMesh = createCentralFountain(lm);
-
-        if (bMesh) {
-          root.add(bMesh);
-          lm.mesh = bMesh;
-          bMesh.traverse(child => {
-            if (child.isMesh) {
-              child.userData = { sectionId: campusId, landmark: lm };
-              clickables.push(child);
-            }
-          });
+      // 6. Buildings
+      campuses[currentCampusId].landmarks.forEach(lm => {
+        if (lm.builder) {
+          const bldGroup = lm.builder(lm);
+          bldGroup.userData = { landmarkId: lm.id };
+          exteriorSceneGroup.add(bldGroup);
+          lm.meshGroup = bldGroup;
         }
       });
 
-      createTreesAroundCampus(root);
-
-      if (cData.currentStage >= 7) {
-        const shield = new THREE.Mesh(
-          new THREE.SphereGeometry(50, 36, 18, 0, Math.PI * 2, 0, Math.PI / 2),
-          new THREE.MeshBasicMaterial({ color: cData.config.color, wireframe: true, transparent: true, opacity: 0.16 })
-        );
-        root.add(shield);
-        cData.shieldMesh = shield;
-      }
-
-      scene.add(root);
-      createFloatingHTMLBadges(campusId);
+      // 7. Trees
+      createRealisticTrees(exteriorSceneGroup);
     }
 
     // =========================================================================
-    // 6. DETAILED 3D LANDMARK ARCHITECTURE
-    // =========================================================================
-
-    function createAdminBlock(lm) {
-      const g = new THREE.Group();
-      const base = new THREE.Mesh(new THREE.BoxGeometry(16, 12, 14), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.4 }));
-      base.position.set(lm.x, 6.5, lm.z);
-      g.add(base);
-
-      const atrium = new THREE.Mesh(new THREE.BoxGeometry(5.2, 14, 2.8), new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.7 }));
-      atrium.position.set(lm.x, 7.5, lm.z + 6.0);
-      g.add(atrium);
-
-      const canopy = new THREE.Mesh(new THREE.BoxGeometry(9, 0.9, 3.5), new THREE.MeshStandardMaterial({ color: 0x334155 }));
-      canopy.position.set(lm.x, 4.2, lm.z + 7.8);
-      g.add(canopy);
-      for (let p = -1; p <= 1; p += 2) {
-        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.35, 4, 8), new THREE.MeshStandardMaterial({ color: 0xe2e8f0 }));
-        pillar.position.set(lm.x + p * 3.8, 2.0, lm.z + 8.8);
-        g.add(pillar);
-      }
-
-      const tower = new THREE.Mesh(new THREE.BoxGeometry(7.5, 14, 7.5), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
-      tower.position.set(lm.x, 18.5, lm.z);
-      g.add(tower);
-
-      for (let i = 0; i < 4; i++) {
-        const cf = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 4.5), new THREE.MeshBasicMaterial({ map: clockTex }));
-        const rotY = (i * Math.PI) / 2;
-        cf.position.set(lm.x + Math.sin(rotY) * 3.85, 19, lm.z + Math.cos(rotY) * 3.85);
-        cf.rotation.y = rotY;
-        g.add(cf);
-      }
-
-      const spire = new THREE.Mesh(new THREE.ConeGeometry(4.2, 11, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.85 }));
-      spire.rotation.y = Math.PI / 4;
-      spire.position.set(lm.x, 29, lm.z);
-      g.add(spire);
-
-      const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 7), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
-      ant.position.set(lm.x, 37, lm.z);
-      g.add(ant);
-      beaconMesh = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 8), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-      beaconMesh.position.set(lm.x, 40.8, lm.z);
-      g.add(beaconMesh);
-
-      return g;
-    }
-
-    function createAcademicBlock(lm) {
-      const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(15, 10, 12), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.4 }));
-      bld.position.set(lm.x, 5.5, lm.z);
-      g.add(bld);
-
-      for (let i = 0; i < 3; i++) {
-        const vent = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 2.2, 10), new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 }));
-        vent.position.set(lm.x - 3.5 + i * 3.5, 11.4, lm.z);
-        g.add(vent);
-      }
-      return g;
-    }
-
-    function createLibrary(lm) {
-      const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(15, 10, 12), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.4 }));
-      bld.position.set(lm.x, 5.5, lm.z);
-      g.add(bld);
-
-      const solar = new THREE.Mesh(new THREE.BoxGeometry(14.5, 0.7, 11.5), new THREE.MeshStandardMaterial({ map: solarTex }));
-      solar.position.set(lm.x, 10.8, lm.z);
-      g.add(solar);
-      return g;
-    }
-
-    function createCafeteria(lm) {
-      const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(14, 6.5, 10), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.5 }));
-      bld.position.set(lm.x, 3.8, lm.z);
-      g.add(bld);
-
-      const awning = new THREE.Mesh(new THREE.BoxGeometry(14.5, 0.6, 3.5), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
-      awning.position.set(lm.x, 4.8, lm.z + 6);
-      g.add(awning);
-
-      const umbrellaColors = [0xef4444, 0x06b6d4, 0xf59e0b];
-      for (let t = -1; t <= 1; t++) {
-        const table = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.7, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-        table.position.set(lm.x + t * 4, 1.3, lm.z + 6.5);
-        g.add(table);
-
-        const umbrella = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.4, 8), new THREE.MeshBasicMaterial({ color: umbrellaColors[t + 1] }));
-        umbrella.position.set(lm.x + t * 4, 3.6, lm.z + 6.5);
-        g.add(umbrella);
-      }
-      return g;
-    }
-
-    function createSportsCourt(lm) {
-      const g = new THREE.Group();
-      const track = new THREE.Mesh(new THREE.BoxGeometry(18, 0.5, 12), new THREE.MeshStandardMaterial({ color: 0xd97706 }));
-      track.position.set(lm.x, 0.6, lm.z);
-      g.add(track);
-
-      const court = new THREE.Mesh(new THREE.BoxGeometry(14, 0.55, 9), new THREE.MeshStandardMaterial({ color: 0x1d4ed8 }));
-      court.position.set(lm.x, 0.65, lm.z);
-      g.add(court);
-
-      for (let h = -1; h <= 1; h += 2) {
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 4.5, 8), new THREE.MeshStandardMaterial({ color: 0x334155 }));
-        pole.position.set(lm.x + h * 6.8, 2.8, lm.z);
-        g.add(pole);
-
-        const board = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.4, 2.2), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-        board.position.set(lm.x + h * 6.6, 4.6, lm.z);
-        g.add(board);
-
-        const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.05, 6, 12), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-        hoop.rotation.x = Math.PI / 2;
-        hoop.position.set(lm.x + h * 6.1, 4.2, lm.z);
-        g.add(hoop);
-      }
-
-      for (let px = -1; px <= 1; px += 2) {
-        for (let pz = -1; pz <= 1; pz += 2) {
-          const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 7, 8), new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
-          pole.position.set(lm.x + px * 8.5, 4, lm.z + pz * 5.5);
-          g.add(pole);
-          const lamp = new THREE.Mesh(new THREE.BoxGeometry(1, 0.35, 0.5), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
-          lamp.position.set(lm.x + px * 8.5, 7.6, lm.z + pz * 5.5);
-          g.add(lamp);
-        }
-      }
-      return g;
-    }
-
-    function createGardenGazebo(lm) {
-      const g = new THREE.Group();
-      const pond = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.6, 0.8, 16), new THREE.MeshBasicMaterial({ color: 0x0284c7 }));
-      pond.position.set(lm.x, 0.6, lm.z);
-      g.add(pond);
-
-      const spout = new THREE.Mesh(new THREE.ConeGeometry(0.9, 2.8, 8), new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true }));
-      spout.position.set(lm.x, 2.2, lm.z);
-      g.add(spout);
-
-      const gaz = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 3, 8), new THREE.MeshStandardMaterial({ color: 0x1e293b, wireframe: true }));
-      gaz.position.set(lm.x - 6, 2.5, lm.z - 5);
-      g.add(gaz);
-      const gazRoof = new THREE.Mesh(new THREE.ConeGeometry(3.6, 2.2, 8), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
-      gazRoof.position.set(lm.x - 6, 4.8, lm.z - 5);
-      g.add(gazRoof);
-
-      for (let b = 0; b < 3; b++) {
-        const ang = (b * Math.PI * 2) / 3;
-        const cb = new THREE.Group();
-        const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 3, 6), new THREE.MeshStandardMaterial({ color: 0x3d2817 }));
-        tr.position.y = 1.5; cb.add(tr);
-        const fl = new THREE.Mesh(new THREE.SphereGeometry(2, 8, 8), new THREE.MeshStandardMaterial({ color: 0xd946ef, roughness: 0.6 }));
-        fl.position.y = 3.6; cb.add(fl);
-        cb.position.set(lm.x + Math.cos(ang) * 6.5, 0.6, lm.z + Math.sin(ang) * 6.5);
-        g.add(cb);
-      }
-      return g;
-    }
-
-    function createParkingCars(lm) {
-      const g = new THREE.Group();
-      const lot = new THREE.Mesh(new THREE.BoxGeometry(15, 0.4, 11), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 }));
-      lot.position.set(lm.x, 0.55, lm.z);
-      g.add(lot);
-
-      const carConfigs = [
-        { col: 0xef4444, x: -5, z: -3 },
-        { col: 0x38bdf8, x: -2, z: -3 },
-        { col: 0xffffff, x: 1, z: -3 },
-        { col: 0xf59e0b, x: 4, z: -3 },
-        { col: 0x10b981, x: -2, z: 3 },
-        { col: 0xa855f7, x: 2, z: 3 }
-      ];
-      carConfigs.forEach(cfg => {
-        const car = new THREE.Group();
-        const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.8, 1.3), new THREE.MeshStandardMaterial({ color: cfg.col, metalness: 0.85 }));
-        body.position.y = 0.55; car.add(body);
-        const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.7, 1.2), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 }));
-        cabin.position.set(-0.25, 1.1, 0); car.add(cabin);
-        car.position.set(lm.x + cfg.x, 0.6, lm.z + cfg.z);
-        g.add(car);
-      });
-      return g;
-    }
-
-    function createLabs(lm) {
-      const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(13, 8.5, 10), new THREE.MeshStandardMaterial({ map: facadeBlueTex, roughness: 0.4 }));
-      bld.position.set(lm.x, 4.8, lm.z);
-      g.add(bld);
-      const sol = new THREE.Mesh(new THREE.BoxGeometry(12.5, 0.6, 9.5), new THREE.MeshStandardMaterial({ map: solarTex }));
-      sol.position.set(lm.x, 9.4, lm.z);
-      g.add(sol);
-      return g;
-    }
-
-    function createHostel(lm) {
-      const g = new THREE.Group();
-      const bld = new THREE.Mesh(new THREE.BoxGeometry(13, 8.5, 10), new THREE.MeshStandardMaterial({ map: facadeAmberTex, roughness: 0.4 }));
-      bld.position.set(lm.x, 4.8, lm.z);
-      g.add(bld);
-      return g;
-    }
-
-    function createMainGate(lm) {
-      const g = new THREE.Group();
-      for (let p = -1; p <= 1; p += 2) {
-        const pylon = new THREE.Mesh(new THREE.BoxGeometry(2.4, 6, 2.4), new THREE.MeshStandardMaterial({ color: 0x334155 }));
-        pylon.position.set(lm.x + p * 5.5, 3.4, lm.z);
-        g.add(pylon);
-
-        const pylonCap = new THREE.Mesh(new THREE.ConeGeometry(1.8, 1.5, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
-        pylonCap.position.set(lm.x + p * 5.5, 7.0, lm.z);
-        pylonCap.rotation.y = Math.PI / 4;
-        g.add(pylonCap);
-      }
-      for (let gSide = -1; gSide <= 1; gSide += 2) {
-        const booth = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.5, 2.6), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
-        booth.position.set(lm.x + gSide * 9, 2.2, lm.z);
-        g.add(booth);
-      }
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.5, 0.5), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
-      bar.position.set(lm.x, 2.5, lm.z);
-      g.add(bar);
-      return g;
-    }
-
-    function createCentralFountain(lm) {
-      const g = new THREE.Group();
-      const lowerBasin = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 6, 1.2, 24), new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }));
-      lowerBasin.position.set(lm.x, 1.1, lm.z);
-      g.add(lowerBasin);
-
-      const upperBasin = new THREE.Mesh(new THREE.CylinderGeometry(3.0, 3.4, 0.9, 16), new THREE.MeshStandardMaterial({ color: 0x475569 }));
-      upperBasin.position.set(lm.x, 2.0, lm.z);
-      g.add(upperBasin);
-
-      const water = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.2, 0.9, 24), new THREE.MeshBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.85 }));
-      water.position.set(lm.x, 1.4, lm.z);
-      g.add(water);
-
-      fountainSprayMesh = new THREE.Mesh(new THREE.ConeGeometry(1.8, 5, 8), new THREE.MeshBasicMaterial({ color: 0x67e8f9, wireframe: true, transparent: true, opacity: 0.8 }));
-      fountainSprayMesh.position.set(lm.x, 4.5, lm.z);
-      g.add(fountainSprayMesh);
-      return g;
-    }
-
-    function createTreesAroundCampus(parent) {
-      const coords = [
-        [-10, -14, 0x15803d], [10, -14, 0x15803d], [-5, -9, 0xd946ef], [5, -9, 0x06b6d4],
-        [-12, 10, 0x10b981], [14, 10, 0x15803d], [-6, 22, 0xd946ef], [6, 22, 0x15803d],
-        [-30, -12, 0x15803d], [30, -12, 0x15803d], [-30, 22, 0x10b981], [30, 24, 0xd946ef],
-        [0, 12, 0x15803d], [-14, -5, 0x15803d], [14, -5, 0xd946ef]
-      ];
-      coords.forEach(([tx, tz, col]) => {
-        const tree = new THREE.Group();
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 3.5, 6), new THREE.MeshStandardMaterial({ color: 0x332817 }));
-        trunk.position.y = 1.75; tree.add(trunk);
-        const l1 = new THREE.Mesh(new THREE.SphereGeometry(2.3, 7, 7), new THREE.MeshStandardMaterial({ color: col, roughness: 0.7 }));
-        l1.position.y = 4.4; tree.add(l1);
-        const l2 = new THREE.Mesh(new THREE.SphereGeometry(1.5, 6, 6), new THREE.MeshStandardMaterial({ color: col, roughness: 0.7 }));
-        l2.position.set(0.7, 5.2, 0.5); tree.add(l2);
-
-        tree.position.set(tx, 0.6, tz);
-        parent.add(tree);
-      });
-    }
-
-    // =========================================================================
-    // 7. SYNCHRONIZED 3D FLOATING HOLOGRAPHIC BADGES
+    // 6. SYNCHRONIZED SMART HOLOGRAPHIC BADGES (NON-OVERLAPPING)
     // =========================================================================
     function createFloatingHTMLBadges(campusId) {
       const layer = document.getElementById('pin-layer');
@@ -1267,23 +1370,12 @@
       const cData = campuses[campusId];
 
       cData.landmarks.forEach(lm => {
-        const isLocked = lm.status === 'LOCKED';
-        const isDam = lm.status === 'DAMAGED';
-        const isDes = lm.status === 'DESTROYED';
-
-        let colorClass = lm.color;
-        if (isLocked) colorClass = 'locked';
-        else if (isDam) colorClass = 'amber';
-        else if (isDes) colorClass = 'red';
-
         const el = document.createElement('div');
         el.className = 'campus-pin-3d';
         el.innerHTML = `
-          <div class="pin-badge ${colorClass}">
-            <div class="pin-icon-wrap">${isLocked ? '🔒' : lm.icon}</div>
+          <div class="pin-badge ${lm.color}">
+            <span style="font-size: 11px;">${lm.icon}</span>
             <span>${lm.name}</span>
-            ${isDam ? '<span style="font-size: 9px; color: #f59e0b;">(DMG)</span>' : ''}
-            ${isDes ? '<span style="font-size: 9px; color: #ef4444;">(RUIN)</span>' : ''}
           </div>
           <div class="pin-stem"></div>
           <div class="pin-anchor-ring"></div>
@@ -1294,7 +1386,7 @@
           playSound('click');
           document.querySelectorAll('.campus-pin-3d').forEach(p => p.classList.remove('active'));
           el.classList.add('active');
-          onSelectLandmark(lm, campusId);
+          openRoomPicker(lm);
         };
 
         lm.badgeEl = el;
@@ -1314,7 +1406,7 @@
 
       cData.landmarks.forEach(lm => {
         if (!lm.badgeEl) return;
-        const pos = new THREE.Vector3(lm.x, lm.badgeY || 10, lm.z);
+        const pos = new THREE.Vector3(lm.x, lm.badgeY || 14, lm.z);
         pos.project(camera);
 
         if (pos.z > 1) {
@@ -1329,14 +1421,13 @@
     }
 
     // =========================================================================
-    // 8. MULTI-ROOM PICKER MODAL
+    // 7. MULTI-ROOM PICKER MODAL (20 ROOMS)
     // =========================================================================
     function openRoomPicker(lm) {
       playSound('click');
       currentInteriorBuilding = lm;
-      document.getElementById('room-modal-building-name').innerText = `${lm.icon} ${lm.name} • Select Room`;
+      document.getElementById('room-modal-building-name').innerText = `${lm.icon} ${lm.name} • 20 Rooms`;
       document.getElementById('room-selector-modal').classList.add('open');
-      document.getElementById('inspector-sheet').classList.remove('open');
       renderFloorRooms(1);
     }
 
@@ -1350,635 +1441,366 @@
         playSound('click');
         document.querySelectorAll('.floor-tab-btn').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        renderFloorRooms(parseInt(tab.dataset.f));
+        renderFloorRooms(parseInt(tab.dataset.floor, 10));
       };
     });
 
     function renderFloorRooms(floorNum) {
-      const slot = document.getElementById('rooms-list');
-      slot.innerHTML = '';
+      const grid = document.getElementById('room-cards-grid');
+      grid.innerHTML = '';
       if (!currentInteriorBuilding || !currentInteriorBuilding.rooms) return;
 
       const floorRooms = currentInteriorBuilding.rooms.filter(r => r.floor === floorNum);
       if (floorRooms.length === 0) {
-        slot.innerHTML = `<div style="text-align: center; color: #64748b; font-size: 12px; margin-top: 20px;">No additional rooms constructed on Floor ${floorNum} yet. Send messages to expand!</div>`;
+        grid.innerHTML = '<div style="color: #64748b; font-size: 11px; text-align: center; padding: 20px;">No rooms unlocked on this floor yet. Send messages to expand!</div>';
         return;
       }
 
       floorRooms.forEach(room => {
-        const btn = document.createElement('div');
-        btn.className = 'room-card-btn';
-        const isDemolished = room.status === 'DEMOLISHED';
-        btn.innerHTML = `
-          <div class="room-card-left">
-            <span class="room-card-num">${room.num}: ${room.name}</span>
-            <span class="room-card-desc">${room.desc}</span>
+        const isDem = room.status === 'DEMOLISHED';
+        const card = document.createElement('div');
+        card.className = 'room-card-btn';
+        card.innerHTML = `
+          <div>
+            <div class="room-card-name">${room.num}: ${room.name}</div>
+            <div class="room-card-desc">${room.desc}</div>
           </div>
-          <span class="room-status-badge ${isDemolished ? 'ruin' : 'ok'}">${isDemolished ? '💥 RUINED' : '✨ OPERATIONAL'}</span>
+          <div class="room-card-status ${isDem ? 'demolished' : 'intact'}">
+            ${isDem ? 'DEMOLISHED' : 'INTACT'}
+          </div>
         `;
-        btn.onclick = () => {
+        card.onclick = () => {
           document.getElementById('room-selector-modal').classList.remove('open');
-          enter3DRoomInterior(currentInteriorBuilding, room);
+          enterRoom3DView(currentInteriorBuilding, room);
         };
-        slot.appendChild(btn);
+        grid.appendChild(card);
       });
     }
 
     // =========================================================================
-    // 9. TACTICAL 3D ROOM INTERIOR & PROPS ENGINE
+    // 8. 3D INTERIOR ENGINE & PRECISION RETICLE AIMING
     // =========================================================================
-    function enter3DRoomInterior(lm, room) {
+    function enterRoom3DView(building, room) {
       playSound('click');
       isInteriorView = true;
-      currentInteriorBuilding = lm;
-      selectedRoom = room || lm.rooms[0];
-      interiorClickables.length = 0;
+      currentInteriorRoom = room;
+      selectedProp = null;
 
-      const cData = campuses[currentCampusId];
-      if (cData.group) scene.remove(cData.group);
+      exteriorSceneGroup.visible = false;
+      document.getElementById('main-header').style.display = 'none';
+      document.getElementById('view-controls').style.display = 'none';
+      document.getElementById('radar-container').style.display = 'none';
+      document.getElementById('bottom-hud-container').style.display = 'none';
 
-      if (interiorRoomGroup) scene.remove(interiorRoomGroup);
-      interiorRoomGroup = new THREE.Group();
+      document.getElementById('interior-hud-bar').style.display = 'flex';
+      document.getElementById('interior-room-title').innerText = `${building.name} • ${room.num} (${room.name})`;
+      document.getElementById('interior-action-dock').style.display = 'flex';
+      document.getElementById('precision-strike-btn').disabled = true;
 
-      const isRoomDemolished = selectedRoom.status === 'DEMOLISHED';
-
-      // 1. Physical 3D Room Box
-      const roomW = 24, roomH = 12, roomD = 24;
-      const floorMat = new THREE.MeshStandardMaterial({ color: isRoomDemolished ? 0x18181b : 0x1e293b, roughness: isRoomDemolished ? 0.9 : 0.3 });
-      const floor = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.8, roomD), floorMat);
-      floor.position.y = -0.4;
-      interiorRoomGroup.add(floor);
-
-      const wallMat = new THREE.MeshStandardMaterial({ color: isRoomDemolished ? 0x09090b : 0x0f172a, roughness: 0.6 });
-      const backWall = new THREE.Mesh(new THREE.BoxGeometry(roomW, roomH, 0.8), wallMat);
-      backWall.position.set(0, roomH / 2, -roomD / 2);
-      interiorRoomGroup.add(backWall);
-
-      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, roomH, roomD), wallMat);
-      leftWall.position.set(-roomW / 2, roomH / 2, 0);
-      interiorRoomGroup.add(leftWall);
-
-      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, roomH, roomD), new THREE.MeshStandardMaterial({ color: 0x0284c7, transparent: true, opacity: isRoomDemolished ? 0.05 : 0.25 }));
-      rightWall.position.set(roomW / 2, roomH / 2, 0);
-      interiorRoomGroup.add(rightWall);
-
-      // Fluorescent Ceiling Light Strip
-      const lightStrip = new THREE.Mesh(new THREE.BoxGeometry(16, 0.3, 2), new THREE.MeshBasicMaterial({ color: isRoomDemolished ? 0xef4444 : 0xffffff }));
-      lightStrip.position.set(0, roomH - 0.2, 0);
-      interiorRoomGroup.add(lightStrip);
-
-      const roomLight = new THREE.PointLight(isRoomDemolished ? 0xef4444 : 0xfff5e6, isRoomDemolished ? 1.4 : 2.2, 40);
-      roomLight.position.set(0, 9, 0);
-      interiorRoomGroup.add(roomLight);
-
-      // 2. Physical 3D Targetable Props
-      selectedRoom.props.forEach(p => {
-        const pGroup = new THREE.Group();
-        const isDestroyed = p.status === 'DESTROYED' || isRoomDemolished;
-
-        const pMat = new THREE.MeshStandardMaterial({
-          color: isDestroyed ? 0x1c1917 : p.col,
-          wireframe: p.wire || false,
-          metalness: 0.6,
-          roughness: isDestroyed ? 0.9 : 0.4
-        });
-        const pMesh = new THREE.Mesh(new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]), pMat);
-        pMesh.position.set(p.x, p.y, p.z);
-        pGroup.add(pMesh);
-        p.mesh = pMesh;
-
-        pMesh.userData = { isRoomProp: true, propData: p };
-        interiorClickables.push(pMesh);
-
-        if (isDestroyed) {
-          createBurningFire(pGroup, p.x, p.y + p.size[1] / 2, p.z);
-        }
-
-        interiorRoomGroup.add(pGroup);
-      });
-
-      scene.add(interiorRoomGroup);
-
-      new TWEEN.Tween(camera.position).to({ x: 0, y: 11, z: 20 }, 900).easing(TWEEN.Easing.Cubic.Out).start();
-      new TWEEN.Tween(controls.target).to({ x: 0, y: 3, z: 0 }, 900).start();
-
-      document.getElementById('tactical-aim-hud').classList.add('active');
-      document.getElementById('tactical-room-title').innerText = `${selectedRoom.num} • ${selectedRoom.name}`;
-      document.getElementById('inspector-sheet').classList.remove('open');
-      document.getElementById('fire-btn-label').innerText = 'BLAST PROP';
-      document.getElementById('btn-fire').disabled = false;
-
-      if (selectedRoom.props.length > 0) {
-        selectInteriorProp(selectedRoom.props[0]);
-      }
-
-      if (isRoomDemolished) {
-        ticker(`⚠️ ${selectedRoom.name} is DEMOLISHED and on fire! Repair the room or switch rooms.`);
-      } else {
-        ticker(`🔍 Inside ${selectedRoom.num} (${selectedRoom.name}). Aim at props or tap [DEMOLISH WHOLE ROOM]!`);
-      }
+      buildInteriorScene(building, room);
     }
 
-    function selectInteriorProp(prop) {
-      selectedProp = prop;
-      document.getElementById('target-prop-name').innerText = prop.name;
-      document.getElementById('target-prop-hp').innerText = `Integrity: ${prop.hp} / ${prop.maxHp} HP (${prop.status})`;
-      document.getElementById('target-prop-hp').style.color = prop.status === 'INTACT' ? '#10b981' : '#ef4444';
-      ticker(`🎯 Aiming at ${prop.name} (${prop.hp}/${prop.maxHp} HP). Tap [BLAST PROP] or [DEMOLISH WHOLE ROOM]!`);
-    }
-
-    function exitRoomInterior() {
+    function exitRoom3DView() {
       playSound('click');
       isInteriorView = false;
-      selectedProp = null;
-      selectedRoom = null;
       currentInteriorBuilding = null;
+      currentInteriorRoom = null;
+      selectedProp = null;
 
-      if (interiorRoomGroup) scene.remove(interiorRoomGroup);
-      buildCampus3D(currentCampusId);
+      if (interiorSceneGroup) {
+        scene.remove(interiorSceneGroup);
+        interiorSceneGroup = null;
+      }
 
-      new TWEEN.Tween(camera.position).to({ x: 0, y: 60, z: 80 }, 800).easing(TWEEN.Easing.Cubic.Out).start();
-      new TWEEN.Tween(controls.target).to({ x: 0, y: 4, z: 2 }, 800).start();
+      exteriorSceneGroup.visible = true;
+      document.getElementById('crosshair-reticle').style.display = 'none';
+      document.getElementById('interior-hud-bar').style.display = 'none';
+      document.getElementById('interior-action-dock').style.display = 'none';
 
-      document.getElementById('tactical-aim-hud').classList.remove('active');
-      document.getElementById('fire-btn-label').innerText = 'STRIKE';
-      document.getElementById('btn-fire').disabled = true;
+      document.getElementById('main-header').style.display = 'flex';
+      document.getElementById('view-controls').style.display = 'flex';
+      document.getElementById('radar-container').style.display = 'flex';
+      document.getElementById('bottom-hud-container').style.display = 'flex';
 
-      ticker(`🌐 Exited to Full Campus Map. Tap any building or send messages to build!`);
+      camera.position.set(0, 52, 68);
+      controls.target.set(0, 4, 4);
     }
 
-    document.getElementById('btn-exit-interior').onclick = exitRoomInterior;
-    document.getElementById('btn-change-room').onclick = () => openRoomPicker(currentInteriorBuilding);
+    document.getElementById('interior-back-btn').onclick = exitRoom3DView;
 
-    function createBurningFire(parent, x, y, z) {
-      for (let i = 0; i < 4; i++) {
-        const fire = new THREE.Mesh(
-          new THREE.SphereGeometry(0.5, 6, 6),
-          new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xef4444 : 0xf59e0b, transparent: true, opacity: 0.85 })
-        );
-        fire.position.set(x + (Math.random() - 0.5) * 1.5, y + Math.random() * 0.8, z + (Math.random() - 0.5) * 1.5);
-        parent.add(fire);
-      }
-    }
+    function buildInteriorScene(building, room) {
+      if (interiorSceneGroup) scene.remove(interiorSceneGroup);
+      interiorSceneGroup = new THREE.Group();
+      scene.add(interiorSceneGroup);
 
-    // =========================================================================
-    // 10. WHOLE ROOM DEMOLITION (HIGH-POINTS NUKE)
-    // =========================================================================
-    document.getElementById('btn-nuke-room').onclick = () => {
-      if (userPoints < 400) {
-        alert(`Need 400 PTS to demolish the entire room at once! Chat to earn points.`);
-        return;
-      }
-      userPoints -= 400;
-      updateHUD();
-      nukeEntireRoom();
-    };
+      const isDem = room.status === 'DEMOLISHED';
 
-    function nukeEntireRoom() {
-      if (!selectedRoom) return;
-      playSound('nuke');
+      // 1. Room Floor
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: isDem ? 0x050505 : 0x1e293b,
+        roughness: isDem ? 0.95 : 0.3
+      });
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(22, 0.8, 22), floorMat);
+      floor.position.y = -0.4;
+      interiorSceneGroup.add(floor);
 
-      // Violent Screen Shake
-      const origCamY = camera.position.y;
-      new TWEEN.Tween(camera.position)
-        .to({ y: origCamY + 2.5 }, 50)
-        .yoyo(true).repeat(8)
-        .onComplete(() => { camera.position.y = origCamY; })
-        .start();
+      // 2. Room Walls
+      const wallMat = new THREE.MeshStandardMaterial({
+        color: isDem ? 0x111111 : 0x0f172a,
+        roughness: 0.6
+      });
+      const backWall = new THREE.Mesh(new THREE.BoxGeometry(22, 9, 0.8), wallMat);
+      backWall.position.set(0, 4.5, -10.6);
+      interiorSceneGroup.add(backWall);
 
-      // Massive Multi-Explosion Burst
-      for (let i = 0; i < 6; i++) {
-        setTimeout(() => {
-          playSound('explosion');
-          const fxPos = new THREE.Vector3(
-            (Math.random() - 0.5) * 16,
-            1 + Math.random() * 4,
-            (Math.random() - 0.5) * 16
-          );
-          const flash = new THREE.Mesh(
-            new THREE.SphereGeometry(4.5, 16, 16),
-            new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 1 })
-          );
-          flash.position.copy(fxPos);
-          scene.add(flash);
-          new TWEEN.Tween(flash.scale).to({ x: 3.5, y: 3.5, z: 3.5 }, 250).start();
-          new TWEEN.Tween(flash.material).to({ opacity: 0 }, 250).onComplete(() => scene.remove(flash)).start();
-        }, i * 120);
-      }
+      const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, 9, 22), wallMat);
+      leftWall.position.set(-10.6, 4.5, 0);
+      interiorSceneGroup.add(leftWall);
 
-      setTimeout(() => {
-        // Demolish all props and room status
-        selectedRoom.status = 'DEMOLISHED';
-        selectedRoom.props.forEach(p => {
-          p.status = 'DESTROYED';
-          p.hp = 0;
+      const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.8, 9, 22), wallMat);
+      rightWall.position.set(10.6, 4.5, 0);
+      interiorSceneGroup.add(rightWall);
+
+      // 3. Interior Props
+      room.props.forEach(p => {
+        const propGroup = new THREE.Group();
+        const propMat = new THREE.MeshStandardMaterial({
+          color: isDem ? 0x1f1f1f : p.col,
+          roughness: isDem ? 0.95 : 0.4,
+          wireframe: !isDem && !!p.wire
         });
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(p.size[0], p.size[1], p.size[2]), propMat);
+        mesh.userData = { propData: p };
+        propGroup.add(mesh);
 
-        ticker(`💥 CATASTROPHIC DEMOLITION! ${selectedRoom.num} (${selectedRoom.name}) completely demolished!`);
-        enter3DRoomInterior(currentInteriorBuilding, selectedRoom);
-      }, 750);
+        propGroup.position.set(p.x, p.y, p.z);
+        interiorSceneGroup.add(propGroup);
+        p.meshGroup = propGroup;
+      });
+
+      // Ceiling Light
+      const cLight = new THREE.PointLight(isDem ? 0xef4444 : 0x38bdf8, isDem ? 0.6 : 1.4, 25);
+      cLight.position.set(0, 7.5, 0);
+      interiorSceneGroup.add(cLight);
+
+      camera.position.set(0, 7, 18);
+      controls.target.set(0, 2.5, 0);
     }
 
-    // =========================================================================
-    // 11. RAYCASTING & PROP SELECTION
-    // =========================================================================
+    // Reticle Prop Aiming via Raycaster
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-    window.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.interactive') || e.target.closest('.campus-pin-3d')) return;
+    function setupInteractions() {
+      window.addEventListener('pointerdown', (e) => {
+        if (!isInteriorView || !currentInteriorRoom) return;
+        if (e.target.closest('.interactive')) return;
 
-      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      raycaster.setFromCamera(mouse, camera);
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
 
-      if (isInteriorView) {
-        const hits = raycaster.intersectObjects(interiorClickables, true);
-        if (hits.length > 0) {
-          let cur = hits[0].object;
-          while (cur && (!cur.userData || !cur.userData.isRoomProp)) cur = cur.parent;
-          if (cur && cur.userData && cur.userData.propData) {
-            playSound('click');
-            selectInteriorProp(cur.userData.propData);
-          }
-        }
-      } else {
-        const hits = raycaster.intersectObjects(clickables, true);
-        if (hits.length > 0) {
-          let cur = hits[0].object;
-          while (cur && (!cur.userData || !cur.userData.landmark)) cur = cur.parent;
-          if (cur && cur.userData && cur.userData.landmark) {
-            playSound('click');
-            onSelectLandmark(cur.userData.landmark, cur.userData.sectionId);
-          }
-        }
-      }
-    });
-
-    function onSelectLandmark(lm, secId) {
-      selectedLandmark = { data: lm, sectionId: secId };
-      const sheet = document.getElementById('inspector-sheet');
-      document.getElementById('insp-name').innerText = `${lm.icon} ${lm.name}`;
-      document.getElementById('insp-campus').innerText = `${campuses[secId].config.name} • Status: ${lm.status}`;
-
-      const pct = (lm.hp / lm.maxHp) * 100;
-      const bar = document.getElementById('insp-hp-bar');
-      bar.style.width = `${pct}%`;
-      bar.style.background = pct > 50 ? '#10b981' : pct > 20 ? '#f59e0b' : '#ef4444';
-      document.getElementById('insp-hp-text').innerText = `${lm.hp} / ${lm.maxHp} HP`;
-
-      sheet.classList.add('open');
-
-      const slot = document.getElementById('insp-action-slot');
-      slot.innerHTML = '';
-
-      // MULTI-ROOM EXPLORATION BUTTON
-      if (lm.hasRooms && lm.rooms.length > 0) {
-        const tacBtn = document.createElement('button');
-        tacBtn.className = 'tactical-btn';
-        tacBtn.innerText = `🔍 Select Room (${lm.rooms.length} Rooms)`;
-        tacBtn.onclick = () => openRoomPicker(lm);
-        slot.appendChild(tacBtn);
-      }
-
-      if (secId === 'CSE-1' && (lm.status === 'DAMAGED' || lm.status === 'DESTROYED')) {
-        const repBtn = document.createElement('button');
-        repBtn.className = 'repair-btn';
-        repBtn.innerText = '🧯 Repair Building (+50 HP)';
-        repBtn.onclick = () => {
-          playSound('repair');
-          lm.hp = Math.min(lm.maxHp, lm.hp + 50);
-          if (lm.hp >= lm.maxHp) lm.status = 'INTACT';
-          else lm.status = 'DAMAGED';
-          buildCampus3D(secId);
-          onSelectLandmark(lm, secId);
-          ticker(`🔧 Repaired ${lm.name}! Restored to ${lm.hp} HP.`);
-        };
-        slot.appendChild(repBtn);
-      }
-
-      const fireBtn = document.getElementById('btn-fire');
-      fireBtn.disabled = (secId === 'CSE-1' || lm.status === 'DESTROYED' || lm.status === 'LOCKED');
-    }
-
-    document.getElementById('insp-close').onclick = () => {
-      playSound('click');
-      document.getElementById('inspector-sheet').classList.remove('open');
-      document.querySelectorAll('.campus-pin-3d').forEach(p => p.classList.remove('active'));
-    };
-
-    // =========================================================================
-    // 12. WEAPON STRIKE & BLASTING PROPS
-    // =========================================================================
-    document.querySelectorAll('.weapon-chip').forEach(chip => {
-      chip.onclick = () => {
-        playSound('click');
-        document.querySelectorAll('.weapon-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        selectedWeapon = {
-          type: chip.dataset.w,
-          cost: parseInt(chip.dataset.cost),
-          dmg: parseInt(chip.dataset.dmg)
-        };
-      };
-    });
-
-    document.getElementById('btn-fire').onclick = () => {
-      if (userPoints < selectedWeapon.cost) {
-        alert(`Need ${selectedWeapon.cost} PTS! Chat to earn points.`);
-        return;
-      }
-      userPoints -= selectedWeapon.cost;
-      updateHUD();
-
-      if (isInteriorView) {
-        blastInteriorPropTarget();
-      } else if (selectedLandmark) {
-        launchMissileStrike(selectedLandmark.data, selectedLandmark.sectionId);
-      }
-    };
-
-    function blastInteriorPropTarget() {
-      if (!selectedProp) return;
-      playSound('laser');
-
-      const laser = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 6), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
-      laser.position.set(camera.position.x * 0.6, camera.position.y * 0.6, camera.position.z * 0.6);
-      scene.add(laser);
-
-      const endPos = new THREE.Vector3(selectedProp.x, selectedProp.y, selectedProp.z);
-      laser.lookAt(endPos);
-      laser.rotateX(Math.PI / 2);
-
-      const tObj = { t: 0 };
-      new TWEEN.Tween(tObj)
-        .to({ t: 1 }, 220)
-        .onUpdate(() => {
-          laser.position.lerpVectors(camera.position, endPos, tObj.t);
-        })
-        .onComplete(() => {
-          scene.remove(laser);
-          playSound('explosion');
-
-          const flash = new THREE.Mesh(
-            new THREE.SphereGeometry(3.2, 16, 16),
-            new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 1 })
-          );
-          flash.position.copy(endPos);
-          scene.add(flash);
-          new TWEEN.Tween(flash.scale).to({ x: 3, y: 3, z: 3 }, 200).start();
-          new TWEEN.Tween(flash.material).to({ opacity: 0 }, 200).onComplete(() => scene.remove(flash)).start();
-
-          const origY = camera.position.y;
-          new TWEEN.Tween(camera.position).to({ y: origY + 0.8 }, 50).yoyo(true).repeat(3).start();
-
-          selectedProp.hp = Math.max(0, selectedProp.hp - selectedWeapon.dmg);
-          if (selectedProp.hp === 0) {
-            selectedProp.status = 'DESTROYED';
-            ticker(`💥 BOOM! Blasted and destroyed ${selectedProp.name} into burning wreckage!`);
-          } else {
-            ticker(`⚡ Direct Hit! Dealt ${selectedWeapon.dmg} damage to ${selectedProp.name}.`);
-          }
-
-          enter3DRoomInterior(currentInteriorBuilding, selectedRoom);
-          selectInteriorProp(selectedProp);
-        })
-        .start();
-    }
-
-    function launchMissileStrike(lm, secId) {
-      playSound('laser');
-      ticker(`🚀 Launched ${selectedWeapon.type} against ${lm.name}!`);
-
-      const startP = new THREE.Vector3(camera.position.x * 0.8, camera.position.y * 0.8, camera.position.z * 0.8);
-      const endP = new THREE.Vector3(lm.x, 6, lm.z);
-      const midP = new THREE.Vector3().addVectors(startP, endP).multiplyScalar(0.5);
-      midP.y += 35;
-
-      const missile = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3.2), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
-      scene.add(missile);
-
-      const tObj = { t: 0 };
-      new TWEEN.Tween(tObj)
-        .to({ t: 1 }, 950)
-        .onUpdate(() => {
-          const t = tObj.t;
-          const pos = new THREE.Vector3()
-            .copy(startP).multiplyScalar((1 - t) * (1 - t))
-            .add(midP.clone().multiplyScalar(2 * (1 - t) * t))
-            .add(endP.clone().multiplyScalar(t * t));
-          missile.position.copy(pos);
-          missile.lookAt(endP);
-          missile.rotateX(Math.PI / 2);
-        })
-        .onComplete(() => {
-          scene.remove(missile);
-          playSound('explosion');
-
-          const flash = new THREE.Mesh(
-            new THREE.SphereGeometry(4, 16, 16),
-            new THREE.MeshBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 1 })
-          );
-          flash.position.copy(endP);
-          scene.add(flash);
-          new TWEEN.Tween(flash.scale).to({ x: 5, y: 5, z: 5 }, 250).start();
-          new TWEEN.Tween(flash.material).to({ opacity: 0 }, 250).onComplete(() => scene.remove(flash)).start();
-
-          const targetShield = campuses[secId].shieldMesh;
-          if (targetShield) {
-            targetShield.material.opacity = 0.55;
-            new TWEEN.Tween(targetShield.material).to({ opacity: 0.16 }, 600).start();
-          }
-
-          lm.hp = Math.max(0, lm.hp - selectedWeapon.dmg);
-          if (lm.hp === 0) {
-            lm.status = 'DESTROYED';
-            ticker(`💥 CRITICAL! ${lm.name} has collapsed!`);
-          } else {
-            lm.status = 'DAMAGED';
-            ticker(`⚡ Direct Hit! Dealt ${selectedWeapon.dmg} DMG to ${lm.name}.`);
-          }
-
-          buildCampus3D(secId);
-          if (selectedLandmark && selectedLandmark.data.key === lm.key) {
-            onSelectLandmark(lm, secId);
-          }
-        })
-        .start();
-    }
-
-    // =========================================================================
-    // 13. PROGRESSIVE 5-MESSAGE CONSTRUCTION
-    // =========================================================================
-    document.getElementById('btn-msg').onclick = () => {
-      playSound('build');
-      userPoints += 10;
-      const myC = campuses['CSE-1'];
-
-      if (myC.currentStage < 7) {
-        myC.currentStage += 1;
-        const newStage = myC.currentStage;
-
-        const newlyUnlocked = [];
-        myC.landmarks.forEach(lm => {
-          if (lm.stage === newStage && lm.status === 'LOCKED') {
-            lm.status = 'INTACT';
-            lm.hp = lm.maxHp;
-            newlyUnlocked.push(lm.name);
+        const meshes = [];
+        currentInteriorRoom.props.forEach(p => {
+          if (p.meshGroup) {
+            p.meshGroup.traverse(child => {
+              if (child.isMesh) {
+                child.userData.parentProp = p;
+                meshes.push(child);
+              }
+            });
           }
         });
 
-        buildCampus3D('CSE-1');
-        updateHUD();
-
-        if (newStage === 7) {
-          ticker(`🎉 [STAGE 7/7 COMPLETE] Forcefield Shield Online! Base is 100% Fully Constructed!`);
-        } else {
-          ticker(`🏗️ [STAGE ${newStage}/7] Unlocked: ${newlyUnlocked.join(' & ')}!`);
+        const intersects = raycaster.intersectObjects(meshes);
+        if (intersects.length > 0) {
+          const hit = intersects[0];
+          const prop = hit.object.userData.parentProp;
+          if (prop && prop.hp > 0) {
+            lockCrosshairOnProp(prop);
+          }
         }
+      });
+    }
+
+    function lockCrosshairOnProp(prop) {
+      playSound('click');
+      selectedProp = prop;
+      document.getElementById('precision-strike-btn').disabled = false;
+      document.getElementById('precision-strike-btn').innerHTML = `<span>🎯</span> PRECISION STRIKE ${prop.name} (50p)`;
+
+      const reticle = document.getElementById('crosshair-reticle');
+      reticle.style.display = 'block';
+      document.getElementById('crosshair-tag').innerText = `AIM: ${prop.name} (${prop.hp}/${prop.maxHp} HP)`;
+      updateCrosshairPosition();
+    }
+
+    function updateCrosshairPosition() {
+      if (!isInteriorView || !selectedProp || !selectedProp.meshGroup) return;
+      const pos = new THREE.Vector3();
+      selectedProp.meshGroup.getWorldPosition(pos);
+      pos.project(camera);
+
+      const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-(pos.y * 0.5) + 0.5) * window.innerHeight;
+      const reticle = document.getElementById('crosshair-reticle');
+      reticle.style.left = x + 'px';
+      reticle.style.top = y + 'px';
+    }
+
+    // Precision Strike on Selected Prop
+    document.getElementById('precision-strike-btn').onclick = () => {
+      if (!selectedProp || selectedProp.hp <= 0) return;
+      if (userPoints < 50) {
+        alert('Need 50 PTS to fire Precision Strike!');
+        return;
+      }
+      userPoints -= 50;
+      updatePointsDisplay();
+      playSound('laser');
+
+      selectedProp.hp = Math.max(0, selectedProp.hp - 45);
+      if (selectedProp.hp <= 0) {
+        playSound('explosion');
+        selectedProp.meshGroup.traverse(child => {
+          if (child.isMesh) {
+            child.material.color.setHex(0x18181b);
+            child.scale.set(0.85, 0.5, 0.85);
+          }
+        });
+        document.getElementById('crosshair-tag').innerText = `${selectedProp.name} DESTROYED!`;
+        document.getElementById('precision-strike-btn').disabled = true;
       } else {
-        ticker(`🌟 100% MAXIMUM LEVEL! All campus landmarks fully operational. Click [⏮️ Reset to Stage 1] to replay!`);
-        updateHUD();
+        document.getElementById('crosshair-tag').innerText = `AIM: ${selectedProp.name} (${selectedProp.hp}/${selectedProp.maxHp} HP)`;
       }
     };
 
-    document.getElementById('btn-restart').onclick = () => {
-      playSound('click');
-      const myC = campuses['CSE-1'];
-      myC.currentStage = 1;
-      myC.landmarks.forEach(lm => {
-        if (lm.stage === 1) {
-          lm.status = 'INTACT'; lm.hp = lm.maxHp;
-        } else {
-          lm.status = 'LOCKED'; lm.hp = 0;
-        }
-        if (lm.rooms) {
-          lm.rooms.forEach(r => {
-            r.status = 'INTACT';
-            r.props.forEach(p => { p.status = 'INTACT'; p.hp = p.maxHp; });
+    // Whole-Room Demolition (400 PTS)
+    document.getElementById('whole-room-demolish-btn').onclick = () => {
+      if (!currentInteriorRoom) return;
+      if (userPoints < 400) {
+        alert('Need 400 PTS to launch Whole-Room Demolition!');
+        return;
+      }
+      userPoints -= 400;
+      updatePointsDisplay();
+      playSound('nuke');
+
+      // Trigger screen shake
+      document.getElementById('app-body').classList.add('shaking');
+      setTimeout(() => document.getElementById('app-body').classList.remove('shaking'), 600);
+
+      currentInteriorRoom.status = 'DEMOLISHED';
+      currentInteriorRoom.props.forEach(p => {
+        p.hp = 0;
+        if (p.meshGroup) {
+          p.meshGroup.traverse(child => {
+            if (child.isMesh) {
+              child.material.color.setHex(0x111111);
+              child.scale.set(0.7, 0.3, 0.7);
+            }
           });
         }
       });
-      if (isInteriorView) exitRoomInterior();
-      else buildCampus3D('CSE-1');
-      updateHUD();
-      ticker(`🔄 Reset to Stage 1! Tap [SEND 5 MESSAGES] to build building by building!`);
+
+      document.getElementById('crosshair-reticle').style.display = 'none';
+      document.getElementById('precision-strike-btn').disabled = true;
+      alert(`💥 KABOOM! ${currentInteriorRoom.name} Demolished to Ashes!`);
     };
 
-    // =========================================================================
-    // 14. CAMPUS SWITCHER & HUD
-    // =========================================================================
-    const campusBadgeBtn = document.getElementById('campus-badge-btn');
-    const campusModal = document.getElementById('campus-modal');
-
-    campusBadgeBtn.onclick = () => {
+    // Messaging Simulation
+    document.getElementById('send-msg-btn').onclick = () => {
       playSound('click');
-      campusModal.classList.toggle('open');
+      userPoints += 50;
+      updatePointsDisplay();
     };
 
-    document.getElementById('btn-reset-cam').onclick = () => {
+    function updatePointsDisplay() {
+      document.getElementById('user-points-badge').innerText = userPoints + ' PTS';
+      if (window.FlutterChannel) {
+        window.FlutterChannel.postMessage(JSON.stringify({ type: 'POINTS_UPDATE', points: userPoints }));
+      }
+    }
+
+    // Audio Mute Toggle
+    document.getElementById('sound-btn').onclick = () => {
+      isSoundEnabled = !isSoundEnabled;
+      document.getElementById('sound-btn').innerText = isSoundEnabled ? '🔊' : '🔇';
+    };
+
+    // Day/Night Toggle
+    document.getElementById('daynight-btn').onclick = () => {
       playSound('click');
-      if (isInteriorView) {
-        new TWEEN.Tween(camera.position).to({ x: 0, y: 11, z: 20 }, 800).start();
-        new TWEEN.Tween(controls.target).to({ x: 0, y: 3, z: 0 }, 800).start();
+      isNight = !isNight;
+      if (isNight) {
+        scene.background = new THREE.Color(0x01040a);
+        dirLight.color.setHex(0xe0f2fe);
+        dirLight.intensity = 1.4;
+        ambientLight.intensity = 0.9;
       } else {
-        new TWEEN.Tween(camera.position).to({ x: 0, y: 60, z: 80 }, 800).easing(TWEEN.Easing.Cubic.Out).start();
-        new TWEEN.Tween(controls.target).to({ x: 0, y: 4, z: 2 }, 800).start();
+        scene.background = new THREE.Color(0x38bdf8);
+        dirLight.color.setHex(0xfef08a);
+        dirLight.intensity = 1.9;
+        ambientLight.intensity = 1.2;
       }
     };
 
-    document.getElementById('btn-tour').onclick = () => {
+    // Center View
+    document.getElementById('center-btn').onclick = () => {
       playSound('click');
-      isAutoTour = !isAutoTour;
-      document.getElementById('btn-tour').innerText = isAutoTour ? '⏹️ Stop Tour' : '🔄 Auto Tour';
+      camera.position.set(0, 52, 68);
+      controls.target.set(0, 4, 4);
     };
 
-    function switchCampus(secId) {
-      currentCampusId = secId;
-      campusModal.classList.remove('open');
-      if (isInteriorView) exitRoomInterior();
-
-      const c = campuses[secId];
-      document.getElementById('badge-campus-name').innerText = c.config.name;
-      document.getElementById('badge-campus-tag').innerText = c.config.isMySection ? 'MY BASE' : 'RIVAL';
-      document.getElementById('badge-campus-tag').style.color = c.config.isMySection ? '#10b981' : '#ef4444';
-      document.getElementById('badge-campus-tag').style.borderColor = c.config.isMySection ? '#10b981' : '#ef4444';
-
-      document.querySelectorAll('.campus-opt-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.innerText.includes(c.config.name));
-      });
-
-      buildCampus3D(secId);
-
-      camera.position.set(0, 60, 80);
-      controls.target.set(0, 4, 2);
-
-      ticker(`🌐 Viewing ${c.config.name} (${c.config.isMySection ? 'Friendly Sanctuary' : 'Rival Base - Target Locked'}).`);
-      document.getElementById('inspector-sheet').classList.remove('open');
-    }
-
-    function updateHUD() {
-      const myC = campuses['CSE-1'];
-      document.getElementById('hud-pts').innerText = `${userPoints} PTS`;
-      document.getElementById('hud-units').innerText = `${myC.currentStage} / 7 STAGES`;
-    }
-
-    function ticker(msg) {
-      document.getElementById('event-ticker').innerText = msg;
-    }
-
-    function initUI() {
-      const slot = document.getElementById('modal-campus-options');
-      SECTIONS.forEach(s => {
-        const btn = document.createElement('div');
-        btn.className = 'campus-opt-btn' + (s.id === currentCampusId ? ' active' : '');
-        btn.innerHTML = `<span>${s.name}</span><span style="font-size: 10px; color: ${s.isMySection ? '#10b981' : '#ef4444'}">${s.isMySection ? 'MY BASE' : 'RIVAL'}</span>`;
-        btn.onclick = () => { playSound('click'); switchCampus(s.id); };
-        slot.appendChild(btn);
-      });
-      updateHUD();
-    }
+    // Orbit 360 Tour
+    let isAutoTour = false;
+    document.getElementById('tour-btn').onclick = () => {
+      playSound('click');
+      isAutoTour = !isAutoTour;
+      controls.autoRotate = isAutoTour;
+      controls.autoRotateSpeed = 2.0;
+    };
 
     // =========================================================================
-    // 15. ANIMATION LOOP & STARTUP
+    // 9. ANIMATION & RENDER LOOP
     // =========================================================================
-    initUI();
-    switchCampus('CSE-1');
-
-    const clock = new THREE.Clock();
-
     function animate() {
       requestAnimationFrame(animate);
-      TWEEN.update();
       controls.update();
 
       const time = clock.getElapsedTime();
 
+      // Fountain spray pulse
       if (fountainSprayMesh) {
         const s = 1.0 + Math.sin(time * 3.5) * 0.15;
         fountainSprayMesh.scale.set(s, s * 1.1, s);
       }
 
+      // Blinking Spire Beacon
       if (beaconMesh) {
         beaconMesh.material.color.setHex((Math.sin(time * 6) > 0) ? 0xef4444 : 0x7f1d1d);
       }
 
-      if (isAutoTour && !isInteriorView) {
-        controls.autoRotate = true; controls.autoRotateSpeed = 1.4;
-      } else {
-        controls.autoRotate = false;
+      // Pulsing Forcefield Dome
+      if (domeMesh) {
+        domeMesh.material.opacity = 0.3 + Math.sin(time * 1.8) * 0.12;
       }
 
       updateBadgePositions();
+      updateCrosshairPosition();
       renderer.render(scene, camera);
     }
-    animate();
 
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
+    window.onload = () => {
+      initThree();
+      animate();
+    };
   </script>
 </body>
 </html>

@@ -49,7 +49,7 @@ public class FeedController {
             Map<String, Object> map = new HashMap<>();
             map.put("id", post.getId());
 
-            boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT]");
+            boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
             map.put("isDirect", isDirect);
             map.put("isDirectName", isDirect);
 
@@ -154,7 +154,17 @@ public class FeedController {
         List<Map<String, Object>> res = comments.stream().map(c -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", c.getId());
-            map.put("authorGhostName", c.getAuthor().getGhostName());
+
+            boolean isDirect = c.getContent() != null && c.getContent().startsWith("[DIRECT");
+            map.put("isDirect", isDirect);
+            if (isDirect) {
+                map.put("authorRealName", c.getAuthor().getRealName());
+                map.put("authorProfileImageUrl", c.getAuthor().getProfileImageUrl());
+                map.put("authorId", c.getAuthor().getId());
+            } else {
+                map.put("authorGhostName", c.getAuthor().getGhostName());
+            }
+
             map.put("authorPrimarySection", c.getAuthor().getPrimarySection() != null ? c.getAuthor().getPrimarySection().getName() : "");
             map.put("gender", c.getAuthor().getGender());
             map.put("content", c.getContent());
@@ -214,12 +224,12 @@ public class FeedController {
         }
 
         // Create a chat message referencing the post (Instagram-style rich share card)
-        boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT]");
+        boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
         String authorName = isDirect
                 ? (post.getAuthor().getRealName() != null ? post.getAuthor().getRealName() : post.getAuthor().getGhostName())
                 : post.getAuthor().getGhostName();
         String imageUrl = post.getImageUrl() != null ? post.getImageUrl() : "";
-        String postText = post.getContent() != null ? post.getContent().replace("[DIRECT]", "").trim() : "";
+        String postText = post.getContent() != null ? post.getContent().replaceAll("\\[DIRECT[^\\]]*\\]", "").trim() : "";
         String authorPhoto = isDirect && post.getAuthor().getProfileImageUrl() != null ? post.getAuthor().getProfileImageUrl() : "";
 
         String escapedAuthor = authorName.replace("\"", "\\\"");

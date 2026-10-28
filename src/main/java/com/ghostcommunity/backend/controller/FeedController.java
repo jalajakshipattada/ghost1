@@ -48,8 +48,23 @@ public class FeedController {
         List<Map<String, Object>> feed = postsPage.stream().map(post -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", post.getId());
-            map.put("authorGhostName", post.getAuthor().getGhostName());
-            map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
+
+            boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT]");
+            map.put("isDirect", isDirect);
+            map.put("isDirectName", isDirect);
+
+            if (isDirect) {
+                // Direct post: show author's real identity, strictly hide dummy/ghost name
+                map.put("authorRealName", post.getAuthor().getRealName());
+                map.put("authorProfileImageUrl", post.getAuthor().getProfileImageUrl());
+                map.put("authorId", post.getAuthor().getId());
+                map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
+            } else {
+                // Ghost post: show ghost name, strictly hide real name, email, and photo
+                map.put("authorGhostName", post.getAuthor().getGhostName());
+                map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
+            }
+
             map.put("gender", post.getAuthor().getGender());
             map.put("content", post.getContent());
             map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");

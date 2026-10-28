@@ -198,15 +198,33 @@ public class FeedController {
             return ResponseEntity.badRequest().body("Security Violation");
         }
 
-        // Create a chat message referencing the post
-        String shareContent = "Shared a post by " + post.getAuthor().getGhostName() + ":\n\"" + post.getContent() + "\"";
-        
+        // Create a chat message referencing the post (Instagram-style rich share card)
+        boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT]");
+        String authorName = isDirect
+                ? (post.getAuthor().getRealName() != null ? post.getAuthor().getRealName() : post.getAuthor().getGhostName())
+                : post.getAuthor().getGhostName();
+        String imageUrl = post.getImageUrl() != null ? post.getImageUrl() : "";
+        String postText = post.getContent() != null ? post.getContent().replace("[DIRECT]", "").trim() : "";
+        String authorPhoto = isDirect && post.getAuthor().getProfileImageUrl() != null ? post.getAuthor().getProfileImageUrl() : "";
+
+        String escapedAuthor = authorName.replace("\"", "\\\"");
+        String escapedPhoto = authorPhoto.replace("\"", "\\\"");
+        String escapedImage = imageUrl.replace("\"", "\\\"");
+        String escapedText = postText.replace("\"", "\\\"").replace("\n", " ");
+
+        String shareContent = "[POST_SHARE]{\"postId\":" + post.getId() +
+                ",\"authorName\":\"" + escapedAuthor + "\"" +
+                ",\"authorPhoto\":\"" + escapedPhoto + "\"" +
+                ",\"isDirect\":" + isDirect +
+                ",\"imageUrl\":\"" + escapedImage + "\"" +
+                ",\"caption\":\"" + escapedText + "\"}";
+
         Message message = Message.builder()
                 .author(user)
                 .college(user.getCollege())
                 .destinationSection(section)
                 .content(shareContent)
-                .messageType("TEXT")
+                .messageType("POST_SHARE")
                 .build();
                 
         message = messageRepository.save(message);

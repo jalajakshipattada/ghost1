@@ -6,6 +6,7 @@ import com.ghostcommunity.backend.model.User;
 import com.ghostcommunity.backend.payload.ChatResponsePayload;
 import com.ghostcommunity.backend.payload.MessageResponse;
 import com.ghostcommunity.backend.repository.MessageRepository;
+import com.ghostcommunity.backend.repository.SectionRepository;
 import com.ghostcommunity.backend.repository.UserRepository;
 import com.ghostcommunity.backend.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,61 @@ public class MessageController {
 
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
+    private final SectionRepository sectionRepository;
     private final SimpMessagingTemplate messagingTemplate;
+
+    /**
+     * POST /api/messages/section/{sectionId}
+     * Universal endpoint to send messages / post shares directly to a section.
+     */
+    @PostMapping("/section/{sectionId}")
+    public ResponseEntity<?> sendMessageToSection(
+            @PathVariable Long sectionId,
+            @RequestBody java.util.Map<String, String> request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User author = userRepository.findByIdWithSectionAndCollege(userDetails.getId()).orElseThrow();
+        Section destinationSection = sectionRepository.findById(sectionId).orElseThrow();
+
+        if (!destinationSection.getCollege().getId().equals(author.getCollege().getId())) {
+            return ResponseEntity.status(403).body(new MessageResponse("Security Violation"));
+        }
+
+        String content = request.get("content");
+        if (content == null || content.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Content cannot be empty"));
+        }
+        String messageType = request.getOrDefault("messageType", "TEXT");
+
+        Message message = Message.builder()
+                .author(author)
+                .college(author.getCollege())
+                .destinationSection(destinationSection)
+                .content(content)
+                .messageType(messageType)
+                .build();
+
+        message = messageRepository.save(message);
+
+        // Add war points for activity
+        author.setWarPoints(author.getWarPoints() + 10);
+        userRepository.save(author);
+
+        ChatResponsePayload response = ChatResponsePayload.builder()
+                .messageId(message.getId())
+                .senderId(author.getId())
+                .content(message.getContent())
+                .messageType(message.getMessageType())
+                .ghostName(author.getGhostName())
+                .primarySection(author.getPrimarySection() != null ? author.getPrimarySection().getName() : "")
+                .gender(author.getGender())
+                .createdAt(message.getCreatedAt())
+                .build();
+
+        messagingTemplate.convertAndSend("/topic/section/" + sectionId, response);
+
+        return ResponseEntity.ok(response);
+    }
 
     /**
      * GET /api/messages/section/{sectionId}/history

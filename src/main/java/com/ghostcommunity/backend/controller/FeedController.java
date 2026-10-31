@@ -249,14 +249,16 @@ public class FeedController {
     }
 
     @PostMapping("/{postId}/share")
-    public ResponseEntity<?> sharePost(@PathVariable Long postId, @RequestBody Map<String, Long> request) {
+    public ResponseEntity<?> sharePost(@PathVariable Long postId, @RequestBody Map<String, Object> request) {
         User user = getCurrentUser();
         Post post = postRepository.findById(postId).orElseThrow();
-        Long sectionId = request.get("sectionId");
-        
-        if (sectionId == null) {
+        Object rawSectionId = request.get("sectionId");
+        if (rawSectionId == null) {
             return ResponseEntity.badRequest().body("Section ID is required");
         }
+        Long sectionId = (rawSectionId instanceof Number)
+                ? ((Number) rawSectionId).longValue()
+                : Long.parseLong(rawSectionId.toString());
         
         Section section = sectionRepository.findById(sectionId).orElseThrow();
         

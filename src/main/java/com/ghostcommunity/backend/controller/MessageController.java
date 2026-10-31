@@ -159,6 +159,7 @@ public class MessageController {
                     readEvent.put("sectionId", sectionId);
                     readEvent.put("lastReadMessageId", maxId);
                     readEvent.put("readerId", currentUser.getId());
+                    readEvent.put("readerGhostName", currentUser.getGhostName());
                     messagingTemplate.convertAndSend("/topic/section/" + sectionId, (Object) readEvent);
                 }
             }
@@ -190,6 +191,7 @@ public class MessageController {
                             readEvent.put("sectionId", sectionId);
                             readEvent.put("lastReadMessageId", maxId);
                             readEvent.put("readerId", user.getId());
+                            readEvent.put("readerGhostName", user.getGhostName());
                             messagingTemplate.convertAndSend("/topic/section/" + sectionId, (Object) readEvent);
                         }
                     }

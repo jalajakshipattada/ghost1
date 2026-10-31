@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Getter @Setter @Builder
 public class ChatResponsePayload {
@@ -19,5 +20,6 @@ public class ChatResponsePayload {
     private String gender;         // e.g. "MALE" or "FEMALE"
     
     private LocalDateTime createdAt;
+    private Map<String, Long> reactions;
 }
 

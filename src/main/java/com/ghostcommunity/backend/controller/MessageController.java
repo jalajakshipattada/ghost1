@@ -5,6 +5,7 @@ import com.ghostcommunity.backend.model.Section;
 import com.ghostcommunity.backend.model.User;
 import com.ghostcommunity.backend.payload.ChatResponsePayload;
 import com.ghostcommunity.backend.payload.MessageResponse;
+import com.ghostcommunity.backend.repository.MessageReactionRepository;
 import com.ghostcommunity.backend.repository.MessageRepository;
 import com.ghostcommunity.backend.repository.SectionRepository;
 import com.ghostcommunity.backend.repository.UserRepository;
@@ -16,7 +17,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -29,6 +33,7 @@ public class MessageController {
     private final SectionRepository sectionRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final com.ghostcommunity.backend.repository.SectionReadRepository sectionReadRepository;
+    private final MessageReactionRepository messageReactionRepository;
 
     /**
      * POST /api/messages/section/{sectionId}
@@ -107,6 +112,15 @@ public class MessageController {
 
         List<Message> messages = messageRepository.findByDestinationSectionIdOrderByCreatedAtAsc(sectionId);
 
+        List<Object[]> reactionCounts = messageReactionRepository.countReactionsBySectionId(sectionId);
+        Map<Long, Map<String, Long>> reactionMap = new HashMap<>();
+        for (Object[] row : reactionCounts) {
+            Long msgId = (Long) row[0];
+            String emoji = (String) row[1];
+            Long count = ((Number) row[2]).longValue();
+            reactionMap.computeIfAbsent(msgId, k -> new HashMap<>()).put(emoji, count);
+        }
+
         List<ChatResponsePayload> history = messages.stream()
                 .filter(m -> m.getAuthor() != null && m.getAuthor().getPrimarySection() != null)
                 .map(m -> ChatResponsePayload.builder()
@@ -118,6 +132,7 @@ public class MessageController {
                         .primarySection(m.getAuthor().getPrimarySection().getName())
                         .gender(m.getAuthor().getGender())
                         .createdAt(m.getCreatedAt())
+                        .reactions(reactionMap.getOrDefault(m.getId(), Collections.emptyMap()))
                         .build())
                 .toList();
 

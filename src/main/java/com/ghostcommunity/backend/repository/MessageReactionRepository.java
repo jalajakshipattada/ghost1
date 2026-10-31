@@ -21,4 +21,8 @@ public interface MessageReactionRepository extends JpaRepository<MessageReaction
     // Get reaction counts grouped by emoji for a message
     @Query("SELECT r.emoji, COUNT(r) FROM MessageReaction r WHERE r.message.id = :messageId GROUP BY r.emoji")
     List<Object[]> countReactionsByEmoji(@Param("messageId") Long messageId);
+
+    // Get reaction counts grouped by messageId and emoji for an entire section
+    @Query("SELECT r.message.id, r.emoji, COUNT(r) FROM MessageReaction r WHERE r.message.destinationSection.id = :sectionId GROUP BY r.message.id, r.emoji")
+    List<Object[]> countReactionsBySectionId(@Param("sectionId") Long sectionId);
 }

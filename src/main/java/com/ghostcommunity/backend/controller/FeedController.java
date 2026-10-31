@@ -30,6 +30,7 @@ public class FeedController {
     private final SectionRepository sectionRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
     private final MessageRepository messageRepository;
+    private final com.ghostcommunity.backend.repository.SectionReadRepository sectionReadRepository;
 
     @GetMapping
     public ResponseEntity<?> getFeed(@RequestParam(defaultValue = "0") int page,
@@ -297,6 +298,23 @@ public class FeedController {
                 .build();
                 
         message = messageRepository.save(message);
+
+        // Advance sender's read count so sender never sees own share as unread
+        try {
+            long newTotal = messageRepository.countByDestinationSectionId(section.getId());
+            var readOpt = sectionReadRepository.findByUserIdAndSectionId(user.getId(), section.getId());
+            if (readOpt.isPresent()) {
+                var sr = readOpt.get();
+                sr.setLastReadCount(newTotal);
+                sectionReadRepository.save(sr);
+            } else {
+                sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
+                        .user(user)
+                        .section(section)
+                        .lastReadCount(newTotal)
+                        .build());
+            }
+        } catch (Exception ignored) {}
 
         // Broadcast to WebSocket
         com.ghostcommunity.backend.payload.ChatResponsePayload response = com.ghostcommunity.backend.payload.ChatResponsePayload.builder()

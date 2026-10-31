@@ -29,10 +29,11 @@ public class OnboardingController {
     private final SectionRepository sectionRepository;
     private final com.ghostcommunity.backend.repository.MessageRepository messageRepository;
     private final com.ghostcommunity.backend.service.PresenceService presenceService;
+    private final com.ghostcommunity.backend.repository.SectionReadRepository sectionReadRepository;
 
     // Lightweight DTOs to send to the mobile app
     record CollegeDto(Long id, String name) {}
-    record SectionDto(Long id, String name, long totalMessages, long memberCount, long onlineCount) {}
+    record SectionDto(Long id, String name, long totalMessages, long memberCount, long onlineCount, long unreadCount) {}
 
     @GetMapping("/colleges")
     public ResponseEntity<List<CollegeDto>> getAllColleges() {
@@ -44,14 +45,44 @@ public class OnboardingController {
 
     @GetMapping("/colleges/{collegeId}/sections")
     public ResponseEntity<List<SectionDto>> getSectionsByCollege(@PathVariable Long collegeId) {
+        User currentUser = null;
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl userDetails) {
+                currentUser = userRepository.findById(userDetails.getId()).orElse(null);
+            }
+        } catch (Exception ignored) {}
+
+        final User user = currentUser;
+
         List<SectionDto> sections = sectionRepository.findByCollegeId(collegeId).stream()
-                .map(s -> new SectionDto(
-                        s.getId(),
-                        s.getName(),
-                        messageRepository.countByDestinationSectionId(s.getId()),
-                        userRepository.countByPrimarySectionIdAndStatus(s.getId(), UserStatus.ACTIVE),
-                        presenceService.getOnlineCountForSection(s.getId())
-                ))
+                .map(s -> {
+                    long total = messageRepository.countByDestinationSectionId(s.getId());
+                    long unread = 0;
+                    if (user != null) {
+                        var opt = sectionReadRepository.findByUserIdAndSectionId(user.getId(), s.getId());
+                        if (opt.isPresent()) {
+                            long readCount = opt.get().getLastReadCount();
+                            unread = Math.max(0, total - readCount);
+                        } else {
+                            // Initialize baseline for first encounter so historical messages never falsely show as unread
+                            sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
+                                    .user(user)
+                                    .section(s)
+                                    .lastReadCount(total)
+                                    .build());
+                            unread = 0;
+                        }
+                    }
+                    return new SectionDto(
+                            s.getId(),
+                            s.getName(),
+                            total,
+                            userRepository.countByPrimarySectionIdAndStatus(s.getId(), UserStatus.ACTIVE),
+                            presenceService.getOnlineCountForSection(s.getId()),
+                            unread
+                    );
+                })
                 .toList();
         return ResponseEntity.ok(sections);
     }

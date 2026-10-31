@@ -28,6 +28,7 @@ public class MessageController {
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final com.ghostcommunity.backend.repository.SectionReadRepository sectionReadRepository;
 
     /**
      * POST /api/messages/section/{sectionId}
@@ -61,6 +62,23 @@ public class MessageController {
                 .build();
 
         message = messageRepository.save(message);
+
+        // Advance sender's read count so sender never sees own message as unread
+        try {
+            long newTotal = messageRepository.countByDestinationSectionId(sectionId);
+            var readOpt = sectionReadRepository.findByUserIdAndSectionId(author.getId(), sectionId);
+            if (readOpt.isPresent()) {
+                var sr = readOpt.get();
+                sr.setLastReadCount(newTotal);
+                sectionReadRepository.save(sr);
+            } else {
+                sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
+                        .user(author)
+                        .section(destinationSection)
+                        .lastReadCount(newTotal)
+                        .build());
+            }
+        } catch (Exception ignored) {}
 
         // Add war points for activity
         author.setWarPoints(author.getWarPoints() + 10);
@@ -109,7 +127,56 @@ public class MessageController {
                         .build())
                 .toList();
 
+        // Mark section read when entering room to view history
+        try {
+            long total = messageRepository.countByDestinationSectionId(sectionId);
+            var readOpt = sectionReadRepository.findByUserIdAndSectionId(currentUser.getId(), sectionId);
+            if (readOpt.isPresent()) {
+                var sr = readOpt.get();
+                sr.setLastReadCount(total);
+                sectionReadRepository.save(sr);
+            } else {
+                Section sec = sectionRepository.findById(sectionId).orElse(null);
+                if (sec != null) {
+                    sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
+                            .user(currentUser)
+                            .section(sec)
+                            .lastReadCount(total)
+                            .build());
+                }
+            }
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok(history);
+    }
+
+    @PostMapping("/section/{sectionId}/read")
+    public ResponseEntity<?> markSectionRead(@PathVariable Long sectionId) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl userDetails) {
+                User user = userRepository.findById(userDetails.getId()).orElse(null);
+                if (user != null) {
+                    long total = messageRepository.countByDestinationSectionId(sectionId);
+                    var readOpt = sectionReadRepository.findByUserIdAndSectionId(user.getId(), sectionId);
+                    if (readOpt.isPresent()) {
+                        var sr = readOpt.get();
+                        sr.setLastReadCount(total);
+                        sectionReadRepository.save(sr);
+                    } else {
+                        Section sec = sectionRepository.findById(sectionId).orElse(null);
+                        if (sec != null) {
+                            sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
+                                    .user(user)
+                                    .section(sec)
+                                    .lastReadCount(total)
+                                    .build());
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+        return ResponseEntity.ok("READ");
     }
 
     @DeleteMapping("/{messageId}")

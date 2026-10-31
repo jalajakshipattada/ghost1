@@ -65,19 +65,13 @@ public class MessageController {
 
         // Advance sender's read count so sender never sees own message as unread
         try {
+            Long messageId = message.getId();
             long newTotal = messageRepository.countByDestinationSectionId(sectionId);
             var readOpt = sectionReadRepository.findByUserIdAndSectionId(author.getId(), sectionId);
-            if (readOpt.isPresent()) {
-                var sr = readOpt.get();
-                sr.setLastReadCount(newTotal);
-                sectionReadRepository.save(sr);
-            } else {
-                sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
-                        .user(author)
-                        .section(destinationSection)
-                        .lastReadCount(newTotal)
-                        .build());
-            }
+            var sr = readOpt.orElseGet(() -> com.ghostcommunity.backend.model.SectionRead.builder().user(author).section(destinationSection).build());
+            sr.setLastReadMessageId(messageId);
+            sr.setLastReadCount(newTotal);
+            sectionReadRepository.save(sr);
         } catch (Exception ignored) {}
 
         // Add war points for activity
@@ -129,21 +123,15 @@ public class MessageController {
 
         // Mark section read when entering room to view history
         try {
+            Long maxId = messageRepository.findMaxIdByDestinationSectionId(sectionId);
             long total = messageRepository.countByDestinationSectionId(sectionId);
             var readOpt = sectionReadRepository.findByUserIdAndSectionId(currentUser.getId(), sectionId);
-            if (readOpt.isPresent()) {
-                var sr = readOpt.get();
+            Section sec = sectionRepository.findById(sectionId).orElse(null);
+            if (sec != null) {
+                var sr = readOpt.orElseGet(() -> com.ghostcommunity.backend.model.SectionRead.builder().user(currentUser).section(sec).build());
+                sr.setLastReadMessageId(maxId != null ? maxId : 0L);
                 sr.setLastReadCount(total);
                 sectionReadRepository.save(sr);
-            } else {
-                Section sec = sectionRepository.findById(sectionId).orElse(null);
-                if (sec != null) {
-                    sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
-                            .user(currentUser)
-                            .section(sec)
-                            .lastReadCount(total)
-                            .build());
-                }
             }
         } catch (Exception ignored) {}
 
@@ -157,21 +145,15 @@ public class MessageController {
             if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl userDetails) {
                 User user = userRepository.findById(userDetails.getId()).orElse(null);
                 if (user != null) {
+                    Long maxId = messageRepository.findMaxIdByDestinationSectionId(sectionId);
                     long total = messageRepository.countByDestinationSectionId(sectionId);
                     var readOpt = sectionReadRepository.findByUserIdAndSectionId(user.getId(), sectionId);
-                    if (readOpt.isPresent()) {
-                        var sr = readOpt.get();
+                    Section sec = sectionRepository.findById(sectionId).orElse(null);
+                    if (sec != null) {
+                        var sr = readOpt.orElseGet(() -> com.ghostcommunity.backend.model.SectionRead.builder().user(user).section(sec).build());
+                        sr.setLastReadMessageId(maxId != null ? maxId : 0L);
                         sr.setLastReadCount(total);
                         sectionReadRepository.save(sr);
-                    } else {
-                        Section sec = sectionRepository.findById(sectionId).orElse(null);
-                        if (sec != null) {
-                            sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
-                                    .user(user)
-                                    .section(sec)
-                                    .lastReadCount(total)
-                                    .build());
-                        }
                     }
                 }
             }

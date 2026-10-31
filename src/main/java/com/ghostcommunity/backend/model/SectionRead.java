@@ -26,6 +26,9 @@ public class SectionRead {
     @JoinColumn(name = "section_id", nullable = false)
     private Section section;
 
+    @Column(name = "last_read_message_id")
+    private Long lastReadMessageId;
+
     @Column(name = "last_read_count", nullable = false)
     private Long lastReadCount;
 

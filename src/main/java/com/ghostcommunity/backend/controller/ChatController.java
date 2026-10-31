@@ -2,11 +2,13 @@ package com.ghostcommunity.backend.controller;
 
 import com.ghostcommunity.backend.model.Message;
 import com.ghostcommunity.backend.model.Section;
+import com.ghostcommunity.backend.model.SectionRead;
 import com.ghostcommunity.backend.model.User;
 import com.ghostcommunity.backend.payload.ChatMessagePayload;
 import com.ghostcommunity.backend.payload.ChatResponsePayload;
 import com.ghostcommunity.backend.repository.CampusStructureRepository;
 import com.ghostcommunity.backend.repository.MessageRepository;
+import com.ghostcommunity.backend.repository.SectionReadRepository;
 import com.ghostcommunity.backend.repository.SectionRepository;
 import com.ghostcommunity.backend.repository.UserRepository;
 import com.ghostcommunity.backend.security.UserDetailsImpl;
@@ -29,6 +31,7 @@ public class ChatController {
     private final SectionRepository sectionRepository;
     private final MessageRepository messageRepository;
     private final CampusStructureRepository campusStructureRepository;
+    private final SectionReadRepository sectionReadRepository;
 
     // Mobile app sends message to: /app/chat.section.1
     @MessageMapping("/chat.section.{sectionId}")
@@ -52,6 +55,19 @@ public class ChatController {
                 .build();
         
         message = messageRepository.save(message);
+
+        // Advance sender's read pointer so sender never sees own message as unread
+        try {
+            Long messageId = message.getId();
+            long total = messageRepository.countByDestinationSectionId(sectionId);
+            var readOpt = sectionReadRepository.findByUserIdAndSectionId(author.getId(), sectionId);
+            SectionRead sr = readOpt.orElseGet(() -> SectionRead.builder().user(author).section(destinationSection).build());
+            sr.setLastReadMessageId(messageId);
+            sr.setLastReadCount(total);
+            sectionReadRepository.save(sr);
+        } catch (Exception e) {
+            log.error("Failed to update sender's SectionRead: {}", e.getMessage());
+        }
 
         // RULE: Per each msg add 10 points to a particular user (used to attack)
         author.setWarPoints(author.getWarPoints() + 10);

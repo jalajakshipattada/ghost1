@@ -301,19 +301,13 @@ public class FeedController {
 
         // Advance sender's read count so sender never sees own share as unread
         try {
+            Long messageId = message.getId();
             long newTotal = messageRepository.countByDestinationSectionId(section.getId());
             var readOpt = sectionReadRepository.findByUserIdAndSectionId(user.getId(), section.getId());
-            if (readOpt.isPresent()) {
-                var sr = readOpt.get();
-                sr.setLastReadCount(newTotal);
-                sectionReadRepository.save(sr);
-            } else {
-                sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
-                        .user(user)
-                        .section(section)
-                        .lastReadCount(newTotal)
-                        .build());
-            }
+            var sr = readOpt.orElseGet(() -> com.ghostcommunity.backend.model.SectionRead.builder().user(user).section(section).build());
+            sr.setLastReadMessageId(messageId);
+            sr.setLastReadCount(newTotal);
+            sectionReadRepository.save(sr);
         } catch (Exception ignored) {}
 
         // Broadcast to WebSocket

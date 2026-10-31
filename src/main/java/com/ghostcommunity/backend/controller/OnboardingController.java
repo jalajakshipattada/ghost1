@@ -62,16 +62,19 @@ public class OnboardingController {
                     if (user != null) {
                         var opt = sectionReadRepository.findByUserIdAndSectionId(user.getId(), s.getId());
                         if (opt.isPresent()) {
-                            long readCount = opt.get().getLastReadCount();
-                            unread = Math.max(0, total - readCount);
+                            Long lastReadMsgId = opt.get().getLastReadMessageId();
+                            if (lastReadMsgId != null) {
+                                unread = messageRepository.countUnreadMessages(s.getId(), user.getId(), lastReadMsgId);
+                            } else {
+                                long readCount = opt.get().getLastReadCount();
+                                unread = Math.max(0, total - readCount);
+                            }
                         } else {
-                            // Initialize baseline for first encounter so historical messages never falsely show as unread
-                            sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
-                                    .user(user)
-                                    .section(s)
-                                    .lastReadCount(total)
-                                    .build());
-                            unread = 0;
+                            java.time.LocalDateTime userCreated = user.getCreatedAt();
+                            if (userCreated == null) {
+                                userCreated = java.time.LocalDateTime.now().minusDays(1);
+                            }
+                            unread = messageRepository.countUnreadSince(s.getId(), user.getId(), userCreated.minusMinutes(5));
                         }
                     }
                     return new SectionDto(

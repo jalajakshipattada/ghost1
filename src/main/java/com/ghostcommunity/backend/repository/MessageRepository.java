@@ -19,4 +19,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     @org.springframework.data.jpa.repository.Query("SELECT MAX(m.id) FROM Message m WHERE m.destinationSection.id = :sectionId")
     Long findMaxIdByDestinationSectionId(@org.springframework.data.repository.query.Param("sectionId") Long sectionId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(m) FROM Message m WHERE m.destinationSection.id = :sectionId AND (m.author IS NULL OR m.author.id != :userId) AND (:lastReadMessageId IS NULL OR m.id > :lastReadMessageId)")
+    long countUnreadMessages(@org.springframework.data.repository.query.Param("sectionId") Long sectionId, @org.springframework.data.repository.query.Param("userId") Long userId, @org.springframework.data.repository.query.Param("lastReadMessageId") Long lastReadMessageId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(m) FROM Message m WHERE m.destinationSection.id = :sectionId AND (m.author IS NULL OR m.author.id != :userId) AND m.createdAt >= :afterTime")
+    long countUnreadSince(@org.springframework.data.repository.query.Param("sectionId") Long sectionId, @org.springframework.data.repository.query.Param("userId") Long userId, @org.springframework.data.repository.query.Param("afterTime") java.time.LocalDateTime afterTime);
 }

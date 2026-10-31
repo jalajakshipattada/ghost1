@@ -121,6 +121,8 @@ public class MessageController {
             reactionMap.computeIfAbsent(msgId, k -> new HashMap<>()).put(emoji, count);
         }
 
+        Long maxOthers = sectionReadRepository.findMaxLastReadMessageIdByOthers(sectionId, currentUser.getId());
+
         List<ChatResponsePayload> history = messages.stream()
                 .filter(m -> m.getAuthor() != null && m.getAuthor().getPrimarySection() != null)
                 .map(m -> ChatResponsePayload.builder()
@@ -133,6 +135,7 @@ public class MessageController {
                         .gender(m.getAuthor().getGender())
                         .createdAt(m.getCreatedAt())
                         .reactions(reactionMap.getOrDefault(m.getId(), Collections.emptyMap()))
+                        .isSeen(m.getAuthor().getId().equals(currentUser.getId()) && maxOthers != null && maxOthers >= m.getId())
                         .build())
                 .toList();
 
@@ -147,6 +150,16 @@ public class MessageController {
                 sr.setLastReadMessageId(maxId != null ? maxId : 0L);
                 sr.setLastReadCount(total);
                 sectionReadRepository.save(sr);
+
+                // Broadcast live read event to section so senders' ticks turn pink-blue mix immediately
+                if (maxId != null && maxId > 0) {
+                    Map<String, Object> readEvent = new HashMap<>();
+                    readEvent.put("action", "READ");
+                    readEvent.put("sectionId", sectionId);
+                    readEvent.put("lastReadMessageId", maxId);
+                    readEvent.put("readerId", currentUser.getId());
+                    messagingTemplate.convertAndSend("/topic/section/" + sectionId, (Object) readEvent);
+                }
             }
         } catch (Exception ignored) {}
 
@@ -169,6 +182,15 @@ public class MessageController {
                         sr.setLastReadMessageId(maxId != null ? maxId : 0L);
                         sr.setLastReadCount(total);
                         sectionReadRepository.save(sr);
+
+                        if (maxId != null && maxId > 0) {
+                            Map<String, Object> readEvent = new HashMap<>();
+                            readEvent.put("action", "READ");
+                            readEvent.put("sectionId", sectionId);
+                            readEvent.put("lastReadMessageId", maxId);
+                            readEvent.put("readerId", user.getId());
+                            messagingTemplate.convertAndSend("/topic/section/" + sectionId, (Object) readEvent);
+                        }
                     }
                 }
             }

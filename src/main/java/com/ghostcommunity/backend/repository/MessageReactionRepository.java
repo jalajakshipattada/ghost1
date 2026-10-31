@@ -12,6 +12,10 @@ import java.util.Optional;
 @Repository
 public interface MessageReactionRepository extends JpaRepository<MessageReaction, Long> {
 
+    // Find all reactions for a specific message with User eagerly fetched
+    @Query("SELECT r FROM MessageReaction r JOIN FETCH r.user WHERE r.message.id = :messageId")
+    List<MessageReaction> findByMessageIdWithUser(@Param("messageId") Long messageId);
+
     // Find all reactions for a specific message
     List<MessageReaction> findByMessageId(Long messageId);
 

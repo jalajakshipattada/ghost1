@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +76,35 @@ public class ReactionController {
     @GetMapping("/{messageId}")
     public ResponseEntity<?> getReactions(@PathVariable Long messageId) {
         return ResponseEntity.ok(buildReactionPayload(messageId));
+    }
+
+    /** GET /api/reactions/{messageId}/details — returns full reactor list with Ghost names only */
+    @GetMapping("/{messageId}/details")
+    public ResponseEntity<?> getReactionDetails(@PathVariable Long messageId) {
+        List<MessageReaction> reactions = reactionRepository.findByMessageIdWithUser(messageId);
+        List<Map<String, Object>> userList = new ArrayList<>();
+        Map<String, Long> emojiCounts = new HashMap<>();
+
+        for (MessageReaction r : reactions) {
+            String emoji = r.getEmoji();
+            emojiCounts.put(emoji, emojiCounts.getOrDefault(emoji, 0L) + 1);
+
+            Map<String, Object> u = new HashMap<>();
+            u.put("id", r.getId());
+            u.put("userId", r.getUser().getId());
+            u.put("ghostName", r.getUser().getGhostName());
+            u.put("gender", r.getUser().getGender());
+            u.put("primarySection", r.getUser().getPrimarySection() != null ? r.getUser().getPrimarySection().getName() : "");
+            u.put("emoji", emoji);
+            userList.add(u);
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("messageId", messageId);
+        response.put("total", reactions.size());
+        response.put("counts", emojiCounts);
+        response.put("users", userList);
+        return ResponseEntity.ok(response);
     }
 
     private Map<String, Object> buildReactionPayload(Long messageId) {

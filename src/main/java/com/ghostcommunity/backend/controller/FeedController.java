@@ -165,10 +165,24 @@ public class FeedController {
                 map.put("authorGhostName", c.getAuthor().getGhostName());
             }
 
+            Long parentId = null;
+            if (c.getParentComment() != null) {
+                parentId = c.getParentComment().getId();
+            } else if (c.getContent() != null && c.getContent().contains("[REPLY:")) {
+                try {
+                    int start = c.getContent().indexOf("[REPLY:") + 7;
+                    int end = c.getContent().indexOf("]", start);
+                    if (end != -1) {
+                        parentId = Long.parseLong(c.getContent().substring(start, end).trim());
+                    }
+                } catch (Exception ignored) {}
+            }
+            map.put("parentId", parentId);
+
             map.put("authorPrimarySection", c.getAuthor().getPrimarySection() != null ? c.getAuthor().getPrimarySection().getName() : "");
             map.put("gender", c.getAuthor().getGender());
             map.put("content", c.getContent());
-            map.put("createdAt", c.getCreatedAt());
+            map.put("createdAt", c.getCreatedAt() != null ? c.getCreatedAt().toString() + "Z" : null);
             map.put("likesCount", commentLikeRepository.countByCommentId(c.getId()));
             map.put("isLikedByMe", commentLikeRepository.existsByCommentIdAndUserId(c.getId(), user.getId()));
             return map;
@@ -177,17 +191,37 @@ public class FeedController {
     }
 
     @PostMapping("/{postId}/comments")
-    public ResponseEntity<?> addComment(@PathVariable Long postId, @RequestBody Map<String, String> request) {
+    public ResponseEntity<?> addComment(@PathVariable Long postId, @RequestBody Map<String, Object> request) {
         User user = getCurrentUser();
         Post post = postRepository.findById(postId).orElseThrow();
-        String content = request.get("content");
+        String content = request.get("content") != null ? request.get("content").toString() : null;
         if (content == null || content.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Content cannot be empty");
         }
+
+        Comment parentComment = null;
+        Object parentIdObj = request.get("parentId");
+        if (parentIdObj != null) {
+            try {
+                Long pId = Long.parseLong(parentIdObj.toString());
+                parentComment = commentRepository.findById(pId).orElse(null);
+            } catch (Exception ignored) {}
+        } else if (content.contains("[REPLY:")) {
+            try {
+                int start = content.indexOf("[REPLY:") + 7;
+                int end = content.indexOf("]", start);
+                if (end != -1) {
+                    Long pId = Long.parseLong(content.substring(start, end).trim());
+                    parentComment = commentRepository.findById(pId).orElse(null);
+                }
+            } catch (Exception ignored) {}
+        }
+
         Comment comment = Comment.builder()
                 .post(post)
                 .author(user)
                 .content(content)
+                .parentComment(parentComment)
                 .build();
         commentRepository.save(comment);
         return ResponseEntity.ok("Comment added successfully");

@@ -20,6 +20,10 @@ public class Comment {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
+
     @Column(nullable = false, length = 1000)
     private String content;
 

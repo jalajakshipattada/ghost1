@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findByCollegeIdOrderByCreatedAtDesc(Long collegeId, Pageable pageable);
     Page<Post> findByCollegeIdAndContentContainingIgnoreCaseOrderByCreatedAtDesc(Long collegeId, String content, Pageable pageable);
+    Page<Post> findByAuthorIdOrderByCreatedAtDesc(Long authorId, Pageable pageable);
 
     @Query("SELECT p FROM Post p WHERE p.college.id = :collegeId AND " +
            "(LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

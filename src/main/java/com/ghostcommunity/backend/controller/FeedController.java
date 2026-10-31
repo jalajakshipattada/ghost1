@@ -26,11 +26,58 @@ public class FeedController {
     private final PostLikeRepository postLikeRepository;
     private final CommentRepository commentRepository;
     private final CommentLikeRepository commentLikeRepository;
+    private final SavedPostRepository savedPostRepository;
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
     private final MessageRepository messageRepository;
     private final com.ghostcommunity.backend.repository.SectionReadRepository sectionReadRepository;
+
+    private Map<String, Object> formatPostMap(Post post, User user) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", post.getId());
+
+        boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
+        map.put("isDirect", isDirect);
+        map.put("isDirectName", isDirect);
+
+        if (isDirect) {
+            // Direct post: show author's real identity, strictly hide dummy/ghost name
+            String realName = post.getAuthor().getRealName();
+            if ((realName == null || realName.trim().isEmpty()) && post.getContent() != null && post.getContent().contains("[DIRECT|")) {
+                int start = post.getContent().indexOf("[DIRECT|") + 8;
+                int end = post.getContent().indexOf("]", start);
+                if (end != -1) {
+                    realName = post.getContent().substring(start, end).trim();
+                }
+            }
+            map.put("authorRealName", realName != null && !realName.isEmpty() ? realName : "Student");
+            map.put("authorProfileImageUrl", post.getAuthor().getProfileImageUrl());
+            map.put("authorId", post.getAuthor().getId());
+            map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
+        } else {
+            // Ghost post: show ghost name, strictly hide real name, email, and photo
+            map.put("authorGhostName", post.getAuthor().getGhostName());
+            map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
+        }
+
+        map.put("gender", post.getAuthor().getGender());
+        map.put("content", post.getContent());
+        map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");
+        map.put("createdAt", post.getCreatedAt());
+
+        int score = postLikeRepository.getScoreByPostId(post.getId());
+        var myLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), user.getId());
+        int myVote = myLikeOpt.map(l -> l.getVoteValue() != null ? l.getVoteValue() : 1).orElse(0);
+
+        map.put("score", score);
+        map.put("myVote", myVote);
+        map.put("likesCount", score);
+        map.put("commentsCount", commentRepository.countByPostId(post.getId()));
+        map.put("isLikedByMe", myVote == 1);
+        map.put("isSavedByMe", savedPostRepository.existsByUserIdAndPostId(user.getId(), post.getId()));
+        return map;
+    }
 
     @GetMapping
     public ResponseEntity<?> getFeed(@RequestParam(defaultValue = "0") int page,
@@ -46,56 +93,91 @@ public class FeedController {
                 user.getCollege().getId(), PageRequest.of(page, size));
         }
 
-        List<Map<String, Object>> feed = postsPage.stream().map(post -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", post.getId());
-
-            boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
-            map.put("isDirect", isDirect);
-            map.put("isDirectName", isDirect);
-
-            if (isDirect) {
-                // Direct post: show author's real identity, strictly hide dummy/ghost name
-                String realName = post.getAuthor().getRealName();
-                if ((realName == null || realName.trim().isEmpty()) && post.getContent() != null && post.getContent().contains("[DIRECT|")) {
-                    int start = post.getContent().indexOf("[DIRECT|") + 8;
-                    int end = post.getContent().indexOf("]", start);
-                    if (end != -1) {
-                        realName = post.getContent().substring(start, end).trim();
-                    }
-                }
-                map.put("authorRealName", realName != null && !realName.isEmpty() ? realName : "Student");
-                map.put("authorProfileImageUrl", post.getAuthor().getProfileImageUrl());
-                map.put("authorId", post.getAuthor().getId());
-                map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
-            } else {
-                // Ghost post: show ghost name, strictly hide real name, email, and photo
-                map.put("authorGhostName", post.getAuthor().getGhostName());
-                map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
-            }
-
-            map.put("gender", post.getAuthor().getGender());
-            map.put("content", post.getContent());
-            map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");
-            map.put("createdAt", post.getCreatedAt());
-
-            int score = postLikeRepository.getScoreByPostId(post.getId());
-            var myLikeOpt = postLikeRepository.findByPostIdAndUserId(post.getId(), user.getId());
-            int myVote = myLikeOpt.map(l -> l.getVoteValue() != null ? l.getVoteValue() : 1).orElse(0);
-
-            map.put("score", score);
-            map.put("myVote", myVote);
-            map.put("likesCount", score);
-            map.put("commentsCount", commentRepository.countByPostId(post.getId()));
-            map.put("isLikedByMe", myVote == 1);
-            return map;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> feed = postsPage.stream()
+                .map(post -> formatPostMap(post, user))
+                .collect(Collectors.toList());
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", feed);
         response.put("totalPages", postsPage.getTotalPages());
         response.put("totalElements", postsPage.getTotalElements());
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/my-posts")
+    public ResponseEntity<?> getMyPosts(@RequestParam(defaultValue = "0") int page,
+                                        @RequestParam(defaultValue = "20") int size) {
+        User user = getCurrentUser();
+        Page<Post> postsPage = postRepository.findByAuthorIdOrderByCreatedAtDesc(
+                user.getId(), PageRequest.of(page, size));
+        List<Map<String, Object>> feed = postsPage.stream()
+                .map(post -> formatPostMap(post, user))
+                .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", feed);
+        response.put("totalPages", postsPage.getTotalPages());
+        response.put("totalElements", postsPage.getTotalElements());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/saved")
+    public ResponseEntity<?> getSavedPosts(@RequestParam(defaultValue = "0") int page,
+                                           @RequestParam(defaultValue = "20") int size) {
+        User user = getCurrentUser();
+        Page<SavedPost> savedPage = savedPostRepository.findByUserIdOrderByCreatedAtDesc(
+                user.getId(), PageRequest.of(page, size));
+        List<Map<String, Object>> feed = savedPage.stream()
+                .map(saved -> formatPostMap(saved.getPost(), user))
+                .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", feed);
+        response.put("totalPages", savedPage.getTotalPages());
+        response.put("totalElements", savedPage.getTotalElements());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{postId}/save")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> toggleSavePost(@PathVariable Long postId) {
+        User user = getCurrentUser();
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null) {
+            return ResponseEntity.notFound().build();
+        }
+        var existingOpt = savedPostRepository.findByUserIdAndPostId(user.getId(), postId);
+        if (existingOpt.isPresent()) {
+            savedPostRepository.delete(existingOpt.get());
+            return ResponseEntity.ok(Map.of("saved", false, "message", "Post removed from saved"));
+        } else {
+            SavedPost savedPost = SavedPost.builder()
+                    .user(user)
+                    .post(post)
+                    .build();
+            savedPostRepository.save(savedPost);
+            return ResponseEntity.ok(Map.of("saved", true, "message", "Post saved successfully"));
+        }
+    }
+
+    @DeleteMapping("/{postId}")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> deletePost(@PathVariable Long postId) {
+        User user = getCurrentUser();
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!post.getAuthor().getId().equals(user.getId())) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body("You are not authorized to delete this post");
+        }
+        commentLikeRepository.deleteByPostId(postId);
+        commentRepository.deleteByPostId(postId);
+        postLikeRepository.deleteByPostId(postId);
+        savedPostRepository.deleteByPostId(postId);
+        postRepository.delete(post);
+        return ResponseEntity.ok(Map.of("message", "Post deleted successfully", "deletedPostId", postId));
     }
 
     @PostMapping

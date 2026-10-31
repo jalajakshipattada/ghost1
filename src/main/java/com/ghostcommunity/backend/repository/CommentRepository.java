@@ -12,4 +12,9 @@ import java.util.List;
 public interface CommentRepository extends JpaRepository<Comment, Long> {
     int countByPostId(Long postId);
     List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("DELETE FROM Comment c WHERE c.post.id = :postId")
+    void deleteByPostId(@org.springframework.data.repository.query.Param("postId") Long postId);
 }

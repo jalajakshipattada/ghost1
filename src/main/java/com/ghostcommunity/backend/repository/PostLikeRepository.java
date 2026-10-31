@@ -16,4 +16,9 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
 
     @Query("SELECT COALESCE(SUM(COALESCE(pl.voteValue, 1)), 0) FROM PostLike pl WHERE pl.post.id = :postId")
     int getScoreByPostId(@Param("postId") Long postId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("DELETE FROM PostLike pl WHERE pl.post.id = :postId")
+    void deleteByPostId(@org.springframework.data.repository.query.Param("postId") Long postId);
 }

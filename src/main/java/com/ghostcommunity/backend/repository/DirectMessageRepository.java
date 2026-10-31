@@ -29,4 +29,9 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, Lo
     @org.springframework.transaction.annotation.Transactional
     @Query("UPDATE DirectMessage m SET m.chatMode = 'DIRECT' WHERE ((m.sender.id = :user1 AND m.receiver.id = :user2) OR (m.sender.id = :user2 AND m.receiver.id = :user1)) AND m.chatMode = 'GHOST'")
     void revealIdentities(@Param("user1") Long user1, @Param("user2") Long user2);
+
+    @Query("SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END FROM DirectMessage m WHERE " +
+           "(m.sender.id = :senderId AND m.receiver.id = :receiverId AND m.chatMode = 'DIRECT') OR " +
+           "(((m.sender.id = :senderId AND m.receiver.id = :receiverId) OR (m.sender.id = :receiverId AND m.receiver.id = :senderId)) AND m.messageType = 'SYSTEM' AND m.content LIKE 'Identities Revealed%')")
+    boolean hasUserRevealedTo(@Param("senderId") Long senderId, @Param("receiverId") Long receiverId);
 }

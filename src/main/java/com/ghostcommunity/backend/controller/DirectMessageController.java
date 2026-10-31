@@ -59,12 +59,15 @@ public class DirectMessageController {
             DirectMessage m = entry.getValue();
             User partner = m.getSender().getId().equals(partnerId) ? m.getSender() : m.getReceiver();
 
-            boolean isGhost = "GHOST".equals(m.getChatMode());
+            boolean isGhostMode = "GHOST".equals(m.getChatMode());
+            // Partner's real identity is ONLY visible to currentUser if partner revealed to currentUser!
+            boolean partnerRevealedToMe = !isGhostMode && dmRepository.hasUserRevealedTo(partner.getId(), myId);
+
             inbox.add(new InboxDto(
                     partner.getId(),
                     partner.getGhostName(),
-                    isGhost ? "" : partner.getRealName(),
-                    isGhost ? "" : (partner.getProfileImageUrl() != null ? partner.getProfileImageUrl() : ""),
+                    partnerRevealedToMe ? partner.getRealName() : partner.getGhostName(),
+                    partnerRevealedToMe ? (partner.getProfileImageUrl() != null ? partner.getProfileImageUrl() : "") : "",
                     partner.getPrimarySection() != null ? partner.getPrimarySection().getName() : "",
                     partner.getGender(),
                     m.getContent(),
@@ -88,18 +91,24 @@ public class DirectMessageController {
 
         List<DirectMessage> history = dmRepository.findChatHistoryByMode(myId, userId, mode);
 
-        User me = userRepository.findById(myId).orElseThrow();
+        boolean partnerRevealedToMe = "DIRECT".equals(mode) && dmRepository.hasUserRevealedTo(userId, myId);
 
         List<ChatResponsePayload> payloads = history.stream().map(m -> {
             boolean isGhost = "GHOST".equals(m.getChatMode());
             User sender = m.getSender();
+            boolean isMe = sender.getId().equals(myId);
+            String displayName;
+            if (isMe) {
+                displayName = isGhost ? sender.getGhostName() : sender.getRealName();
+            } else {
+                displayName = partnerRevealedToMe ? sender.getRealName() : sender.getGhostName();
+            }
             return ChatResponsePayload.builder()
                     .messageId(m.getId())
                     .senderId(sender.getId())
                     .content(m.getContent())
                     .messageType(m.getMessageType())
-                    // In GHOST mode show ghost name; in DIRECT mode show real name
-                    .ghostName(isGhost ? sender.getGhostName() : sender.getRealName())
+                    .ghostName(displayName)
                     .primarySection(sender.getPrimarySection() != null ? sender.getPrimarySection().getName() : "")
                     .gender(sender.getGender())
                     .createdAt(m.getCreatedAt())
@@ -132,7 +141,19 @@ public class DirectMessageController {
         dmRepository.save(dm);
 
         boolean isGhost = "GHOST".equals(mode);
-        ChatResponsePayload payload = ChatResponsePayload.builder()
+
+        ChatResponsePayload senderPayload = ChatResponsePayload.builder()
+                .messageId(dm.getId())
+                .senderId(sender.getId())
+                .content(dm.getContent())
+                .messageType(dm.getMessageType())
+                .ghostName(isGhost ? sender.getGhostName() : sender.getRealName())
+                .primarySection(sender.getPrimarySection() != null ? sender.getPrimarySection().getName() : "")
+                .gender(sender.getGender())
+                .createdAt(dm.getCreatedAt())
+                .build();
+
+        ChatResponsePayload receiverPayload = ChatResponsePayload.builder()
                 .messageId(dm.getId())
                 .senderId(sender.getId())
                 .content(dm.getContent())
@@ -144,10 +165,10 @@ public class DirectMessageController {
                 .build();
 
         // Broadcast to both users' personal topics
-        messagingTemplate.convertAndSend("/topic/user/" + receiver.getId(), payload);
-        messagingTemplate.convertAndSend("/topic/user/" + sender.getId(), payload);
+        messagingTemplate.convertAndSend("/topic/user/" + receiver.getId(), receiverPayload);
+        messagingTemplate.convertAndSend("/topic/user/" + sender.getId(), senderPayload);
 
-        return ResponseEntity.ok(payload);
+        return ResponseEntity.ok(senderPayload);
     }
 
     // POST /api/dm/{userId}/accept-reveal

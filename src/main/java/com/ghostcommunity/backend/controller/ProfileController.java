@@ -18,7 +18,7 @@ public class ProfileController {
     private final UserRepository userRepository;
 
     // DTO for the user's OWN private profile screen (Contains EVERYTHING)
-    record PrivateProfileDto(String email, String realName, String ghostName, String collegeName, String primarySection, String profileImageUrl, String gender) {}
+    record PrivateProfileDto(Long id, String email, String realName, String ghostName, String collegeName, String primarySection, String profileImageUrl, String gender) {}
 
     // DTO for when you tap on someone's Ghost Name in the chat (Strictly Anonymous)
     record PublicRealProfileDto(Long id, String realName, String collegeName, String primarySection, String profileImageUrl, String gender) {}
@@ -34,6 +34,7 @@ public class ProfileController {
 
         // Safely extract data. If they haven't onboarded yet, college might be null.
         PrivateProfileDto profile = new PrivateProfileDto(
+                user.getId(),
                 user.getEmail(),
                 user.getRealName(),
                 user.getGhostName(),

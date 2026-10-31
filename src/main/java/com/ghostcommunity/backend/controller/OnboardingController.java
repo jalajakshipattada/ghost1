@@ -66,15 +66,21 @@ public class OnboardingController {
                             if (lastReadMsgId != null) {
                                 unread = messageRepository.countUnreadMessages(s.getId(), user.getId(), lastReadMsgId);
                             } else {
-                                long readCount = opt.get().getLastReadCount();
-                                unread = Math.max(0, total - readCount);
+                                Long maxId = messageRepository.findMaxIdByDestinationSectionId(s.getId());
+                                var sr = opt.get();
+                                sr.setLastReadMessageId(maxId != null ? maxId : 0L);
+                                sectionReadRepository.save(sr);
+                                unread = 0;
                             }
                         } else {
-                            java.time.LocalDateTime userCreated = user.getCreatedAt();
-                            if (userCreated == null) {
-                                userCreated = java.time.LocalDateTime.now().minusDays(1);
-                            }
-                            unread = messageRepository.countUnreadSince(s.getId(), user.getId(), userCreated.minusMinutes(5));
+                            Long maxId = messageRepository.findMaxIdByDestinationSectionId(s.getId());
+                            sectionReadRepository.save(com.ghostcommunity.backend.model.SectionRead.builder()
+                                    .user(user)
+                                    .section(s)
+                                    .lastReadMessageId(maxId != null ? maxId : 0L)
+                                    .lastReadCount(total)
+                                    .build());
+                            unread = 0;
                         }
                     }
                     return new SectionDto(

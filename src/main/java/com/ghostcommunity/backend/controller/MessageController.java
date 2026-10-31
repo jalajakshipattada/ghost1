@@ -103,7 +103,7 @@ public class MessageController {
     public ResponseEntity<?> getSectionHistory(@PathVariable Long sectionId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        User currentUser = userRepository.findByIdWithSectionAndCollege(userDetails.getId()).orElseThrow();
+        User currentUser = userRepository.findById(userDetails.getId()).orElseThrow();
 
         List<Message> messages = messageRepository.findByDestinationSectionIdOrderByCreatedAtAsc(sectionId);
 

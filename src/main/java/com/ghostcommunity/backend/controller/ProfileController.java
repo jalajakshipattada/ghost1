@@ -23,7 +23,7 @@ public class ProfileController {
     // DTO for when you tap on someone's Ghost Name in the chat (Strictly Anonymous)
     record PublicRealProfileDto(Long id, String realName, String collegeName, String primarySection, String profileImageUrl, String gender) {}
 
-    record PublicGhostProfileDto(String ghostName, String primarySection, String profileImageUrl, String gender) {}
+    record PublicGhostProfileDto(Long id, String ghostName, String primarySection, String profileImageUrl, String gender) {}
 
     // 1. Endpoint for the user's own "Profile" tab in the bottom navigation bar
     @GetMapping("/me")
@@ -72,6 +72,7 @@ public class ProfileController {
 
         return userRepository.findByGhostNameAndCollegeId(ghostName, currentUser.getCollege().getId())
                 .map(user -> new PublicGhostProfileDto(
+                        user.getId(),
                         user.getGhostName(),
                         user.getPrimarySection() != null ? user.getPrimarySection().getName() : "Unknown Section",
                         user.getProfileImageUrl(),

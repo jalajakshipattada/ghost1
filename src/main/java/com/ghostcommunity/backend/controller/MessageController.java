@@ -92,6 +92,7 @@ public class MessageController {
                 .primarySection(author.getPrimarySection() != null ? author.getPrimarySection().getName() : "")
                 .gender(author.getGender())
                 .createdAt(message.getCreatedAt())
+                .isSeen(false)
                 .build();
 
         messagingTemplate.convertAndSend("/topic/section/" + sectionId, response);

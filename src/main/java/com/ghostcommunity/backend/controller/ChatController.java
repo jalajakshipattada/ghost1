@@ -99,6 +99,7 @@ public class ChatController {
                 .primarySection(author.getPrimarySection().getName())
                 .gender(author.getGender()) 
                 .createdAt(message.getCreatedAt())
+                .isSeen(false)
                 .build();
 
         // 3. Broadcast out to all students currently looking at this section's chat room

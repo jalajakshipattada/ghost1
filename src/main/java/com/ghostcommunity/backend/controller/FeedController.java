@@ -55,7 +55,15 @@ public class FeedController {
 
             if (isDirect) {
                 // Direct post: show author's real identity, strictly hide dummy/ghost name
-                map.put("authorRealName", post.getAuthor().getRealName());
+                String realName = post.getAuthor().getRealName();
+                if ((realName == null || realName.trim().isEmpty()) && post.getContent() != null && post.getContent().contains("[DIRECT|")) {
+                    int start = post.getContent().indexOf("[DIRECT|") + 8;
+                    int end = post.getContent().indexOf("]", start);
+                    if (end != -1) {
+                        realName = post.getContent().substring(start, end).trim();
+                    }
+                }
+                map.put("authorRealName", realName != null && !realName.isEmpty() ? realName : "Student");
                 map.put("authorProfileImageUrl", post.getAuthor().getProfileImageUrl());
                 map.put("authorId", post.getAuthor().getId());
                 map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");

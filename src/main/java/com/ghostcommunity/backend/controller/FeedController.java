@@ -417,6 +417,16 @@ public class FeedController {
         return ResponseEntity.ok("Shared successfully");
     }
 
+    @GetMapping("/{postId}")
+    public ResponseEntity<?> getSinglePost(@PathVariable Long postId) {
+        User user = getCurrentUser();
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post != null) {
+            return ResponseEntity.ok(formatPostMap(post, user));
+        }
+        return ResponseEntity.notFound().build();
+    }
+
     @PostMapping("/{postId}/track-share")
     public ResponseEntity<?> trackExternalShare(@PathVariable Long postId) {
         Post post = postRepository.findById(postId).orElse(null);

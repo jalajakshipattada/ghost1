@@ -19,6 +19,7 @@ public class ChatResponsePayload {
     private String primarySection; // e.g. "CSE-2"
     private String gender;         // e.g. "MALE" or "FEMALE"
     
+    @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime createdAt;
     private Map<String, Long> reactions;
     private Boolean isSeen;

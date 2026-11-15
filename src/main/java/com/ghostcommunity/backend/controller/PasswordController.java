@@ -30,35 +30,43 @@ public class PasswordController {
     @PostMapping("/forgot")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
-        Optional<User> userOpt = userRepository.findByEmail(email);
-
-        if (userOpt.isPresent()) {
-            User user = userOpt.get();
-            
-            // Generate a random 6-character alphanumeric code
-            String resetCode = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-            
-            PasswordResetToken token = PasswordResetToken.builder()
-                    .token(resetCode)
-                    .user(user)
-                    .expiryDate(LocalDateTime.now().plusMinutes(15)) // Strict 15-minute expiration
-                    .build();
-            
-            tokenRepository.save(token);
-
-            // Send the email
-            try {
-                emailService.sendPasswordResetEmail(user.getEmail(), resetCode);
-            } catch (Exception e) {
-                // In a production environment, you would log this error.
-                // It will fail right now because SMTP is not configured in application.properties yet.
-                System.out.println("SMTP NOT CONFIGURED YET. Your reset code is: " + resetCode);
-            }
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is required."));
         }
 
-        // SECURITY BEST PRACTICE: Always return a success message even if the email doesn't exist.
-        // This prevents hackers from repeatedly guessing emails to see who is registered on the app.
-        return ResponseEntity.ok(new MessageResponse("If that email is registered, a reset code has been sent to your inbox."));
+        Optional<User> userOpt = userRepository.findByEmailIgnoreCase(email.trim())
+                .or(() -> userRepository.findByEmail(email.trim()));
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: No account found with this email."));
+        }
+
+        User user = userOpt.get();
+        // Generate a 6-digit verification code
+        String resetCode = String.valueOf((int) ((Math.random() * 900000) + 100000));
+        
+        PasswordResetToken token = PasswordResetToken.builder()
+                .token(resetCode)
+                .user(user)
+                .expiryDate(LocalDateTime.now().plusMinutes(30))
+                .build();
+        
+        tokenRepository.save(token);
+
+        // In-App verification code generated: Email sending commented out as requested
+        /*
+        try {
+            emailService.sendPasswordResetEmail(user.getEmail(), resetCode);
+        } catch (Exception e) {
+            System.out.println("Reset code: " + resetCode);
+        }
+        */
+
+        Map<String, Object> res = new java.util.HashMap<>();
+        res.put("code", resetCode);
+        res.put("email", user.getEmail());
+        res.put("message", "Verification code generated: " + resetCode);
+        return ResponseEntity.ok(res);
     }
 
     @PostMapping("/reset")

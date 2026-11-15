@@ -80,12 +80,15 @@ public class AuthController {
 
             user = userRepository.save(user);
 
-            // Send Welcome Greeting & Terms Email!
+            // Send Welcome Greeting & Terms Email (Commented out: no Gmail sending)
+            /*
             try {
                 emailService.sendWelcomeRegistrationEmail(user.getEmail(), user.getRealName());
             } catch (Exception mailEx) {
                 log.warn("Welcome email dispatch skipped: {}", mailEx.getMessage());
             }
+            */
+            log.info("User registered: {}. External email dispatch commented out.", user.getEmail());
 
             return ResponseEntity.ok(new MessageResponse("User registered successfully! Proceed to college selection."));
         } catch (Exception e) {
@@ -100,7 +103,7 @@ public class AuthController {
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
         if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is required."));
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: Registered college email is required."));
         }
 
         final String cleanEmail = email.trim();
@@ -108,33 +111,39 @@ public class AuthController {
                 .or(() -> userRepository.findByEmail(cleanEmail))
                 .orElse(null);
 
-        Map<String, Object> responseData = new java.util.HashMap<>();
-        if (user != null) {
-            String code = String.valueOf((int) ((Math.random() * 900000) + 100000));
-            String token = UUID.randomUUID().toString().replace("-", "") + code;
-
-            user.setResetToken(token);
-            user.setTokenExpiry(LocalDateTime.now().plusMinutes(30));
-            userRepository.save(user);
-
-            // Also save into PasswordResetToken table for compatibility
-            try {
-                com.ghostcommunity.backend.model.PasswordResetToken prt = com.ghostcommunity.backend.model.PasswordResetToken.builder()
-                        .token(code)
-                        .user(user)
-                        .expiryDate(LocalDateTime.now().plusMinutes(30))
-                        .build();
-                tokenRepository.save(prt);
-            } catch (Exception ignored) {}
-
-            String link = "https://ghost-qmvi.onrender.com/api/auth/reset-password-page?token=" + token + "&code=" + code;
-            emailService.sendPasswordResetEmail(user.getEmail(), link, code);
-
-            // Return code in JSON response as guaranteed fallback for mobile app
-            responseData.put("code", code);
+        if (user == null) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Error: No Ghost account found registered with " + cleanEmail));
         }
 
-        responseData.put("message", "If that email is registered, password reset instructions have been sent.");
+        // Generate 6-digit verification code directly
+        String code = String.valueOf((int) ((Math.random() * 900000) + 100000));
+        String token = UUID.randomUUID().toString().replace("-", "") + code;
+
+        user.setResetToken(token);
+        user.setTokenExpiry(LocalDateTime.now().plusMinutes(30));
+        userRepository.save(user);
+
+        // Also save into PasswordResetToken table for compatibility
+        try {
+            com.ghostcommunity.backend.model.PasswordResetToken prt = com.ghostcommunity.backend.model.PasswordResetToken.builder()
+                    .token(code)
+                    .user(user)
+                    .expiryDate(LocalDateTime.now().plusMinutes(30))
+                    .build();
+            tokenRepository.save(prt);
+        } catch (Exception ignored) {}
+
+        // In-App verification code generated: Email sending commented out as requested
+        /*
+        String link = "https://ghost-qmvi.onrender.com/api/auth/reset-password-page?token=" + token + "&code=" + code;
+        emailService.sendPasswordResetEmail(user.getEmail(), link, code);
+        */
+        log.info("[In-App Reset] Generated verification code {} for registered email {}. Gmail sending commented out.", code, user.getEmail());
+
+        Map<String, Object> responseData = new java.util.HashMap<>();
+        responseData.put("code", code);
+        responseData.put("email", user.getEmail());
+        responseData.put("message", "Verification code generated: " + code);
         return ResponseEntity.ok(responseData);
     }
 

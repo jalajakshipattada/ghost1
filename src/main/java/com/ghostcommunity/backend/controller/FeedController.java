@@ -74,6 +74,7 @@ public class FeedController {
         map.put("myVote", myVote);
         map.put("likesCount", score);
         map.put("commentsCount", commentRepository.countByPostId(post.getId()));
+        map.put("sharesCount", post.getSharesCount() != null ? post.getSharesCount() : 0);
         map.put("isLikedByMe", myVote == 1);
         map.put("isSavedByMe", savedPostRepository.existsByUserIdAndPostId(user.getId(), post.getId()));
         return map;
@@ -406,7 +407,26 @@ public class FeedController {
 
         messagingTemplate.convertAndSend("/topic/section/" + sectionId, response);
         
+        // Increment post share count
+        try {
+            int curShares = post.getSharesCount() != null ? post.getSharesCount() : 0;
+            post.setSharesCount(curShares + 1);
+            postRepository.save(post);
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok("Shared successfully");
+    }
+
+    @PostMapping("/{postId}/track-share")
+    public ResponseEntity<?> trackExternalShare(@PathVariable Long postId) {
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post != null) {
+            int curShares = post.getSharesCount() != null ? post.getSharesCount() : 0;
+            post.setSharesCount(curShares + 1);
+            postRepository.save(post);
+            return ResponseEntity.ok(Map.of("sharesCount", curShares + 1));
+        }
+        return ResponseEntity.notFound().build();
     }
 
     private User getCurrentUser() {

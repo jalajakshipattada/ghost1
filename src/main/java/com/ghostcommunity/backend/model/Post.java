@@ -26,6 +26,10 @@ public class Post {
     @Column(length = 500)
     private String imageUrl;
 
+    @Column(name = "shares_count", columnDefinition = "integer default 0")
+    @Builder.Default
+    private Integer sharesCount = 0;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

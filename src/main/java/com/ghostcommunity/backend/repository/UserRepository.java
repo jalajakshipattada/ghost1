@@ -24,4 +24,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Eagerly loads primarySection + college in ONE query — prevents LazyInitializationException in WebSocket threads
     @org.springframework.data.jpa.repository.Query("SELECT u FROM User u JOIN FETCH u.primarySection JOIN FETCH u.college WHERE u.id = :id")
     Optional<User> findByIdWithSectionAndCollege(@org.springframework.data.repository.query.Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.college.id = :collegeId AND " +
+           "(LOWER(COALESCE(u.realName, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(COALESCE(u.ghostName, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
+    java.util.List<User> searchCollegeUsers(@org.springframework.data.repository.query.Param("collegeId") Long collegeId,
+                                           @org.springframework.data.repository.query.Param("query") String query);
 }

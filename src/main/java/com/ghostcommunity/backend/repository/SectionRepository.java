@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface SectionRepository extends JpaRepository<Section, Long> {
     List<Section> findByCollegeId(Long collegeId);
+    List<Section> findByCollegeIdAndNameContainingIgnoreCase(Long collegeId, String name);
 }

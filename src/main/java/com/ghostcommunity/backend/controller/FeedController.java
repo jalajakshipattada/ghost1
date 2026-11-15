@@ -429,6 +429,61 @@ public class FeedController {
         return ResponseEntity.notFound().build();
     }
 
+    @GetMapping("/universal-search")
+    public ResponseEntity<?> universalSearch(@RequestParam(required = false, defaultValue = "") String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "posts", List.of(),
+                    "users", List.of(),
+                    "sections", List.of()
+            ));
+        }
+
+        User user = getCurrentUser();
+        Long collegeId = user.getCollege().getId();
+        String q = query.trim();
+
+        // 1. Search posts
+        Page<Post> postsPage = postRepository.searchByCollegeAndQuery(
+                collegeId, q, PageRequest.of(0, 30));
+        List<Map<String, Object>> posts = postsPage.stream()
+                .map(p -> formatPostMap(p, user))
+                .collect(Collectors.toList());
+
+        // 2. Search college real users
+        List<User> usersList = userRepository.searchCollegeUsers(collegeId, q);
+        List<Map<String, Object>> users = usersList.stream()
+                .map(u -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", u.getId());
+                    m.put("realName", u.getRealName() != null ? u.getRealName() : "Student");
+                    m.put("ghostName", u.getGhostName() != null ? u.getGhostName() : "");
+                    m.put("profileImageUrl", u.getProfileImageUrl() != null ? u.getProfileImageUrl() : "");
+                    m.put("sectionName", u.getPrimarySection() != null ? u.getPrimarySection().getName() : "");
+                    m.put("gender", u.getGender() != null ? u.getGender() : "");
+                    return m;
+                })
+                .collect(Collectors.toList());
+
+        // 3. Search college sections
+        List<Section> sectionsList = sectionRepository.findByCollegeIdAndNameContainingIgnoreCase(collegeId, q);
+        List<Map<String, Object>> sections = sectionsList.stream()
+                .map(s -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", s.getId());
+                    m.put("name", s.getName());
+                    m.put("description", s.getMessageCount() + " messages");
+                    return m;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(Map.of(
+                "posts", posts,
+                "users", users,
+                "sections", sections
+        ));
+    }
+
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();

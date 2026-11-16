@@ -153,7 +153,23 @@
   <div id="authOverlay">
     <div class="login-card">
       <h2>🛡️ Admin Login</h2>
-      <p>Enter your campus administrator credentials to access moderation & college management.</p>
+      <p>Enter your campus administrator credentials or unlock with Master Key.</p>
+      
+      <!-- QUICK MASTER KEY UNLOCK -->
+      <div style="background: rgba(168, 85, 247, 0.12); border: 1px dashed rgba(168, 85, 247, 0.4); border-radius: 14px; padding: 16px; margin-bottom: 20px; text-align: left;">
+        <label style="display: block; font-size: 11px; font-weight: 800; color: #C084FC; margin-bottom: 8px; letter-spacing: 0.5px;">🔑 QUICK MASTER KEY ACCESS</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="masterKeyInput" class="input-field" placeholder="admin123" value="admin123" style="margin-bottom: 0;" />
+          <button class="btn-primary" style="width: auto; padding: 0 18px; white-space: nowrap; font-size: 13px;" onclick="loginWithMasterKey()">Unlock</button>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px; color: var(--muted); font-size: 11px; font-weight: 700;">
+        <div style="flex: 1; height: 1px; background: var(--border);"></div>
+        <span>OR LOG IN WITH ACCOUNT</span>
+        <div style="flex: 1; height: 1px; background: var(--border);"></div>
+      </div>
+
       <div class="form-group">
         <label>Admin Email</label>
         <input type="email" id="loginEmail" class="input-field" placeholder="admin@ghost.com" />
@@ -286,6 +302,35 @@
         document.getElementById('authOverlay').style.display = 'flex';
       }
     };
+
+    async function loginWithMasterKey() {
+      const key = document.getElementById('masterKeyInput').value.trim();
+      const errEl = document.getElementById('loginError');
+      errEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/claim-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          errEl.innerText = err.error || 'Incorrect master key.';
+          errEl.style.display = 'block';
+          return;
+        }
+        const data = await res.json();
+        token = data.token;
+        localStorage.setItem('ghost_admin_token', token);
+        document.getElementById('authOverlay').style.display = 'none';
+        document.getElementById('adminName').innerText = (data.realName || 'Admin') + ' (@' + (data.ghostName || 'Admin') + ')';
+        loadDashboard();
+      } catch (e) {
+        errEl.innerText = 'Network connection failed.';
+        errEl.style.display = 'block';
+      }
+    }
 
     async function login() {
       const email = document.getElementById('loginEmail').value.trim();

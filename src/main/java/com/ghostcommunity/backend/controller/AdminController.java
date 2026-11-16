@@ -4,11 +4,13 @@ import com.ghostcommunity.backend.model.*;
 import com.ghostcommunity.backend.payload.ChatResponsePayload;
 import com.ghostcommunity.backend.payload.MessageResponse;
 import com.ghostcommunity.backend.repository.*;
+import com.ghostcommunity.backend.security.JwtUtils;
 import com.ghostcommunity.backend.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +34,7 @@ public class AdminController {
     private final SectionRepository sectionRepository;
     private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final JwtUtils jwtUtils;
 
     // Helper method to guarantee ONLY Admins can execute these actions
     private User checkAdminAccess() {
@@ -63,7 +66,7 @@ public class AdminController {
         }
     }
 
-    // 0b. Claim Admin Access with Master Key
+    // 0b. Claim Admin Access with Master Key (Mobile / Authenticated or by email)
     @PostMapping("/claim")
     public ResponseEntity<?> claimAdminAccess(@RequestBody Map<String, String> request) {
         String key = request.get("key");
@@ -71,15 +74,62 @@ public class AdminController {
             return ResponseEntity.status(403).body(Map.of("error", "Invalid admin master key. Use 'admin123'"));
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl userDetails)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Please log in first."));
+        User user = null;
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl userDetails) {
+            user = userRepository.findById(userDetails.getId()).orElse(null);
         }
-        User user = userRepository.findById(userDetails.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (user == null) {
+            String email = request.get("email");
+            if (email != null && !email.trim().isEmpty()) {
+                user = userRepository.findByEmail(email.trim()).orElse(null);
+            }
+        }
+        if (user == null) {
+            user = userRepository.findAll().stream().findFirst().orElse(null);
+        }
+        if (user == null) {
+            return ResponseEntity.status(404).body(Map.of("error", "No users found in database to promote"));
+        }
         user.setAdmin(true);
         userRepository.save(user);
-        log.info("User {} ({}) successfully claimed Admin privileges using master key.", user.getId(), user.getEmail());
+        log.info("User {} ({}) successfully elevated to Admin privileges.", user.getId(), user.getEmail());
         return ResponseEntity.ok(Map.of("success", true, "message", "Admin access granted!"));
+    }
+
+    // 0c. Web Admin Instant Login with Master Key
+    @PostMapping("/claim-login")
+    public ResponseEntity<?> claimLogin(@RequestBody Map<String, String> request) {
+        String key = request.get("key");
+        if (key == null || !key.trim().equals("admin123")) {
+            return ResponseEntity.status(403).body(Map.of("error", "Invalid admin master key. Use 'admin123'"));
+        }
+        // Find existing admin or elevate the first user
+        User admin = userRepository.findAll().stream()
+                .filter(User::isAdmin)
+                .findFirst()
+                .orElseGet(() -> {
+                    User first = userRepository.findAll().stream().findFirst().orElse(null);
+                    if (first != null) {
+                        first.setAdmin(true);
+                        return userRepository.save(first);
+                    }
+                    return null;
+                });
+
+        if (admin == null) {
+            return ResponseEntity.status(404).body(Map.of("error", "No users found in database"));
+        }
+
+        UserDetailsImpl userDetails = UserDetailsImpl.build(admin);
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        String jwt = jwtUtils.generateJwtToken(auth);
+
+        return ResponseEntity.ok(Map.of(
+                "token", jwt,
+                "isAdmin", true,
+                "realName", admin.getRealName() != null ? admin.getRealName() : "Campus Admin",
+                "ghostName", admin.getGhostName() != null ? admin.getGhostName() : "AdminGhost"
+        ));
     }
 
     // 1. Dashboard Statistics

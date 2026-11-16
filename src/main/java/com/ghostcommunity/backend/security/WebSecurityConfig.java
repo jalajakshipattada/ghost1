@@ -72,7 +72,8 @@ public class WebSecurityConfig {
                         .requestMatchers("/ws-ghost/**").permitAll() // Allow WebSocket Handshake
                         .requestMatchers("/api/media/download/**").permitAll() // Allow public image viewing
                         .requestMatchers("/api/messages/simulate/**").permitAll() // Allow simulate
-                        .requestMatchers("/", "/index.html", "/admin/**", "/static/**", "/*.html", "/*.js", "/*.css", "/assets/**").permitAll()
+                        .requestMatchers("/api/admin/claim", "/api/admin/claim-login").permitAll() // Allow master key claim & login
+                        .requestMatchers("/", "/index.html", "/admin", "/admin/", "/admin/**", "/admin123", "/admin123/", "/admin123/**", "/static/**", "/*.html", "/*.js", "/*.css", "/assets/**").permitAll()
                         .requestMatchers("/error").permitAll() // Allow Spring's error endpoint to return real errors
                         .anyRequest().authenticated()
                 );

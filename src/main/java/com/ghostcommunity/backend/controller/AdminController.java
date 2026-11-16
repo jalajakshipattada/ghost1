@@ -63,6 +63,25 @@ public class AdminController {
         }
     }
 
+    // 0b. Claim Admin Access with Master Key
+    @PostMapping("/claim")
+    public ResponseEntity<?> claimAdminAccess(@RequestBody Map<String, String> request) {
+        String key = request.get("key");
+        if (key == null || !key.trim().equals("admin123")) {
+            return ResponseEntity.status(403).body(Map.of("error", "Invalid admin master key. Use 'admin123'"));
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl userDetails)) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized: Please log in first."));
+        }
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setAdmin(true);
+        userRepository.save(user);
+        log.info("User {} ({}) successfully claimed Admin privileges using master key.", user.getId(), user.getEmail());
+        return ResponseEntity.ok(Map.of("success", true, "message", "Admin access granted!"));
+    }
+
     // 1. Dashboard Statistics
     @GetMapping("/stats")
     public ResponseEntity<?> getStats() {

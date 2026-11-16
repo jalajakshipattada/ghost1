@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ghost Community - Campus Admin Console</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07070F;
+      --card-bg: #141324;
+      --card-inner: #0F0E1E;
+      --accent: #A855F7;
+      --accent-cyan: #06B6D4;
+      --danger: #EF4444;
+      --success: #10B981;
+      --warning: #F59E0B;
+      --text: #F8FAFC;
+      --muted: #94A3B8;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Top Navigation */
+    header {
+      background: #0D0C1A;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo-badge {
+      display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px;
+    }
+    .badge {
+      background: rgba(168, 85, 247, 0.2); color: var(--accent);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; letter-spacing: 1px;
+    }
+    .user-pill {
+      display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted);
+    }
+    .logout-btn {
+      background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border: 1px solid rgba(239, 68, 68, 0.3);
+      padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;
+    }
+    .logout-btn:hover { background: var(--danger); color: #fff; }
+
+    /* Layout */
+    .container { max-width: 1280px; width: 100%; margin: 0 auto; padding: 24px; flex: 1; }
+
+    /* Auth Overlay */
+    #authOverlay {
+      position: fixed; inset: 0; background: rgba(7, 7, 15, 0.95); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 200;
+    }
+    .login-card {
+      background: var(--card-bg); border: 1px solid var(--border); padding: 36px; border-radius: 20px;
+      width: 100%; max-width: 420px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); text-align: center;
+    }
+    .login-card h2 { font-size: 22px; margin-bottom: 6px; font-weight: 800; }
+    .login-card p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+    .form-group { text-align: left; margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+    .input-field {
+      width: 100%; background: var(--card-inner); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; color: #fff; font-size: 14px; outline: none; transition: 0.2s;
+    }
+    .input-field:focus { border-color: var(--accent); }
+    .btn-primary {
+      width: 100%; background: var(--accent); color: #fff; padding: 12px; border-radius: 10px;
+      border: none; font-weight: 700; cursor: pointer; font-size: 14px; transition: 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 18px;
+    }
+    .stat-title { font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 26px; font-weight: 800; margin-top: 6px; }
+    .stat-alert { color: var(--danger); }
+
+    /* Tabs */
+    .tabs-header {
+      display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 24px; overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent; border: none; color: var(--muted); padding: 12px 20px; font-weight: 700;
+      font-size: 14px; cursor: pointer; position: relative; transition: 0.2s;
+    }
+    .tab-btn.active { color: #fff; }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background: var(--accent);
+      border-radius: 3px 3px 0 0;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Reports List */
+    .report-card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px;
+      margin-bottom: 16px;
+    }
+    .report-header {
+      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;
+    }
+    .pill {
+      font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 6px; display: inline-block;
+    }
+    .pill-pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.4); }
+    .pill-resolved { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4); }
+    .pill-dismissed { background: rgba(148, 163, 184, 0.2); color: var(--muted); border: 1px solid rgba(148, 163, 184, 0.4); }
+
+    .msg-preview {
+      background: var(--card-inner); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; font-size: 14px; margin-bottom: 14px; line-height: 1.4;
+    }
+    .unmasked-box {
+      background: #1A1930; border-radius: 12px; padding: 14px; display: grid;
+      grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13px; margin-bottom: 16px;
+    }
+    .unmask-title { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+    .unmask-name { font-weight: 700; color: #fff; font-size: 15px; }
+    .unmask-ghost { color: var(--accent); font-weight: 600; }
+
+    .action-row { display: flex; gap: 10px; }
+    .btn-sm { padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+    .btn-dismiss { background: #262444; color: #fff; }
+    .btn-delete { background: var(--warning); color: #000; }
+    .btn-ban { background: var(--danger); color: #fff; }
+
+    /* Tables */
+    .data-table {
+      width: 100%; border-collapse: collapse; background: var(--card-bg); border-radius: 14px;
+      overflow: hidden; border: 1px solid var(--border);
+    }
+    .data-table th, .data-table td {
+      padding: 14px 18px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border);
+    }
+    .data-table th { background: var(--card-inner); color: var(--muted); font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <!-- AUTH MODAL -->
+  <div id="authOverlay">
+    <div class="login-card">
+      <h2>🛡️ Admin Login</h2>
+      <p>Enter your campus administrator credentials to access moderation & college management.</p>
+      <div class="form-group">
+        <label>Admin Email</label>
+        <input type="email" id="loginEmail" class="input-field" placeholder="admin@ghost.com" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" class="input-field" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary" onclick="login()">Enter Admin Console</button>
+      <div id="loginError" style="color: var(--danger); font-size: 12px; margin-top: 12px; display: none;"></div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-badge">
+      <span>👻 Ghost Community</span>
+      <span class="badge">ADMIN</span>
+    </div>
+    <div class="user-pill">
+      <span id="adminName">Admin User</span>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Pending Reports</div>
+        <div class="stat-value stat-alert" id="statPendingReports">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Total Users</div>
+        <div class="stat-value" id="statTotalUsers">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Active Colleges</div>
+        <div class="stat-value" id="statColleges">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Total Sections</div>
+        <div class="stat-value" id="statSections">0</div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-header">
+      <button class="tab-btn active" onclick="switchTab('reportsTab', this)">🚩 Moderation Reports</button>
+      <button class="tab-btn" onclick="switchTab('collegesTab', this)">🏛️ Colleges & Sections</button>
+      <button class="tab-btn" onclick="switchTab('broadcastTab', this)">📢 Broadcast & Ads</button>
+      <button class="tab-btn" onclick="switchTab('usersTab', this)">👥 User Directory</button>
+    </div>
+
+    <!-- TAB 1: REPORTS -->
+    <div id="reportsTab" class="tab-content active">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-size: 16px;">Flagged Message Moderation Queue</h3>
+        <button class="btn-sm" style="background: var(--card-bg); border: 1px solid var(--border); color: #fff;" onclick="loadReports()">🔄 Refresh</button>
+      </div>
+      <div id="reportsList">Loading reports...</div>
+    </div>
+
+    <!-- TAB 2: COLLEGES -->
+    <div id="collegesTab" class="tab-content">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+        <h3 style="font-size: 16px;">Colleges & Primary Sections</h3>
+        <button class="btn-sm" style="background: var(--accent); color: #fff;" onclick="promptAddCollege()">+ Add College</button>
+      </div>
+      <div id="collegesList">Loading colleges...</div>
+    </div>
+
+    <!-- TAB 3: BROADCAST -->
+    <div id="broadcastTab" class="tab-content">
+      <div style="max-width: 600px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; padding: 24px;">
+        <h3 style="margin-bottom: 8px;">📢 Broadcast to College Feed</h3>
+        <p style="color: var(--muted); font-size: 13px; margin-bottom: 20px;">Publish official announcements or sponsorship posters visible to students.</p>
+        <div class="form-group">
+          <label>Campaign Title</label>
+          <input type="text" id="bcTitle" class="input-field" placeholder="e.g. CAMPUS HACKATHON 2026" />
+        </div>
+        <div class="form-group">
+          <label>Content Body</label>
+          <textarea id="bcContent" class="input-field" rows="3" placeholder="Write full announcement details..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Poster Image URL (Optional)</label>
+          <input type="text" id="bcImage" class="input-field" placeholder="https://... image URL" />
+        </div>
+        <div class="form-group">
+          <label>Call-to-Action Link (Optional)</label>
+          <input type="text" id="bcLink" class="input-field" placeholder="https://registration-link.com" />
+        </div>
+        <button class="btn-primary" onclick="broadcastFeed()">Post to College Feed</button>
+      </div>
+    </div>
+
+    <!-- TAB 4: USERS -->
+    <div id="usersTab" class="tab-content">
+      <div style="margin-bottom: 16px;">
+        <input type="text" id="userSearch" class="input-field" style="max-width: 380px;" placeholder="Search by name, ghost, or email..." onkeyup="if(event.key==='Enter') loadUsers()" />
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Real Name</th>
+            <th>Ghost Name</th>
+            <th>Email</th>
+            <th>College</th>
+            <th>Section</th>
+            <th>Status</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTbody">
+          <tr><td colspan="8" style="text-align: center;">Loading users...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let token = localStorage.getItem('ghost_admin_token') || '';
+
+    window.onload = () => {
+      if (token) {
+        verifyAdmin();
+      } else {
+        document.getElementById('authOverlay').style.display = 'flex';
+      }
+    };
+
+    async function login() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPass').value;
+      const errEl = document.getElementById('loginError');
+      errEl.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass })
+        });
+        if (!res.ok) {
+          errEl.innerText = 'Invalid credentials or access denied.';
+          errEl.style.display = 'block';
+          return;
+        }
+        const data = await res.json();
+        token = data.token;
+        localStorage.setItem('ghost_admin_token', token);
+        verifyAdmin();
+      } catch (e) {
+        errEl.innerText = 'Network connection failed.';
+        errEl.style.display = 'block';
+      }
+    }
+
+    async function verifyAdmin() {
+      try {
+        const res = await fetch('/api/admin/check', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (data.isAdmin) {
+          document.getElementById('authOverlay').style.display = 'none';
+          document.getElementById('adminName').innerText = (data.realName || 'Admin') + ' (@' + (data.ghostName || 'Admin') + ')';
+          loadDashboard();
+        } else {
+          alert('Access Denied: This account does not have Admin privileges.');
+          logout();
+        }
+      } catch (e) {
+        logout();
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('ghost_admin_token');
+      token = '';
+      document.getElementById('authOverlay').style.display = 'flex';
+    }
+
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      el.classList.add('active');
+    }
+
+    async function loadDashboard() {
+      loadStats();
+      loadReports();
+      loadColleges();
+      loadUsers();
+    }
+
+    async function loadStats() {
+      const res = await fetch('/api/admin/stats', { headers: { 'Authorization': 'Bearer ' + token } });
+      if (res.ok) {
+        const s = await res.json();
+        document.getElementById('statPendingReports').innerText = s.pendingReports || 0;
+        document.getElementById('statTotalUsers').innerText = s.totalUsers || 0;
+        document.getElementById('statColleges').innerText = s.totalColleges || 0;
+        document.getElementById('statSections').innerText = s.totalSections || 0;
+      }
+    }
+
+    async function loadReports() {
+      const res = await fetch('/api/admin/reports', { headers: { 'Authorization': 'Bearer ' + token } });
+      const el = document.getElementById('reportsList');
+      if (!res.ok) { el.innerHTML = 'Error loading reports'; return; }
+      const reports = await res.json();
+      if (!reports.length) {
+        el.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 40px;">No message reports found. All campus chats are safe!</div>';
+        return;
+      }
+      el.innerHTML = reports.map(r => {
+        const isPending = r.status === 'PENDING';
+        return `
+          <div class="report-card">
+            <div class="report-header">
+              <div>
+                <span class="pill" style="background: rgba(6,182,212,0.2); color: var(--accent-cyan);">#${r.sectionName || r.chatType}</span>
+                <span style="color: var(--danger); font-size: 13px; font-weight: 700; margin-left: 8px;">Reason: ${r.reason}</span>
+              </div>
+              <span class="pill pill-${r.status.toLowerCase()}">${r.status}</span>
+            </div>
+            <div class="msg-preview">
+              <span style="color: var(--muted); font-size: 11px; font-weight: 800; display: block; margin-bottom: 4px;">REPORTED CONTENT:</span>
+              ${r.messageContent || '[No text message]'}
+            </div>
+            <div class="unmasked-box">
+              <div>
+                <div class="unmask-title">Reported Sender (Unmasked):</div>
+                <div class="unmask-name">${r.reportedUser ? r.reportedUser.realName : 'Unknown'}</div>
+                <div class="unmask-ghost">@${r.reportedUser ? r.reportedUser.ghostName : 'N/A'} · ${r.reportedUser ? r.reportedUser.sectionName : ''}</div>
+              </div>
+              <div>
+                <div class="unmask-title">Reported By:</div>
+                <div class="unmask-name">${r.reporter ? r.reporter.realName : 'Anonymous'}</div>
+                <div class="unmask-ghost">@${r.reporter ? r.reporter.ghostName : 'N/A'}</div>
+              </div>
+            </div>
+            ${isPending ? `
+              <div class="action-row">
+                <button class="btn-sm btn-dismiss" onclick="actReport(${r.id}, 'DISMISS')">Dismiss</button>
+                <button class="btn-sm btn-delete" onclick="actReport(${r.id}, 'DELETE_MESSAGE')">Delete Message</button>
+                <button class="btn-sm btn-ban" onclick="actReport(${r.id}, 'BAN_USER')">Ban Offender</button>
+              </div>
+            ` : `<div style="font-size: 12px; color: var(--muted);">Action Taken: ${r.adminAction}</div>`}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function actReport(id, action) {
+      if (!confirm(`Apply action "${action}" to report #${id}?`)) return;
+      await fetch(`/api/admin/reports/${id}/action`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      loadReports();
+      loadStats();
+    }
+
+    async function loadColleges() {
+      const res = await fetch('/api/admin/colleges', { headers: { 'Authorization': 'Bearer ' + token } });
+      const el = document.getElementById('collegesList');
+      if (!res.ok) { el.innerHTML = 'Error loading colleges'; return; }
+      const colleges = await res.json();
+      el.innerHTML = colleges.map(c => `
+        <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h4 style="font-size: 16px;">${c.name}</h4>
+              <span style="color: var(--muted); font-size: 12px;">${c.studentCount} Students · ${c.sections.length} Sections</span>
+            </div>
+            <button class="btn-sm" style="background: var(--accent-cyan); color: #000;" onclick="promptAddSection(${c.id}, '${c.name}')">+ Add Section</button>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;">
+            ${c.sections.map(s => `
+              <span style="background: var(--card-inner); border: 1px solid var(--border); padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;">
+                ${s.name} <small style="color: var(--muted);">(${s.messageCount} msgs)</small>
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function promptAddCollege() {
+      const name = prompt('Enter New College Name:');
+      if (!name || !name.trim()) return;
+      const res = await fetch('/api/admin/colleges', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() })
+      });
+      if (res.ok) { alert('College added successfully!'); loadColleges(); loadStats(); }
+      else { const d = await res.json(); alert(d.error || 'Failed'); }
+    }
+
+    async function promptAddSection(collegeId, collegeName) {
+      const name = prompt(`Enter new section name for ${collegeName} (e.g. AIML, EEE-3):`);
+      if (!name || !name.trim()) return;
+      const res = await fetch(`/api/admin/colleges/${collegeId}/sections`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() })
+      });
+      if (res.ok) { alert('Section created!'); loadColleges(); loadStats(); }
+      else { const d = await res.json(); alert(d.error || 'Failed'); }
+    }
+
+    async function broadcastFeed() {
+      const title = document.getElementById('bcTitle').value.trim();
+      const content = document.getElementById('bcContent').value.trim();
+      const imageUrl = document.getElementById('bcImage').value.trim();
+      const actionUrl = document.getElementById('bcLink').value.trim();
+      if (!title || !content) { alert('Please enter title and content'); return; }
+
+      const res = await fetch('/api/admin/broadcast-feed', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content, imageUrl, actionUrl })
+      });
+      if (res.ok) {
+        alert('Broadcast posted to College Feed!');
+        document.getElementById('bcTitle').value = '';
+        document.getElementById('bcContent').value = '';
+        document.getElementById('bcImage').value = '';
+        document.getElementById('bcLink').value = '';
+      }
+    }
+
+    async function loadUsers() {
+      const q = document.getElementById('userSearch') ? document.getElementById('userSearch').value.trim() : '';
+      const url = q ? `/api/admin/users?query=${encodeURIComponent(q)}` : '/api/admin/users';
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+      const tbody = document.getElementById('usersTbody');
+      if (!res.ok) return;
+      const users = await res.json();
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td><strong>${u.realName || 'N/A'}</strong></td>
+          <td style="color: var(--accent);">@${u.ghostName || 'N/A'}</td>
+          <td>${u.email}</td>
+          <td>${u.collegeName}</td>
+          <td>${u.sectionName}</td>
+          <td><span class="pill ${u.status === 'ACTIVE' ? 'pill-resolved' : 'pill-pending'}">${u.status}</span></td>
+          <td>${u.isAdmin ? '<span class="pill" style="background: rgba(245,158,11,0.2); color: var(--warning);">ADMIN</span>' : 'Student'}</td>
+          <td>
+            <button class="btn-sm" style="background: ${u.status === 'SUSPENDED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;" onclick="toggleStatus(${u.id})">
+              ${u.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function toggleStatus(id) {
+      await fetch(`/api/admin/users/${id}/toggle-status`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      loadUsers();
+      loadStats();
+    }
+  </script>
+</body>
+</html>

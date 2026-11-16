@@ -6,6 +6,7 @@ import com.ghostcommunity.backend.model.Report;
 import com.ghostcommunity.backend.model.User;
 import com.ghostcommunity.backend.payload.MessageResponse;
 import com.ghostcommunity.backend.repository.BlockRepository;
+import com.ghostcommunity.backend.repository.DirectMessageRepository;
 import com.ghostcommunity.backend.repository.MessageRepository;
 import com.ghostcommunity.backend.repository.ReportRepository;
 import com.ghostcommunity.backend.repository.UserRepository;
@@ -26,8 +27,106 @@ public class ModerationController {
 
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
+    private final DirectMessageRepository directMessageRepository;
     private final ReportRepository reportRepository;
     private final BlockRepository blockRepository;
+
+    @PostMapping("/report")
+    public ResponseEntity<?> reportAnyMessage(@RequestBody Map<String, Object> payload) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User reporter = userRepository.findById(userDetails.getId()).orElseThrow();
+
+        String chatType = (String) payload.getOrDefault("chatType", "COMMUNITY");
+        String reason = (String) payload.getOrDefault("reason", "Inappropriate content");
+        String content = (String) payload.getOrDefault("content", "");
+        String mediaUrl = (String) payload.getOrDefault("mediaUrl", null);
+        String mediaType = (String) payload.getOrDefault("mediaType", "TEXT");
+        String sectionName = (String) payload.getOrDefault("sectionName", null);
+
+        Long messageId = null;
+        if (payload.get("messageId") != null) {
+            try {
+                messageId = Long.valueOf(payload.get("messageId").toString());
+            } catch (Exception ignored) {}
+        }
+
+        User reportedUser = null;
+        Message reportedMessage = null;
+        Long directMessageId = null;
+
+        if ("DIRECT".equalsIgnoreCase(chatType) || "GHOST".equalsIgnoreCase(chatType)) {
+            directMessageId = messageId;
+            if (messageId != null) {
+                var dmOpt = directMessageRepository.findById(messageId);
+                if (dmOpt.isPresent()) {
+                    reportedUser = dmOpt.get().getSender();
+                    if (content == null || content.isBlank()) {
+                        content = dmOpt.get().getContent();
+                    }
+                }
+            }
+        } else {
+            // Community message
+            if (messageId != null) {
+                var msgOpt = messageRepository.findById(messageId);
+                if (msgOpt.isPresent()) {
+                    reportedMessage = msgOpt.get();
+                    reportedUser = msgOpt.get().getAuthor();
+                    if (content == null || content.isBlank()) {
+                        content = msgOpt.get().getContent();
+                    }
+                    if (sectionName == null && reportedMessage.getDestinationSection() != null) {
+                        sectionName = reportedMessage.getDestinationSection().getName();
+                    }
+                }
+            }
+        }
+
+        // Fallback: lookup user if senderId or senderGhostName passed
+        if (reportedUser == null && payload.get("senderId") != null) {
+            try {
+                Long senderId = Long.valueOf(payload.get("senderId").toString());
+                reportedUser = userRepository.findById(senderId).orElse(null);
+            } catch (Exception ignored) {}
+        }
+        if (reportedUser == null && payload.get("senderGhostName") != null) {
+            String gName = (String) payload.get("senderGhostName");
+            if (reporter.getCollege() != null) {
+                reportedUser = userRepository.findByGhostNameAndCollegeId(gName, reporter.getCollege().getId()).orElse(null);
+            }
+        }
+
+        if (reportedUser == null) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Could not identify the message sender."));
+        }
+
+        if (reporter.getId().equals(reportedUser.getId())) {
+            return ResponseEntity.badRequest().body(new MessageResponse("You cannot report your own message."));
+        }
+
+        Report report = Report.builder()
+                .reporter(reporter)
+                .reportedUser(reportedUser)
+                .reportedMessage(reportedMessage)
+                .directMessageId(directMessageId)
+                .chatType(chatType.toUpperCase())
+                .messageContent(content)
+                .mediaUrl(mediaUrl)
+                .mediaType(mediaType)
+                .sectionName(sectionName)
+                .reason(reason)
+                .status("PENDING")
+                .adminAction("NONE")
+                .build();
+
+        reportRepository.save(report);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Report submitted successfully. Campus Admins will review the message.",
+                "reportId", report.getId()
+        ));
+    }
 
     @PostMapping("/report/message/{messageId}")
     public ResponseEntity<?> reportMessage(@PathVariable Long messageId, @RequestBody Map<String, String> payload) {
@@ -38,13 +137,17 @@ public class ModerationController {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
-        // Secretly map the report to the actual author of the message
         Report report = Report.builder()
                 .reporter(reporter)
                 .reportedUser(message.getAuthor())
                 .reportedMessage(message)
+                .chatType("COMMUNITY")
+                .messageContent(message.getContent())
+                .mediaType(message.getMessageType())
+                .sectionName(message.getDestinationSection() != null ? message.getDestinationSection().getName() : "All College")
                 .reason(payload.getOrDefault("reason", "Inappropriate content"))
                 .status("PENDING")
+                .adminAction("NONE")
                 .build();
 
         reportRepository.save(report);

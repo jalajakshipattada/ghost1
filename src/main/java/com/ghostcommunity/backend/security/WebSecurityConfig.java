@@ -68,10 +68,11 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> 
                     auth.requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/onboarding/**").permitAll() // Allow dynamic college/section onboarding
                         .requestMatchers("/ws-ghost/**").permitAll() // Allow WebSocket Handshake
                         .requestMatchers("/api/media/download/**").permitAll() // Allow public image viewing
                         .requestMatchers("/api/messages/simulate/**").permitAll() // Allow simulate
-                        .requestMatchers("/", "/index.html", "/static/**", "/*.html", "/*.js", "/*.css", "/assets/**").permitAll()
+                        .requestMatchers("/", "/index.html", "/admin/**", "/static/**", "/*.html", "/*.js", "/*.css", "/assets/**").permitAll()
                         .requestMatchers("/error").permitAll() // Allow Spring's error endpoint to return real errors
                         .anyRequest().authenticated()
                 );

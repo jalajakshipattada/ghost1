@@ -53,7 +53,8 @@ public class AuthController {
                     userDetails.getId(),
                     userDetails.getUsername(),
                     userDetails.getStatus(),
-                    user.getGhostName()));
+                    user.getGhostName(),
+                    user.isAdmin()));
         } catch (Exception e) {
             log.error("Login failure: ", e);
             String msg = e.getMessage() != null ? e.getMessage() : "Invalid credentials";

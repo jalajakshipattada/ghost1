@@ -1,9 +1,13 @@
 package com.ghostcommunity.backend.repository;
 
 import com.ghostcommunity.backend.model.User;
+import com.ghostcommunity.backend.model.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -15,19 +19,25 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByGhostNameAndCollegeId(String ghostName, Long collegeId);
     Optional<User> findByGhostNameAndCollegeId(String ghostName, Long collegeId);
     
-    java.util.List<User> findByPrimarySectionIdAndStatus(Long sectionId, com.ghostcommunity.backend.model.UserStatus status);
-    java.util.List<User> findByCollegeIdAndStatus(Long collegeId, com.ghostcommunity.backend.model.UserStatus status);
+    List<User> findByPrimarySectionIdAndStatus(Long sectionId, UserStatus status);
+    List<User> findByCollegeIdAndStatus(Long collegeId, UserStatus status);
 
-    long countByPrimarySectionIdAndStatus(Long sectionId, com.ghostcommunity.backend.model.UserStatus status);
+    long countByPrimarySectionIdAndStatus(Long sectionId, UserStatus status);
     long countByPrimarySectionId(Long sectionId);
+    long countByCollegeId(Long collegeId);
+    long countByStatus(UserStatus status);
 
-    // Eagerly loads primarySection + college in ONE query — prevents LazyInitializationException in WebSocket threads
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u JOIN FETCH u.primarySection JOIN FETCH u.college WHERE u.id = :id")
-    Optional<User> findByIdWithSectionAndCollege(@org.springframework.data.repository.query.Param("id") Long id);
+    @Query("SELECT u FROM User u JOIN FETCH u.primarySection JOIN FETCH u.college WHERE u.id = :id")
+    Optional<User> findByIdWithSectionAndCollege(@Param("id") Long id);
 
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.college.id = :collegeId AND " +
+    @Query("SELECT u FROM User u WHERE u.college.id = :collegeId AND " +
            "(LOWER(COALESCE(u.realName, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(COALESCE(u.ghostName, '')) LIKE LOWER(CONCAT('%', :query, '%')))")
-    java.util.List<User> searchCollegeUsers(@org.springframework.data.repository.query.Param("collegeId") Long collegeId,
-                                           @org.springframework.data.repository.query.Param("query") String query);
+    List<User> searchCollegeUsers(@Param("collegeId") Long collegeId, @Param("query") String query);
+
+    @Query("SELECT u FROM User u WHERE " +
+           "LOWER(COALESCE(u.realName, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(COALESCE(u.ghostName, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :query, '%'))")
+    List<User> searchUsers(@Param("query") String query);
 }

@@ -26,19 +26,6 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE sections ADD COLUMN IF NOT EXISTS message_count integer DEFAULT 0;");
             jdbcTemplate.execute("UPDATE sections SET message_count = 0 WHERE message_count IS NULL;");
 
-            jdbcTemplate.execute("ALTER TABLE sections ADD COLUMN IF NOT EXISTS total_bricks integer DEFAULT 0;");
-            jdbcTemplate.execute("UPDATE sections SET total_bricks = 0 WHERE total_bricks IS NULL;");
-
-            jdbcTemplate.execute("ALTER TABLE sections ADD COLUMN IF NOT EXISTS campus_level integer DEFAULT 1;");
-            jdbcTemplate.execute("UPDATE sections SET campus_level = 1 WHERE campus_level IS NULL;");
-
-            // 3. Campus structures bricks required & bricks placed
-            jdbcTemplate.execute("ALTER TABLE campus_structures ADD COLUMN IF NOT EXISTS bricks_required integer DEFAULT 10;");
-            jdbcTemplate.execute("UPDATE campus_structures SET bricks_required = 10 WHERE bricks_required IS NULL;");
-
-            jdbcTemplate.execute("ALTER TABLE campus_structures ADD COLUMN IF NOT EXISTS bricks_placed integer DEFAULT 0;");
-            jdbcTemplate.execute("UPDATE campus_structures SET bricks_placed = 0 WHERE bricks_placed IS NULL;");
-
             log.info("Schema self-healing completed successfully!");
         } catch (Exception e) {
             log.warn("Schema self-healing migration message: {}", e.getMessage());

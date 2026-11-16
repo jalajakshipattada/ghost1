@@ -6,7 +6,6 @@ import com.ghostcommunity.backend.model.SectionRead;
 import com.ghostcommunity.backend.model.User;
 import com.ghostcommunity.backend.payload.ChatMessagePayload;
 import com.ghostcommunity.backend.payload.ChatResponsePayload;
-import com.ghostcommunity.backend.repository.CampusStructureRepository;
 import com.ghostcommunity.backend.repository.MessageRepository;
 import com.ghostcommunity.backend.repository.SectionReadRepository;
 import com.ghostcommunity.backend.repository.SectionRepository;
@@ -30,7 +29,6 @@ public class ChatController {
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final MessageRepository messageRepository;
-    private final CampusStructureRepository campusStructureRepository;
     private final SectionReadRepository sectionReadRepository;
 
     // Mobile app sends message to: /app/chat.section.1
@@ -73,20 +71,12 @@ public class ChatController {
         author.setWarPoints(author.getWarPoints() + 10);
         userRepository.save(author);
 
-        // RULE: Each 5 messages in section used to build a campus brick by brick
+        // Track section message count
         try {
-            int newCount = destinationSection.getMessageCount() + 1;
-            destinationSection.setMessageCount(newCount);
-
-            if (newCount % 5 == 0) {
-                destinationSection.setTotalBricks(destinationSection.getTotalBricks() + 1);
-                CampusWarController.advanceSectionBrickConstruction(
-                        destinationSection.getId(), 1, campusStructureRepository, sectionRepository
-                );
-            }
+            destinationSection.setMessageCount(destinationSection.getMessageCount() + 1);
             sectionRepository.save(destinationSection);
         } catch (Exception e) {
-            log.error("Failed to advance section message/brick count: {}", e.getMessage());
+            log.error("Failed to advance section message count: {}", e.getMessage());
         }
 
         // 2. Build the PUBLIC response (Strips Real Name, sends ONLY Ghost Name + Primary Section)
@@ -127,23 +117,15 @@ public class ChatController {
         author.setWarPoints(author.getWarPoints() + 10);
         userRepository.save(author);
 
-        // Advance primary section's brick construction pool on every 5 msgs
+        // Track primary section message count
         try {
             if (author.getPrimarySection() != null) {
                 Section primSec = author.getPrimarySection();
-                int newCount = primSec.getMessageCount() + 1;
-                primSec.setMessageCount(newCount);
-
-                if (newCount % 5 == 0) {
-                    primSec.setTotalBricks(primSec.getTotalBricks() + 1);
-                    CampusWarController.advanceSectionBrickConstruction(
-                            primSec.getId(), 1, campusStructureRepository, sectionRepository
-                    );
-                }
+                primSec.setMessageCount(primSec.getMessageCount() + 1);
                 sectionRepository.save(primSec);
             }
         } catch (Exception e) {
-            log.error("Failed to advance allcollege message/brick count: {}", e.getMessage());
+            log.error("Failed to advance allcollege message count: {}", e.getMessage());
         }
 
         ChatResponsePayload response = ChatResponsePayload.builder()

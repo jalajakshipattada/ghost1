@@ -18,6 +18,9 @@ public class JwtResponse {
     private UserStatus status;
     private String ghostName;
     private boolean isAdmin;
+    private Long collegeId;
+    private String collegeName;
+    private String primarySection;
 
     public JwtResponse(String token, Long id, String email, UserStatus status, String ghostName) {
         this.token = token;
@@ -26,5 +29,14 @@ public class JwtResponse {
         this.status = status;
         this.ghostName = ghostName;
         this.isAdmin = false;
+    }
+
+    public JwtResponse(String token, Long id, String email, UserStatus status, String ghostName, boolean isAdmin) {
+        this.token = token;
+        this.id = id;
+        this.email = email;
+        this.status = status;
+        this.ghostName = ghostName;
+        this.isAdmin = isAdmin;
     }
 }

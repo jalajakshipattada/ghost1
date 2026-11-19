@@ -49,12 +49,21 @@ public class AuthController {
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
             User user = userRepository.findById(userDetails.getId()).orElseThrow();
 
-            return ResponseEntity.ok(new JwtResponse(jwt,
+            Long collegeId = user.getCollege() != null ? user.getCollege().getId() : null;
+            String collegeName = user.getCollege() != null ? user.getCollege().getName() : null;
+            String primarySection = user.getPrimarySection() != null ? user.getPrimarySection().getName() : null;
+
+            JwtResponse resp = new JwtResponse(jwt,
                     userDetails.getId(),
                     userDetails.getUsername(),
                     userDetails.getStatus(),
                     user.getGhostName(),
-                    user.isAdmin()));
+                    user.isAdmin());
+            resp.setCollegeId(collegeId);
+            resp.setCollegeName(collegeName);
+            resp.setPrimarySection(primarySection);
+
+            return ResponseEntity.ok(resp);
         } catch (Exception e) {
             log.error("Login failure: ", e);
             String msg = e.getMessage() != null ? e.getMessage() : "Invalid credentials";

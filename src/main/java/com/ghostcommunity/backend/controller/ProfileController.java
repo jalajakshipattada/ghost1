@@ -18,7 +18,7 @@ public class ProfileController {
     private final UserRepository userRepository;
 
     // DTO for the user's OWN private profile screen (Contains EVERYTHING)
-    record PrivateProfileDto(Long id, String email, String realName, String ghostName, String collegeName, String primarySection, String profileImageUrl, String gender, boolean isAdmin) {}
+    record PrivateProfileDto(Long id, String email, String realName, String ghostName, Long collegeId, String collegeName, String primarySection, String profileImageUrl, String gender, boolean isAdmin) {}
 
     // DTO for when you tap on someone's Ghost Name in the chat (Strictly Anonymous)
     record PublicRealProfileDto(Long id, String realName, String collegeName, String primarySection, String profileImageUrl, String gender) {}
@@ -38,6 +38,7 @@ public class ProfileController {
                 user.getEmail(),
                 user.getRealName(),
                 user.getGhostName(),
+                user.getCollege() != null ? user.getCollege().getId() : null,
                 user.getCollege() != null ? user.getCollege().getName() : "Not Selected",
                 user.getPrimarySection() != null ? user.getPrimarySection().getName() : "Not Selected",
                 user.getProfileImageUrl(),

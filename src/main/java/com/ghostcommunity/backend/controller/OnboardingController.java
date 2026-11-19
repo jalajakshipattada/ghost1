@@ -43,6 +43,19 @@ public class OnboardingController {
         return ResponseEntity.ok(colleges);
     }
 
+    @GetMapping("/my-sections")
+    public ResponseEntity<List<SectionDto>> getMySections() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl userDetails)) {
+            return ResponseEntity.status(401).build();
+        }
+        User currentUser = userRepository.findById(userDetails.getId()).orElse(null);
+        if (currentUser == null || currentUser.getCollege() == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        return getSectionsByCollege(currentUser.getCollege().getId());
+    }
+
     @GetMapping("/colleges/{collegeId}/sections")
     public ResponseEntity<List<SectionDto>> getSectionsByCollege(@PathVariable Long collegeId) {
         User currentUser = null;

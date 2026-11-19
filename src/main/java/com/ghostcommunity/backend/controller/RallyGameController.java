@@ -1,12 +1,17 @@
 package com.ghostcommunity.backend.controller;
 
+import com.ghostcommunity.backend.model.User;
 import com.ghostcommunity.backend.payload.RallyPayload.*;
+import com.ghostcommunity.backend.repository.UserRepository;
+import com.ghostcommunity.backend.security.UserDetailsImpl;
 import com.ghostcommunity.backend.service.RallyMatchmakingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -16,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class RallyGameController {
 
     private final RallyMatchmakingService matchmakingService;
+    private final UserRepository userRepository;
 
     // --- STOMP WebSocket Mappings ---
 
@@ -37,6 +43,22 @@ public class RallyGameController {
     }
 
     // --- REST API Endpoints ---
+
+    @GetMapping("/api/rally/leaderboard")
+    public ResponseEntity<LeaderboardResponse> getMyLeaderboard() {
+        Long collegeId = 1L;
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl userDetails) {
+                User user = userRepository.findById(userDetails.getId()).orElse(null);
+                if (user != null && user.getCollege() != null) {
+                    collegeId = user.getCollege().getId();
+                }
+            }
+        } catch (Exception ignored) {}
+        LeaderboardResponse lb = matchmakingService.getLeaderboard(collegeId);
+        return ResponseEntity.ok(lb);
+    }
 
     @GetMapping("/api/rally/leaderboard/{collegeId}")
     public ResponseEntity<LeaderboardResponse> getLeaderboard(@PathVariable Long collegeId) {

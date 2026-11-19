@@ -11,6 +11,8 @@ import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
+    Page<Post> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
     Page<Post> findByCollegeIdOrderByCreatedAtDesc(Long collegeId, Pageable pageable);
     Page<Post> findByCollegeIdAndContentContainingIgnoreCaseOrderByCreatedAtDesc(Long collegeId, String content, Pageable pageable);
     Page<Post> findByAuthorIdOrderByCreatedAtDesc(Long authorId, Pageable pageable);
@@ -20,4 +22,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
            "LOWER(p.author.ghostName) LIKE LOWER(CONCAT('%', :query, '%'))) " +
            "ORDER BY p.createdAt DESC")
     Page<Post> searchByCollegeAndQuery(@Param("collegeId") Long collegeId, @Param("query") String query, Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE " +
+           "(LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(p.author.ghostName) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+           "ORDER BY p.createdAt DESC")
+    Page<Post> searchAllByQuery(@Param("query") String query, Pageable pageable);
 }

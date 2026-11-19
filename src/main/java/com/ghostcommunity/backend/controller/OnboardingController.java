@@ -33,7 +33,7 @@ public class OnboardingController {
 
     // Lightweight DTOs to send to the mobile app
     record CollegeDto(Long id, String name) {}
-    record SectionDto(Long id, String name, long totalMessages, long memberCount, long onlineCount, long unreadCount) {}
+    record SectionDto(Long id, String name, Long collegeId, String collegeName, long totalMessages, long memberCount, long onlineCount, long unreadCount) {}
 
     @GetMapping("/colleges")
     public ResponseEntity<List<CollegeDto>> getAllColleges() {
@@ -44,16 +44,30 @@ public class OnboardingController {
     }
 
     @GetMapping("/my-sections")
-    public ResponseEntity<List<SectionDto>> getMySections() {
+    public ResponseEntity<?> getMySections() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl userDetails)) {
             return ResponseEntity.status(401).build();
         }
         User currentUser = userRepository.findById(userDetails.getId()).orElse(null);
         if (currentUser == null || currentUser.getCollege() == null) {
-            return ResponseEntity.ok(List.of());
+            return ResponseEntity.ok(java.util.Map.of(
+                    "collegeId", 1L,
+                    "collegeName", "Campus",
+                    "primarySection", "",
+                    "sections", List.of()
+            ));
         }
-        return getSectionsByCollege(currentUser.getCollege().getId());
+        Long collegeId = currentUser.getCollege().getId();
+        String collegeName = currentUser.getCollege().getName();
+        String primarySection = currentUser.getPrimarySection() != null ? currentUser.getPrimarySection().getName() : "";
+        List<SectionDto> sections = getSectionsByCollege(collegeId).getBody();
+        return ResponseEntity.ok(java.util.Map.of(
+                "collegeId", collegeId,
+                "collegeName", collegeName,
+                "primarySection", primarySection,
+                "sections", sections != null ? sections : List.of()
+        ));
     }
 
     @GetMapping("/colleges/{collegeId}/sections")
@@ -96,6 +110,8 @@ public class OnboardingController {
                     return new SectionDto(
                             s.getId(),
                             s.getName(),
+                            s.getCollege() != null ? s.getCollege().getId() : collegeId,
+                            s.getCollege() != null ? s.getCollege().getName() : "",
                             total,
                             userRepository.countByPrimarySectionIdAndStatus(s.getId(), UserStatus.ACTIVE),
                             presenceService.getOnlineCountForSection(s.getId()),

@@ -338,27 +338,41 @@ public class AdminController {
         College college = collegeRepository.findById(collegeId)
                 .orElseThrow(() -> new RuntimeException("College not found"));
 
-        String name = body.get("name");
-        if (name == null || name.trim().isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Section name is required (e.g. CSE-1, AIML)"));
-        }
-        name = name.trim().toUpperCase();
-
-        if (sectionRepository.findByCollegeIdAndName(collegeId, name).isPresent()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Section " + name + " already exists in this college."));
+        String rawInput = body.get("name");
+        if (rawInput == null || rawInput.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Section name is required (e.g. CSD, CSE-1, AIML)"));
         }
 
-        Section section = Section.builder()
-                .name(name)
-                .college(college)
-                .messageCount(0)
-                .build();
-        section = sectionRepository.save(section);
+        String[] parts = rawInput.split("[,\\n]+");
+        java.util.List<String> createdNames = new java.util.ArrayList<>();
+
+        for (String part : parts) {
+            String clean = part.trim().toUpperCase();
+            if (clean.isEmpty()) continue;
+
+            // Normalize section formats:
+            // "CSD 1" -> "CSD-1", "CSD1" -> "CSD-1"
+            clean = clean.replaceAll("^([A-Z]+)\\s+(\\d+)$", "$1-$2");
+            clean = clean.replaceAll("^([A-Z]+)(\\d+)$", "$1-$2");
+
+            if (sectionRepository.findByCollegeIdAndName(collegeId, clean).isEmpty()) {
+                Section section = Section.builder()
+                        .name(clean)
+                        .college(college)
+                        .messageCount(0)
+                        .build();
+                sectionRepository.save(section);
+                createdNames.add(clean);
+            }
+        }
+
+        if (createdNames.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Section(s) already exist in this college."));
+        }
 
         return ResponseEntity.ok(Map.of(
-                "message", "Section " + section.getName() + " added to " + college.getName(),
-                "id", section.getId(),
-                "name", section.getName(),
+                "message", "Section(s) " + String.join(", ", createdNames) + " added to " + college.getName(),
+                "created", createdNames,
                 "collegeId", college.getId()
         ));
     }

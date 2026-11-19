@@ -61,6 +61,10 @@ public class FeedController {
             map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
         }
 
+        String colName = post.getCollege() != null ? post.getCollege().getName() : (post.getAuthor().getCollege() != null ? post.getAuthor().getCollege().getName() : "");
+        map.put("authorCollegeName", colName);
+        map.put("collegeName", colName);
+
         map.put("gender", post.getAuthor().getGender());
         map.put("content", post.getContent());
         map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");
@@ -83,15 +87,28 @@ public class FeedController {
     @GetMapping
     public ResponseEntity<?> getFeed(@RequestParam(defaultValue = "0") int page,
                                      @RequestParam(defaultValue = "20") int size,
-                                     @RequestParam(required = false) String query) {
+                                     @RequestParam(required = false) String query,
+                                     @RequestParam(defaultValue = "true") boolean allColleges) {
         User user = getCurrentUser();
         Page<Post> postsPage;
-        if (query != null && !query.trim().isEmpty()) {
-            postsPage = postRepository.searchByCollegeAndQuery(
-                user.getCollege().getId(), query.trim(), PageRequest.of(page, size));
+        boolean queryPresent = query != null && !query.trim().isEmpty();
+
+        if (allColleges || user.getCollege() == null) {
+            // Universal / All-Colleges Feed: shared across all campuses
+            if (queryPresent) {
+                postsPage = postRepository.searchAllByQuery(query.trim(), PageRequest.of(page, size));
+            } else {
+                postsPage = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
+            }
         } else {
-            postsPage = postRepository.findByCollegeIdOrderByCreatedAtDesc(
-                user.getCollege().getId(), PageRequest.of(page, size));
+            // Scoped to the user's specific college
+            if (queryPresent) {
+                postsPage = postRepository.searchByCollegeAndQuery(
+                    user.getCollege().getId(), query.trim(), PageRequest.of(page, size));
+            } else {
+                postsPage = postRepository.findByCollegeIdOrderByCreatedAtDesc(
+                    user.getCollege().getId(), PageRequest.of(page, size));
+            }
         }
 
         List<Map<String, Object>> feed = postsPage.stream()

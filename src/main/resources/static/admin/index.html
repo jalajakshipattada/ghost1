@@ -491,6 +491,9 @@
       const colleges = await res.json();
       el.innerHTML = colleges.map(c => {
         const chipGroups = groupSectionsByChip(c.sections || []);
+        (c.chips || []).forEach(ch => {
+          if (!chipGroups[ch]) chipGroups[ch] = [];
+        });
         const chipKeys = Object.keys(chipGroups);
 
         return `
@@ -521,6 +524,7 @@
                   </div>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                  ${chipGroups[chip].length === 0 ? `<div style="color: var(--muted); font-size: 12px; font-style: italic;">No sections created yet under ${chip}. Click "+ Add Section under ${chip}" to add sections.</div>` : ''}
                   ${chipGroups[chip].map(s => `
                     <span style="background: var(--card-inner); border: 1px solid var(--border); padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
                       <span>${s.name}</span>
@@ -580,19 +584,16 @@
     }
 
     async function promptAddChip(collegeId, collegeName) {
-      const chip = prompt(`Enter Chip name for ${collegeName} (e.g. CSE, CSD, ECE):`);
+      const chip = prompt(`Enter Chip / Department name for ${collegeName} (e.g. CSE, CSD, ECE):`);
       if (!chip || !chip.trim()) return;
       const cleanChip = chip.trim().toUpperCase();
-
-      const secInput = prompt(`Enter section(s) under ${cleanChip} (e.g. "${cleanChip}" if only 1 section, or "${cleanChip} 1, ${cleanChip} 2". Leave blank for "${cleanChip}"):`);
-      const sections = (secInput && secInput.trim()) ? secInput.trim() : cleanChip;
 
       const res = await fetch(`/api/admin/colleges/${collegeId}/chips`, {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chip: cleanChip, sections: sections })
+        body: JSON.stringify({ chip: cleanChip })
       });
-      if (res.ok) { alert(`Chip ${cleanChip} created successfully!`); loadColleges(); loadStats(); }
+      if (res.ok) { alert(`Chip "${cleanChip}" created! You can now add sections under it.`); loadColleges(); loadStats(); }
       else { const d = await res.json(); alert(d.error || 'Failed'); }
     }
 

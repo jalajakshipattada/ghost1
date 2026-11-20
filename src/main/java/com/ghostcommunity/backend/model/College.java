@@ -17,4 +17,7 @@ public class College {
 
     @OneToMany(mappedBy = "college", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Section> sections;
+
+    @OneToMany(mappedBy = "college", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CollegeChip> chips;
 }

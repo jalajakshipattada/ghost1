@@ -32,6 +32,7 @@ public class AdminController {
     private final MessageRepository messageRepository;
     private final DirectMessageRepository directMessageRepository;
     private final CollegeRepository collegeRepository;
+    private final CollegeChipRepository collegeChipRepository;
     private final SectionRepository sectionRepository;
     private final SectionReadRepository sectionReadRepository;
     private final MessageReactionRepository messageReactionRepository;
@@ -305,6 +306,20 @@ public class AdminController {
 
             long studentCount = userRepository.countByCollegeId(col.getId());
 
+            List<CollegeChip> dbChips = collegeChipRepository.findByCollegeIdOrderByNameAsc(col.getId());
+            Set<String> chipNames = new LinkedHashSet<>();
+            for (CollegeChip cc : dbChips) {
+                if (cc.getName() != null && !cc.getName().trim().isEmpty()) {
+                    chipNames.add(cc.getName().trim().toUpperCase());
+                }
+            }
+            for (Section s : sections) {
+                if (s.getChip() != null && !s.getChip().trim().isEmpty()) {
+                    chipNames.add(s.getChip().trim().toUpperCase());
+                }
+            }
+
+            cMap.put("chips", new ArrayList<>(chipNames));
             cMap.put("sections", secList);
             cMap.put("sectionCount", secList.size());
             cMap.put("studentCount", studentCount);
@@ -350,6 +365,10 @@ public class AdminController {
         String rawChip = body.get("chip");
         String assignedChip = (rawChip != null && !rawChip.trim().isEmpty()) ? rawChip.trim().toUpperCase() : null;
 
+        if (assignedChip != null && collegeChipRepository.findByCollegeIdAndNameIgnoreCase(collegeId, assignedChip).isEmpty()) {
+            collegeChipRepository.save(CollegeChip.builder().name(assignedChip).college(college).build());
+        }
+
         String[] parts = rawInput.split("[,\\n]+");
         java.util.List<String> createdNames = new java.util.ArrayList<>();
 
@@ -393,6 +412,7 @@ public class AdminController {
     }
 
     @PostMapping("/colleges/{collegeId}/chips")
+    @Transactional
     public ResponseEntity<?> addChip(@PathVariable Long collegeId, @RequestBody Map<String, String> body) {
         checkAdminAccess();
         College college = collegeRepository.findById(collegeId)
@@ -404,36 +424,48 @@ public class AdminController {
         }
         String chip = rawChip.trim().toUpperCase();
 
-        String rawSections = body.get("sections");
-        if (rawSections == null || rawSections.trim().isEmpty()) {
-            rawSections = chip;
+        // 1. Ensure Chip exists in college_chips table
+        if (collegeChipRepository.findByCollegeIdAndNameIgnoreCase(collegeId, chip).isEmpty()) {
+            CollegeChip cc = CollegeChip.builder()
+                    .name(chip)
+                    .college(college)
+                    .build();
+            collegeChipRepository.save(cc);
         }
 
-        String[] parts = rawSections.split("[,\\n]+");
+        // 2. ONLY create sections if explicitly provided (do NOT default to chip name)
+        String rawSections = body.get("sections");
         java.util.List<String> createdNames = new java.util.ArrayList<>();
 
-        for (String part : parts) {
-            String clean = part.trim().toUpperCase();
-            if (clean.isEmpty()) continue;
+        if (rawSections != null && !rawSections.trim().isEmpty()) {
+            String[] parts = rawSections.split("[,\\n]+");
+            for (String part : parts) {
+                String clean = part.trim().toUpperCase();
+                if (clean.isEmpty()) continue;
 
-            if (clean.matches("^\\d+$") || clean.matches("^[A-Z]$")) {
-                clean = chip + " " + clean;
-            }
+                if (clean.matches("^\\d+$") || clean.matches("^[A-Z]$")) {
+                    clean = chip + " " + clean;
+                }
 
-            if (sectionRepository.findByCollegeIdAndName(collegeId, clean).isEmpty()) {
-                Section section = Section.builder()
-                        .name(clean)
-                        .chip(chip)
-                        .college(college)
-                        .messageCount(0)
-                        .build();
-                sectionRepository.save(section);
-                createdNames.add(clean);
+                if (sectionRepository.findByCollegeIdAndName(collegeId, clean).isEmpty()) {
+                    Section section = Section.builder()
+                            .name(clean)
+                            .chip(chip)
+                            .college(college)
+                            .messageCount(0)
+                            .build();
+                    sectionRepository.save(section);
+                    createdNames.add(clean);
+                }
             }
         }
 
+        String msg = createdNames.isEmpty()
+                ? "Chip " + chip + " created! Tap '+ Add Section under " + chip + "' to add sections."
+                : "Chip " + chip + " created with section(s): " + String.join(", ", createdNames);
+
         return ResponseEntity.ok(Map.of(
-                "message", "Chip " + chip + " created with section(s): " + String.join(", ", createdNames),
+                "message", msg,
                 "chip", chip,
                 "sections", createdNames,
                 "collegeId", college.getId()
@@ -511,17 +543,17 @@ public class AdminController {
                 .filter(s -> targetChip.equalsIgnoreCase(s.getChip()))
                 .collect(Collectors.toList());
 
-        if (chipSections.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "No sections found under chip " + chipName));
-        }
-
         int count = chipSections.size();
         for (Section s : chipSections) {
             deleteSingleSection(s);
         }
 
+        try {
+            collegeChipRepository.deleteByCollegeIdAndNameIgnoreCase(collegeId, targetChip);
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok(Map.of(
-                "message", "Chip " + targetChip + " and its " + count + " sections deleted successfully.",
+                "message", "Chip " + targetChip + " deleted successfully.",
                 "deletedCount", count,
                 "collegeId", collegeId
         ));
@@ -540,7 +572,12 @@ public class AdminController {
             deleteSingleSection(s);
         }
 
-        // 2. Unlink users belonging to this college
+        // 2. Delete chips for this college
+        try {
+            collegeChipRepository.deleteByCollegeId(collegeId);
+        } catch (Exception ignored) {}
+
+        // 3. Unlink users belonging to this college
         try {
             List<User> collegeUsers = userRepository.findByCollegeId(collegeId);
             for (User u : collegeUsers) {
@@ -552,18 +589,18 @@ public class AdminController {
             log.warn("Unlink college users error: {}", e.getMessage());
         }
 
-        // 3. Detach reports on college messages
+        // 4. Detach reports on college messages
         try {
             reportRepository.detachReportsForCollege(collegeId);
         } catch (Exception ignored) {}
 
-        // 4. Delete reactions and messages for this college
+        // 5. Delete reactions and messages for this college
         try {
             messageReactionRepository.deleteByCollegeId(collegeId);
             messageRepository.deleteByCollegeId(collegeId);
         } catch (Exception ignored) {}
 
-        // 5. Delete posts for this college
+        // 6. Delete posts for this college
         try {
             List<Post> posts = postRepository.findByCollegeIdOrderByCreatedAtDesc(collegeId, org.springframework.data.domain.Pageable.unpaged()).getContent();
             for (Post p : posts) {
@@ -571,7 +608,7 @@ public class AdminController {
             }
         } catch (Exception ignored) {}
 
-        // 6. Delete college
+        // 7. Delete college
         collegeRepository.delete(college);
         return ResponseEntity.ok(Map.of("message", "College " + college.getName() + " and all associated data deleted successfully."));
     }

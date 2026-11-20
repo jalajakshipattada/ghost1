@@ -295,6 +295,7 @@ public class AdminController {
                 Map<String, Object> sm = new HashMap<>();
                 sm.put("id", s.getId());
                 sm.put("name", s.getName());
+                sm.put("chip", s.getChip());
                 sm.put("messageCount", s.getMessageCount());
                 return sm;
             }).collect(Collectors.toList());
@@ -343,6 +344,9 @@ public class AdminController {
             return ResponseEntity.badRequest().body(Map.of("error", "Section name is required (e.g. CSD, CSE-1, AIML)"));
         }
 
+        String rawChip = body.get("chip");
+        String assignedChip = (rawChip != null && !rawChip.trim().isEmpty()) ? rawChip.trim().toUpperCase() : null;
+
         String[] parts = rawInput.split("[,\\n]+");
         java.util.List<String> createdNames = new java.util.ArrayList<>();
 
@@ -350,14 +354,19 @@ public class AdminController {
             String clean = part.trim().toUpperCase();
             if (clean.isEmpty()) continue;
 
-            // Normalize section formats:
-            // "CSD 1" -> "CSD-1", "CSD1" -> "CSD-1"
-            clean = clean.replaceAll("^([A-Z]+)\\s+(\\d+)$", "$1-$2");
-            clean = clean.replaceAll("^([A-Z]+)(\\d+)$", "$1-$2");
+            if (assignedChip != null && clean.matches("^\\d+$")) {
+                clean = assignedChip + "-" + clean;
+            } else {
+                clean = clean.replaceAll("^([A-Z]+)\\s+(\\d+)$", "$1-$2");
+                clean = clean.replaceAll("^([A-Z]+)(\\d+)$", "$1-$2");
+            }
+
+            String finalChip = assignedChip != null ? assignedChip : Section.deriveChip(clean);
 
             if (sectionRepository.findByCollegeIdAndName(collegeId, clean).isEmpty()) {
                 Section section = Section.builder()
                         .name(clean)
+                        .chip(finalChip)
                         .college(college)
                         .messageCount(0)
                         .build();
@@ -373,6 +382,57 @@ public class AdminController {
         return ResponseEntity.ok(Map.of(
                 "message", "Section(s) " + String.join(", ", createdNames) + " added to " + college.getName(),
                 "created", createdNames,
+                "collegeId", college.getId()
+        ));
+    }
+
+    @PostMapping("/colleges/{collegeId}/chips")
+    public ResponseEntity<?> addChip(@PathVariable Long collegeId, @RequestBody Map<String, String> body) {
+        checkAdminAccess();
+        College college = collegeRepository.findById(collegeId)
+                .orElseThrow(() -> new RuntimeException("College not found"));
+
+        String rawChip = body.get("chip");
+        if (rawChip == null || rawChip.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Chip name is required (e.g. CSE, CSD, ECE)"));
+        }
+        String chip = rawChip.trim().toUpperCase();
+
+        String rawSections = body.get("sections");
+        if (rawSections == null || rawSections.trim().isEmpty()) {
+            rawSections = chip;
+        }
+
+        String[] parts = rawSections.split("[,\\n]+");
+        java.util.List<String> createdNames = new java.util.ArrayList<>();
+
+        for (String part : parts) {
+            String clean = part.trim().toUpperCase();
+            if (clean.isEmpty()) continue;
+
+            if (clean.matches("^\\d+$")) {
+                clean = chip + "-" + clean;
+            } else {
+                clean = clean.replaceAll("^([A-Z]+)\\s+(\\d+)$", "$1-$2");
+                clean = clean.replaceAll("^([A-Z]+)(\\d+)$", "$1-$2");
+            }
+
+            if (sectionRepository.findByCollegeIdAndName(collegeId, clean).isEmpty()) {
+                Section section = Section.builder()
+                        .name(clean)
+                        .chip(chip)
+                        .college(college)
+                        .messageCount(0)
+                        .build();
+                sectionRepository.save(section);
+                createdNames.add(clean);
+            }
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Chip " + chip + " created with section(s): " + String.join(", ", createdNames),
+                "chip", chip,
+                "sections", createdNames,
                 "collegeId", college.getId()
         ));
     }

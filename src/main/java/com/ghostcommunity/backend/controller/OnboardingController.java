@@ -33,7 +33,7 @@ public class OnboardingController {
 
     // Lightweight DTOs to send to the mobile app
     record CollegeDto(Long id, String name) {}
-    record SectionDto(Long id, String name, Long collegeId, String collegeName, long totalMessages, long memberCount, long onlineCount, long unreadCount) {}
+    record SectionDto(Long id, String name, String chip, Long collegeId, String collegeName, long totalMessages, long memberCount, long onlineCount, long unreadCount) {}
 
     @GetMapping("/colleges")
     public ResponseEntity<List<CollegeDto>> getAllColleges() {
@@ -55,6 +55,7 @@ public class OnboardingController {
                     "collegeId", 1L,
                     "collegeName", "Campus",
                     "primarySection", "",
+                    "chips", List.of(),
                     "sections", List.of()
             ));
         }
@@ -62,10 +63,12 @@ public class OnboardingController {
         String collegeName = currentUser.getCollege().getName();
         String primarySection = currentUser.getPrimarySection() != null ? currentUser.getPrimarySection().getName() : "";
         List<SectionDto> sections = getSectionsByCollege(collegeId).getBody();
+        List<String> chips = sections != null ? sections.stream().map(SectionDto::chip).distinct().toList() : List.of();
         return ResponseEntity.ok(java.util.Map.of(
                 "collegeId", collegeId,
                 "collegeName", collegeName,
                 "primarySection", primarySection,
+                "chips", chips,
                 "sections", sections != null ? sections : List.of()
         ));
     }
@@ -110,6 +113,7 @@ public class OnboardingController {
                     return new SectionDto(
                             s.getId(),
                             s.getName(),
+                            s.getChip(),
                             s.getCollege() != null ? s.getCollege().getId() : collegeId,
                             s.getCollege() != null ? s.getCollege().getName() : "",
                             total,

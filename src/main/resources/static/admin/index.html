@@ -468,19 +468,18 @@
       loadStats();
     }
 
-    function groupSectionsByDept(sections) {
+    function groupSectionsByChip(sections) {
       const groups = {};
       sections.forEach(s => {
-        let name = (s.name || '').trim().toUpperCase();
-        let dept = name;
-        if (name.includes('-')) {
-          dept = name.split('-')[0].trim();
-        } else {
+        let chip = (s.chip || '').trim().toUpperCase();
+        if (!chip) {
+          let name = (s.name || '').trim().toUpperCase();
+          chip = name.includes('-') ? name.split('-')[0].trim() : name;
           let m = name.match(/^([A-Z]+)\s*\d+$/);
-          if (m) dept = m[1];
+          if (m) chip = m[1];
         }
-        if (!groups[dept]) groups[dept] = [];
-        groups[dept].push(s);
+        if (!groups[chip]) groups[chip] = [];
+        groups[chip].push(s);
       });
       return groups;
     }
@@ -491,36 +490,34 @@
       if (!res.ok) { el.innerHTML = 'Error loading colleges'; return; }
       const colleges = await res.json();
       el.innerHTML = colleges.map(c => {
-        const deptGroups = groupSectionsByDept(c.sections || []);
-        const deptKeys = Object.keys(deptGroups);
+        const chipGroups = groupSectionsByChip(c.sections || []);
+        const chipKeys = Object.keys(chipGroups);
 
         return `
         <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
             <div>
               <h4 style="font-size: 17px; margin-bottom: 4px;">${c.name}</h4>
-              <span style="color: var(--muted); font-size: 12px;">${c.studentCount} Students · ${c.sections.length} Sections across ${deptKeys.length} Departments</span>
+              <span style="color: var(--muted); font-size: 12px;">${c.studentCount} Students · ${c.sections.length} Sections across ${chipKeys.length} Chips</span>
             </div>
             <div style="display: flex; gap: 8px;">
-              <button class="btn-sm" style="background: var(--accent); color: #fff;" onclick="promptAddDepartment(${c.id}, '${c.name}')">+ Add Department</button>
-              <button class="btn-sm" style="background: var(--accent-cyan); color: #000;" onclick="promptAddSection(${c.id}, '${c.name}')">+ Add Section</button>
+              <button class="btn-sm" style="background: var(--accent); color: #fff; font-weight: bold;" onclick="promptAddChip(${c.id}, '${c.name}')">+ Add Chip</button>
             </div>
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 12px;">
-            ${deptKeys.length === 0 ? '<div style="color: var(--muted); font-size: 13px;">No sections created yet. Click "+ Add Department" or "+ Add Section" above.</div>' : ''}
-            ${deptKeys.map(dept => `
+            ${chipKeys.length === 0 ? '<div style="color: var(--muted); font-size: 13px;">No chips added yet. Click "+ Add Chip" above to create a chip (e.g. CSE, CSD).</div>' : ''}
+            ${chipKeys.map(chip => `
               <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 14px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="background: rgba(59,130,246,0.18); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 6px;">${dept}</span>
-                    <span style="font-size: 13px; font-weight: 600; color: #e2e8f0;">${dept} Department</span>
-                    <span style="color: var(--muted); font-size: 11px;">(${deptGroups[dept].length} sub-sections)</span>
+                    <span style="background: rgba(59,130,246,0.18); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 8px;">🏷️ ${chip}</span>
+                    <span style="color: var(--muted); font-size: 12px;">(${chipGroups[chip].length} sections)</span>
                   </div>
-                  <button class="btn-sm" style="background: rgba(255,255,255,0.08); color: #fff; font-size: 11px; padding: 3px 8px;" onclick="promptAddSubSection(${c.id}, '${c.name}', '${dept}')">+ Add to ${dept}</button>
+                  <button class="btn-sm" style="background: var(--accent-cyan); color: #000; font-size: 11px; padding: 4px 10px; font-weight: bold;" onclick="promptAddSectionToChip(${c.id}, '${c.name}', '${chip}')">+ Add Section under ${chip}</button>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                  ${deptGroups[dept].map(s => `
+                  ${chipGroups[chip].map(s => `
                     <span style="background: var(--card-inner); border: 1px solid var(--border); padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;">
                       ${s.name} <small style="color: var(--muted);">(${s.messageCount} msgs)</small>
                     </span>
@@ -546,60 +543,31 @@
       else { const d = await res.json(); alert(d.error || 'Failed'); }
     }
 
-    async function promptAddDepartment(collegeId, collegeName) {
-      const dept = prompt(`Enter Department name for ${collegeName} (e.g. CSD, CSE, AIML):`);
-      if (!dept || !dept.trim()) return;
-      const sub = prompt(`Enter sub-sections for ${dept} (comma-separated, e.g. "1, 2" or leave blank for main ${dept.trim()}):`);
+    async function promptAddChip(collegeId, collegeName) {
+      const chip = prompt(`Enter Chip name for ${collegeName} (e.g. CSE, CSD, ECE):`);
+      if (!chip || !chip.trim()) return;
+      const cleanChip = chip.trim().toUpperCase();
 
-      let names = [];
-      const cleanDept = dept.trim().toUpperCase();
-      if (!sub || !sub.trim()) {
-        names.push(cleanDept);
-      } else {
-        const parts = sub.split(',');
-        for (const p of parts) {
-          const t = p.trim();
-          if (!t) continue;
-          if (t.toUpperCase().startsWith(cleanDept)) {
-            names.push(t);
-          } else {
-            names.push(`${cleanDept}-${t}`);
-          }
-        }
-      }
+      const secInput = prompt(`Enter section(s) under ${cleanChip} (e.g. "${cleanChip}" if only 1 section, or "${cleanChip} 1, ${cleanChip} 2". Leave blank for "${cleanChip}"):`);
+      const sections = (secInput && secInput.trim()) ? secInput.trim() : cleanChip;
 
-      const res = await fetch(`/api/admin/colleges/${collegeId}/sections`, {
+      const res = await fetch(`/api/admin/colleges/${collegeId}/chips`, {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: names.join(', ') })
+        body: JSON.stringify({ chip: cleanChip, sections: sections })
       });
-      if (res.ok) { alert(`Created sections: ${names.join(', ')}`); loadColleges(); loadStats(); }
+      if (res.ok) { alert(`Chip ${cleanChip} created successfully!`); loadColleges(); loadStats(); }
       else { const d = await res.json(); alert(d.error || 'Failed'); }
     }
 
-    async function promptAddSubSection(collegeId, collegeName, dept) {
-      const sub = prompt(`Add sub-section to ${dept} for ${collegeName} (e.g. 1, 2, or full name ${dept}-3):`);
-      if (!sub || !sub.trim()) return;
-      let name = sub.trim().toUpperCase();
-      if (!name.startsWith(dept)) {
-        name = `${dept}-${name}`;
-      }
-      const res = await fetch(`/api/admin/colleges/${collegeId}/sections`, {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name })
-      });
-      if (res.ok) { alert(`Created section: ${name}`); loadColleges(); loadStats(); }
-      else { const d = await res.json(); alert(d.error || 'Failed'); }
-    }
-
-    async function promptAddSection(collegeId, collegeName) {
-      const name = prompt(`Enter section name for ${collegeName} (e.g. CSD, CSD-1, AIML-2, or comma-separated CSD 1, CSD 2):`);
+    async function promptAddSectionToChip(collegeId, collegeName, chip) {
+      const name = prompt(`Enter Section name under ${chip} (e.g. "${chip}" for single section, or "1", "${chip} 2", or comma-separated):`);
       if (!name || !name.trim()) return;
+
       const res = await fetch(`/api/admin/colleges/${collegeId}/sections`, {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() })
+        body: JSON.stringify({ chip: chip, name: name.trim() })
       });
       if (res.ok) { alert('Section(s) created!'); loadColleges(); loadStats(); }
       else { const d = await res.json(); alert(d.error || 'Failed'); }

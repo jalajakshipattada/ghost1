@@ -24,6 +24,25 @@ public class Section {
     @Builder.Default
     private Integer messageCount = 0;
 
+    @Column(name = "chip")
+    private String chip;
+
+    public String getChip() {
+        if (chip != null && !chip.trim().isEmpty()) {
+            return chip.trim().toUpperCase();
+        }
+        return deriveChip(name);
+    }
+
+    public static String deriveChip(String rawName) {
+        if (rawName == null || rawName.trim().isEmpty()) return "GENERAL";
+        String s = rawName.trim().toUpperCase();
+        if (s.contains("-")) return s.split("-")[0].trim();
+        var matcher = java.util.regex.Pattern.compile("^([A-Z]+)\\s*\\d+$").matcher(s);
+        if (matcher.find()) return matcher.group(1);
+        return s;
+    }
+
     @Column(name = "total_bricks")
     @Builder.Default
     private Integer totalBricks = 0;

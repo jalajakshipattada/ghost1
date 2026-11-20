@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     List<User> findByPrimarySectionIdAndStatus(Long sectionId, UserStatus status);
     List<User> findByCollegeIdAndStatus(Long collegeId, UserStatus status);
+    List<User> findByPrimarySectionId(Long sectionId);
+    List<User> findByCollegeId(Long collegeId);
 
     long countByPrimarySectionIdAndStatus(Long sectionId, UserStatus status);
     long countByPrimarySectionId(Long sectionId);

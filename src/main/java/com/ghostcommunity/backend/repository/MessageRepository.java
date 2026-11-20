@@ -25,4 +25,14 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(m) FROM Message m WHERE m.destinationSection.id = :sectionId AND (m.author IS NULL OR m.author.id != :userId) AND m.createdAt >= :afterTime")
     long countUnreadSince(@org.springframework.data.repository.query.Param("sectionId") Long sectionId, @org.springframework.data.repository.query.Param("userId") Long userId, @org.springframework.data.repository.query.Param("afterTime") java.time.LocalDateTime afterTime);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("DELETE FROM Message m WHERE m.destinationSection.id = :sectionId")
+    void deleteByDestinationSectionId(@org.springframework.data.repository.query.Param("sectionId") Long sectionId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("DELETE FROM Message m WHERE m.college.id = :collegeId")
+    void deleteByCollegeId(@org.springframework.data.repository.query.Param("collegeId") Long collegeId);
 }

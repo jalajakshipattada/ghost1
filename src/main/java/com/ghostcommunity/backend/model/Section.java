@@ -38,8 +38,12 @@ public class Section {
         if (rawName == null || rawName.trim().isEmpty()) return "GENERAL";
         String s = rawName.trim().toUpperCase();
         if (s.contains("-")) return s.split("-")[0].trim();
-        var matcher = java.util.regex.Pattern.compile("^([A-Z]+)\\s*\\d+$").matcher(s);
-        if (matcher.find()) return matcher.group(1);
+        var digitMatcher = java.util.regex.Pattern.compile("^([A-Z]{2,})\\s*\\d+$").matcher(s);
+        if (digitMatcher.find()) return digitMatcher.group(1);
+        var spaceLetterMatcher = java.util.regex.Pattern.compile("^([A-Z]{2,})\\s+([A-Z])$").matcher(s);
+        if (spaceLetterMatcher.find()) return spaceLetterMatcher.group(1);
+        var letterMatcher = java.util.regex.Pattern.compile("^([A-Z]{2,})([A-D])$").matcher(s);
+        if (letterMatcher.find()) return letterMatcher.group(1);
         return s;
     }
 

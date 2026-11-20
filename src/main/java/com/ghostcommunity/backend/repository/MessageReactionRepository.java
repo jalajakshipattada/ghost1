@@ -29,4 +29,14 @@ public interface MessageReactionRepository extends JpaRepository<MessageReaction
     // Get reaction counts grouped by messageId and emoji for an entire section
     @Query("SELECT r.message.id, r.emoji, COUNT(r) FROM MessageReaction r WHERE r.message.destinationSection.id = :sectionId GROUP BY r.message.id, r.emoji")
     List<Object[]> countReactionsBySectionId(@Param("sectionId") Long sectionId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("DELETE FROM MessageReaction r WHERE r.message.destinationSection.id = :sectionId")
+    void deleteBySectionId(@Param("sectionId") Long sectionId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("DELETE FROM MessageReaction r WHERE r.message.college.id = :collegeId")
+    void deleteByCollegeId(@Param("collegeId") Long collegeId);
 }

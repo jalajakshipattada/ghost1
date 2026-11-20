@@ -502,6 +502,7 @@
             </div>
             <div style="display: flex; gap: 8px;">
               <button class="btn-sm" style="background: var(--accent); color: #fff; font-weight: bold;" onclick="promptAddChip(${c.id}, '${c.name}')">+ Add Chip</button>
+              <button class="btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: bold;" onclick="confirmDeleteCollege(${c.id}, '${c.name}')">🗑️ Delete College</button>
             </div>
           </div>
 
@@ -514,12 +515,17 @@
                     <span style="background: rgba(59,130,246,0.18); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); font-size: 12px; font-weight: bold; padding: 3px 10px; border-radius: 8px;">🏷️ ${chip}</span>
                     <span style="color: var(--muted); font-size: 12px;">(${chipGroups[chip].length} sections)</span>
                   </div>
-                  <button class="btn-sm" style="background: var(--accent-cyan); color: #000; font-size: 11px; padding: 4px 10px; font-weight: bold;" onclick="promptAddSectionToChip(${c.id}, '${c.name}', '${chip}')">+ Add Section under ${chip}</button>
+                  <div style="display: flex; gap: 6px; align-items: center;">
+                    <button class="btn-sm" style="background: var(--accent-cyan); color: #000; font-size: 11px; padding: 4px 10px; font-weight: bold;" onclick="promptAddSectionToChip(${c.id}, '${c.name}', '${chip}')">+ Add Section under ${chip}</button>
+                    <button class="btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 11px; padding: 4px 8px; font-weight: bold;" title="Delete chip ${chip} and its sections" onclick="confirmDeleteChip(${c.id}, '${chip}')">🗑️ Delete Chip</button>
+                  </div>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 8px;">
                   ${chipGroups[chip].map(s => `
-                    <span style="background: var(--card-inner); border: 1px solid var(--border); padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;">
-                      ${s.name} <small style="color: var(--muted);">(${s.messageCount} msgs)</small>
+                    <span style="background: var(--card-inner); border: 1px solid var(--border); padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                      <span>${s.name}</span>
+                      <small style="color: var(--muted);">(${s.messageCount} msgs)</small>
+                      <button style="background: transparent; border: none; color: #ef4444; font-weight: bold; cursor: pointer; padding: 0 4px; border-radius: 4px; font-size: 13px;" title="Delete section ${s.name}" onclick="confirmDeleteSection(${s.id}, '${s.name}')">✕</button>
                     </span>
                   `).join('')}
                 </div>
@@ -529,6 +535,36 @@
         </div>
       `;
       }).join('');
+    }
+
+    async function confirmDeleteCollege(collegeId, name) {
+      if (!confirm(`Are you sure you want to delete College "${name}"?\nThis will remove all its chips, sections, and associated messages.`)) return;
+      const res = await fetch(`/api/admin/colleges/${collegeId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) { alert(`College "${name}" deleted successfully.`); loadColleges(); loadStats(); }
+      else { const d = await res.json(); alert(d.error || 'Failed to delete college'); }
+    }
+
+    async function confirmDeleteChip(collegeId, chip) {
+      if (!confirm(`Are you sure you want to delete Chip "${chip}" and all sections under it?`)) return;
+      const res = await fetch(`/api/admin/colleges/${collegeId}/chips/${encodeURIComponent(chip)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) { alert(`Chip "${chip}" deleted successfully.`); loadColleges(); loadStats(); }
+      else { const d = await res.json(); alert(d.error || 'Failed to delete chip'); }
+    }
+
+    async function confirmDeleteSection(sectionId, name) {
+      if (!confirm(`Are you sure you want to delete Section "${name}"?`)) return;
+      const res = await fetch(`/api/admin/sections/${sectionId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (res.ok) { alert(`Section "${name}" deleted successfully.`); loadColleges(); loadStats(); }
+      else { const d = await res.json(); alert(d.error || 'Failed to delete section'); }
     }
 
     async function promptAddCollege() {

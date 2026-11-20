@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface SectionRepository extends JpaRepository<Section, Long> {
     List<Section> findByCollegeId(Long collegeId);
+    List<Section> findByCollegeIdAndChipIgnoreCase(Long collegeId, String chip);
     List<Section> findByCollegeIdAndNameContainingIgnoreCase(Long collegeId, String name);
     Optional<Section> findByCollegeIdAndName(Long collegeId, String name);
 }

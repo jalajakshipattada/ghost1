@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -32,6 +33,8 @@ public class AdminController {
     private final DirectMessageRepository directMessageRepository;
     private final CollegeRepository collegeRepository;
     private final SectionRepository sectionRepository;
+    private final SectionReadRepository sectionReadRepository;
+    private final MessageReactionRepository messageReactionRepository;
     private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final JwtUtils jwtUtils;
@@ -354,8 +357,11 @@ public class AdminController {
             String clean = part.trim().toUpperCase();
             if (clean.isEmpty()) continue;
 
-            if (assignedChip != null && clean.matches("^\\d+$")) {
-                clean = assignedChip + "-" + clean;
+            if (assignedChip != null) {
+                // If user entered just a number or letter under this chip (e.g. "1" or "A")
+                if (clean.matches("^\\d+$") || clean.matches("^[A-Z]$")) {
+                    clean = assignedChip + " " + clean;
+                }
             } else {
                 clean = clean.replaceAll("^([A-Z]+)\\s+(\\d+)$", "$1-$2");
                 clean = clean.replaceAll("^([A-Z]+)(\\d+)$", "$1-$2");
@@ -410,11 +416,8 @@ public class AdminController {
             String clean = part.trim().toUpperCase();
             if (clean.isEmpty()) continue;
 
-            if (clean.matches("^\\d+$")) {
-                clean = chip + "-" + clean;
-            } else {
-                clean = clean.replaceAll("^([A-Z]+)\\s+(\\d+)$", "$1-$2");
-                clean = clean.replaceAll("^([A-Z]+)(\\d+)$", "$1-$2");
+            if (clean.matches("^\\d+$") || clean.matches("^[A-Z]$")) {
+                clean = chip + " " + clean;
             }
 
             if (sectionRepository.findByCollegeIdAndName(collegeId, clean).isEmpty()) {
@@ -437,34 +440,140 @@ public class AdminController {
         ));
     }
 
-    @DeleteMapping("/colleges/{collegeId}")
-    public ResponseEntity<?> deleteCollege(@PathVariable Long collegeId) {
-        checkAdminAccess();
-        College college = collegeRepository.findById(collegeId)
-                .orElseThrow(() -> new RuntimeException("College not found"));
+    // Cascade delete a single section cleanly
+    private void deleteSingleSection(Section section) {
+        Long sectionId = section.getId();
 
-        long studentCount = userRepository.countByCollegeId(collegeId);
-        if (studentCount > 0) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Cannot delete college with active registered students (" + studentCount + " students)."));
+        // 1. Unlink users whose primary section is this section
+        try {
+            List<User> affectedUsers = userRepository.findByPrimarySectionId(sectionId);
+            for (User u : affectedUsers) {
+                u.setPrimarySection(null);
+                userRepository.save(u);
+            }
+        } catch (Exception e) {
+            log.warn("Unlink primarySection error: {}", e.getMessage());
         }
 
-        collegeRepository.delete(college);
-        return ResponseEntity.ok(Map.of("message", "College deleted successfully."));
+        // 2. Detach reported messages in this section
+        try {
+            reportRepository.detachReportsForSection(sectionId);
+        } catch (Exception e) {
+            log.warn("detachReportsForSection error: {}", e.getMessage());
+        }
+
+        // 3. Delete message reactions in this section
+        try {
+            messageReactionRepository.deleteBySectionId(sectionId);
+        } catch (Exception e) {
+            log.warn("delete reactions error: {}", e.getMessage());
+        }
+
+        // 4. Delete messages in this section
+        try {
+            messageRepository.deleteByDestinationSectionId(sectionId);
+        } catch (Exception e) {
+            log.warn("delete messages error: {}", e.getMessage());
+        }
+
+        // 5. Delete section read states
+        try {
+            sectionReadRepository.deleteBySectionId(sectionId);
+        } catch (Exception e) {
+            log.warn("delete sectionRead error: {}", e.getMessage());
+        }
+
+        // 6. Delete section
+        sectionRepository.delete(section);
     }
 
     @DeleteMapping("/sections/{sectionId}")
+    @Transactional
     public ResponseEntity<?> deleteSection(@PathVariable Long sectionId) {
         checkAdminAccess();
         Section section = sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new RuntimeException("Section not found"));
 
-        long studentCount = userRepository.countByPrimarySectionId(sectionId);
-        if (studentCount > 0) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Cannot delete section assigned to " + studentCount + " students."));
+        deleteSingleSection(section);
+        return ResponseEntity.ok(Map.of("message", "Section " + section.getName() + " deleted successfully."));
+    }
+
+    @DeleteMapping("/colleges/{collegeId}/chips/{chipName}")
+    @Transactional
+    public ResponseEntity<?> deleteChip(@PathVariable Long collegeId, @PathVariable String chipName) {
+        checkAdminAccess();
+        College college = collegeRepository.findById(collegeId)
+                .orElseThrow(() -> new RuntimeException("College not found"));
+
+        String targetChip = chipName.trim().toUpperCase();
+        List<Section> allSections = sectionRepository.findByCollegeId(collegeId);
+        List<Section> chipSections = allSections.stream()
+                .filter(s -> targetChip.equalsIgnoreCase(s.getChip()))
+                .collect(Collectors.toList());
+
+        if (chipSections.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No sections found under chip " + chipName));
         }
 
-        sectionRepository.delete(section);
-        return ResponseEntity.ok(Map.of("message", "Section deleted successfully."));
+        int count = chipSections.size();
+        for (Section s : chipSections) {
+            deleteSingleSection(s);
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Chip " + targetChip + " and its " + count + " sections deleted successfully.",
+                "deletedCount", count,
+                "collegeId", collegeId
+        ));
+    }
+
+    @DeleteMapping("/colleges/{collegeId}")
+    @Transactional
+    public ResponseEntity<?> deleteCollege(@PathVariable Long collegeId) {
+        checkAdminAccess();
+        College college = collegeRepository.findById(collegeId)
+                .orElseThrow(() -> new RuntimeException("College not found"));
+
+        // 1. Delete all sections under this college
+        List<Section> sections = sectionRepository.findByCollegeId(collegeId);
+        for (Section s : sections) {
+            deleteSingleSection(s);
+        }
+
+        // 2. Unlink users belonging to this college
+        try {
+            List<User> collegeUsers = userRepository.findByCollegeId(collegeId);
+            for (User u : collegeUsers) {
+                u.setCollege(null);
+                u.setPrimarySection(null);
+                userRepository.save(u);
+            }
+        } catch (Exception e) {
+            log.warn("Unlink college users error: {}", e.getMessage());
+        }
+
+        // 3. Detach reports on college messages
+        try {
+            reportRepository.detachReportsForCollege(collegeId);
+        } catch (Exception ignored) {}
+
+        // 4. Delete reactions and messages for this college
+        try {
+            messageReactionRepository.deleteByCollegeId(collegeId);
+            messageRepository.deleteByCollegeId(collegeId);
+        } catch (Exception ignored) {}
+
+        // 5. Delete posts for this college
+        try {
+            List<Post> posts = postRepository.findByCollegeIdOrderByCreatedAtDesc(collegeId, org.springframework.data.domain.Pageable.unpaged()).getContent();
+            for (Post p : posts) {
+                postRepository.delete(p);
+            }
+        } catch (Exception ignored) {}
+
+        // 6. Delete college
+        collegeRepository.delete(college);
+        return ResponseEntity.ok(Map.of("message", "College " + college.getName() + " and all associated data deleted successfully."));
     }
 
     // 5. User Management (Search, Suspend/Ban, Toggle Admin)

@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
@@ -16,6 +17,9 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
 
     @Query("SELECT COALESCE(SUM(COALESCE(pl.voteValue, 1)), 0) FROM PostLike pl WHERE pl.post.id = :postId")
     int getScoreByPostId(@Param("postId") Long postId);
+
+    @Query("SELECT pl.post.id, COALESCE(SUM(COALESCE(pl.voteValue, 1)), 0) FROM PostLike pl WHERE pl.post.id IN :postIds GROUP BY pl.post.id")
+    List<Object[]> getScoresByPostIds(@Param("postIds") List<Long> postIds);
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional

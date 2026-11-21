@@ -465,4 +465,29 @@ class ReportModerationTest {
         verify(userRepository, times(1)).save(reportedUser);
         verify(reportRepository, times(1)).save(r);
     }
+
+    @Test
+    void testFeedAlgorithm_InstagramScoring() {
+        Post p1 = Post.builder()
+                .id(1L)
+                .college(testCollege)
+                .content("Viral post with high comments and image")
+                .imageUrl("https://example.com/photo.jpg")
+                .sharesCount(5)
+                .createdAt(LocalDateTime.now().minusMinutes(30))
+                .build();
+
+        Post p2 = Post.builder()
+                .id(2L)
+                .college(testCollege)
+                .content("Old post from 3 days ago")
+                .sharesCount(0)
+                .createdAt(LocalDateTime.now().minusDays(3))
+                .build();
+
+        double s1 = com.ghostcommunity.backend.controller.FeedController.calculateInstagramScore(p1, testCollege.getId(), 20, 15);
+        double s2 = com.ghostcommunity.backend.controller.FeedController.calculateInstagramScore(p2, testCollege.getId(), 5, 0);
+
+        assertTrue(s1 > s2, "Fresh viral post with media should score significantly higher than old low-engagement post");
+    }
 }

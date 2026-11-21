@@ -13,6 +13,9 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     int countByPostId(Long postId);
     List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
 
+    @org.springframework.data.jpa.repository.Query("SELECT c.post.id, COUNT(c) FROM Comment c WHERE c.post.id IN :postIds GROUP BY c.post.id")
+    List<Object[]> countCommentsByPostIds(@org.springframework.data.repository.query.Param("postIds") List<Long> postIds);
+
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.transaction.annotation.Transactional
     @org.springframework.data.jpa.repository.Query("DELETE FROM Comment c WHERE c.post.id = :postId")

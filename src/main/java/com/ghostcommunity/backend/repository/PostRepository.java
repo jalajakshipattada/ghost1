@@ -8,12 +8,15 @@ import org.springframework.stereotype.Repository;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.util.List;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    List<Post> findTop200ByOrderByCreatedAtDesc();
 
     Page<Post> findByCollegeIdOrderByCreatedAtDesc(Long collegeId, Pageable pageable);
+    List<Post> findTop200ByCollegeIdOrderByCreatedAtDesc(Long collegeId);
     Page<Post> findByCollegeIdAndContentContainingIgnoreCaseOrderByCreatedAtDesc(Long collegeId, String content, Pageable pageable);
     Page<Post> findByAuthorIdOrderByCreatedAtDesc(Long authorId, Pageable pageable);
 

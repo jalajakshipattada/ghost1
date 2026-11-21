@@ -43,4 +43,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "LOWER(COALESCE(u.ghostName, '')) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
            "LOWER(COALESCE(u.email, '')) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<User> searchUsers(@Param("query") String query);
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.college LEFT JOIN FETCH u.primarySection WHERE " +
+           "LOWER(COALESCE(u.realName, '')) LIKE LOWER(CONCAT('%', :query, '%')) AND (u.status IS NULL OR (u.status != com.ghostcommunity.backend.model.UserStatus.SUSPENDED AND u.status != com.ghostcommunity.backend.model.UserStatus.BANNED)) " +
+           "ORDER BY CASE WHEN LOWER(COALESCE(u.realName, '')) LIKE LOWER(CONCAT(:query, '%')) THEN 0 ELSE 1 END, u.realName ASC")
+    List<User> searchAllByRealName(@Param("query") String query);
 }

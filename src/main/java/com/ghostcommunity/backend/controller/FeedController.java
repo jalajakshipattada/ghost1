@@ -84,41 +84,109 @@ public class FeedController {
         return map;
     }
 
+    public static double calculateInstagramScore(Post post, Long viewerCollegeId, int likes, long commentsCount) {
+        int shares = post.getSharesCount() != null ? post.getSharesCount() : 0;
+        boolean hasMedia = (post.getImageUrl() != null && !post.getImageUrl().trim().isEmpty());
+
+        double baseWeight = (likes * 2.5) + (commentsCount * 4.0) + (shares * 5.0) + (hasMedia ? 10.0 : 0.0) + 1.0;
+
+        double affinity = 1.0;
+        if (viewerCollegeId != null && post.getCollege() != null && viewerCollegeId.equals(post.getCollege().getId())) {
+            affinity = 1.35;
+        }
+
+        double hoursElapsed = 0.0;
+        if (post.getCreatedAt() != null) {
+            hoursElapsed = Math.max(0.0, java.time.Duration.between(post.getCreatedAt(), java.time.LocalDateTime.now()).toMinutes() / 60.0);
+        }
+
+        double decay = Math.pow(hoursElapsed + 2.0, 1.4);
+
+        return (baseWeight * affinity) / decay;
+    }
+
     @GetMapping
     public ResponseEntity<?> getFeed(@RequestParam(defaultValue = "0") int page,
                                      @RequestParam(defaultValue = "20") int size,
                                      @RequestParam(required = false) String query,
                                      @RequestParam(defaultValue = "true") boolean allColleges) {
         User user = getCurrentUser();
-        Page<Post> postsPage;
         boolean queryPresent = query != null && !query.trim().isEmpty();
 
-        if (allColleges || user.getCollege() == null) {
-            // Universal / All-Colleges Feed: shared across all campuses
-            if (queryPresent) {
+        if (queryPresent) {
+            Page<Post> postsPage;
+            if (allColleges || user.getCollege() == null) {
                 postsPage = postRepository.searchAllByQuery(query.trim(), PageRequest.of(page, size));
             } else {
-                postsPage = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
-            }
-        } else {
-            // Scoped to the user's specific college
-            if (queryPresent) {
                 postsPage = postRepository.searchByCollegeAndQuery(
                     user.getCollege().getId(), query.trim(), PageRequest.of(page, size));
-            } else {
-                postsPage = postRepository.findByCollegeIdOrderByCreatedAtDesc(
-                    user.getCollege().getId(), PageRequest.of(page, size));
+            }
+            List<Map<String, Object>> feed = postsPage.stream()
+                    .map(post -> formatPostMap(post, user))
+                    .collect(Collectors.toList());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", feed);
+            response.put("totalPages", postsPage.getTotalPages());
+            response.put("totalElements", postsPage.getTotalElements());
+            return ResponseEntity.ok(response);
+        }
+
+        // Instagram-style Feed Ranking Algorithm
+        List<Post> candidatePosts;
+        if (allColleges || user.getCollege() == null) {
+            candidatePosts = postRepository.findTop200ByOrderByCreatedAtDesc();
+            if (candidatePosts.isEmpty()) {
+                candidatePosts = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 50)).getContent();
+            }
+        } else {
+            candidatePosts = postRepository.findTop200ByCollegeIdOrderByCreatedAtDesc(user.getCollege().getId());
+            if (candidatePosts.isEmpty()) {
+                candidatePosts = postRepository.findByCollegeIdOrderByCreatedAtDesc(
+                        user.getCollege().getId(), PageRequest.of(0, 50)).getContent();
             }
         }
 
-        List<Map<String, Object>> feed = postsPage.stream()
+        List<Long> postIds = candidatePosts.stream().map(Post::getId).collect(Collectors.toList());
+        Map<Long, Long> commentCountMap = new HashMap<>();
+        Map<Long, Integer> likeScoreMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            try {
+                List<Object[]> commentCounts = commentRepository.countCommentsByPostIds(postIds);
+                for (Object[] row : commentCounts) {
+                    commentCountMap.put((Long) row[0], ((Number) row[1]).longValue());
+                }
+            } catch (Exception ignored) {}
+            try {
+                List<Object[]> likeScores = postLikeRepository.getScoresByPostIds(postIds);
+                for (Object[] row : likeScores) {
+                    likeScoreMap.put((Long) row[0], ((Number) row[1]).intValue());
+                }
+            } catch (Exception ignored) {}
+        }
+
+        Long viewerCollegeId = (user.getCollege() != null) ? user.getCollege().getId() : null;
+        List<Post> sortedPosts = candidatePosts.stream()
+                .sorted((p1, p2) -> {
+                    double s1 = calculateInstagramScore(p1, viewerCollegeId, likeScoreMap.getOrDefault(p1.getId(), 0), commentCountMap.getOrDefault(p1.getId(), 0L));
+                    double s2 = calculateInstagramScore(p2, viewerCollegeId, likeScoreMap.getOrDefault(p2.getId(), 0), commentCountMap.getOrDefault(p2.getId(), 0L));
+                    return Double.compare(s2, s1);
+                })
+                .collect(Collectors.toList());
+
+        int fromIndex = Math.min(page * size, sortedPosts.size());
+        int toIndex = Math.min(fromIndex + size, sortedPosts.size());
+        List<Post> pagedPosts = sortedPosts.subList(fromIndex, toIndex);
+
+        List<Map<String, Object>> feed = pagedPosts.stream()
                 .map(post -> formatPostMap(post, user))
                 .collect(Collectors.toList());
 
+        int totalPages = (int) Math.ceil((double) sortedPosts.size() / Math.max(1, size));
         Map<String, Object> response = new HashMap<>();
         response.put("content", feed);
-        response.put("totalPages", postsPage.getTotalPages());
-        response.put("totalElements", postsPage.getTotalElements());
+        response.put("totalPages", totalPages);
+        response.put("totalElements", sortedPosts.size());
         return ResponseEntity.ok(response);
     }
 
@@ -467,24 +535,24 @@ public class FeedController {
         }
 
         User user = getCurrentUser();
-        Long collegeId = user.getCollege().getId();
+        Long collegeId = user.getCollege() != null ? user.getCollege().getId() : null;
         String q = query.trim();
 
-        // 1. Search posts
-        Page<Post> postsPage = postRepository.searchByCollegeAndQuery(
-                collegeId, q, PageRequest.of(0, 30));
+        // 1. Search posts across all colleges for discovery
+        Page<Post> postsPage = postRepository.searchAllByQuery(q, PageRequest.of(0, 30));
         List<Map<String, Object>> posts = postsPage.stream()
                 .map(p -> formatPostMap(p, user))
                 .collect(Collectors.toList());
 
-        // 2. Search college real users
-        List<User> usersList = userRepository.searchCollegeUsers(collegeId, q);
+        // 2. Search cross-college real users (strictly by realName across ANY college, Instagram-style)
+        List<User> usersList = userRepository.searchAllByRealName(q);
         List<Map<String, Object>> users = usersList.stream()
                 .map(u -> {
                     Map<String, Object> m = new HashMap<>();
                     m.put("id", u.getId());
                     m.put("realName", u.getRealName() != null ? u.getRealName() : "Student");
-                    m.put("ghostName", u.getGhostName() != null ? u.getGhostName() : "");
+                    m.put("collegeName", u.getCollege() != null ? u.getCollege().getName() : "Campus Member");
+                    m.put("collegeId", u.getCollege() != null ? u.getCollege().getId() : null);
                     m.put("profileImageUrl", u.getProfileImageUrl() != null ? u.getProfileImageUrl() : "");
                     m.put("sectionName", u.getPrimarySection() != null ? u.getPrimarySection().getName() : "");
                     m.put("gender", u.getGender() != null ? u.getGender() : "");
@@ -493,7 +561,9 @@ public class FeedController {
                 .collect(Collectors.toList());
 
         // 3. Search college sections
-        List<Section> sectionsList = sectionRepository.findByCollegeIdAndNameContainingIgnoreCase(collegeId, q);
+        List<Section> sectionsList = (collegeId != null)
+                ? sectionRepository.findByCollegeIdAndNameContainingIgnoreCase(collegeId, q)
+                : List.of();
         List<Map<String, Object>> sections = sectionsList.stream()
                 .map(s -> {
                     Map<String, Object> m = new HashMap<>();

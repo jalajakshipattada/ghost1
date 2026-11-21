@@ -412,7 +412,11 @@
     async function loadReports() {
       const res = await fetch('/api/admin/reports', { headers: { 'Authorization': 'Bearer ' + token } });
       const el = document.getElementById('reportsList');
-      if (!res.ok) { el.innerHTML = 'Error loading reports'; return; }
+      if (!res.ok) {
+        console.error("Failed to load reports:", res.status, await res.text());
+        el.innerHTML = '<div style="color: var(--danger); text-align: center; padding: 40px;">Error loading reports (' + res.status + '). Check console.</div>';
+        return;
+      }
       const reports = await res.json();
       if (!reports.length) {
         el.innerHTML = '<div style="color: var(--muted); text-align: center; padding: 40px;">No message reports found. All campus chats are safe!</div>';

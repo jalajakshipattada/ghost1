@@ -2,23 +2,29 @@ package com.ghostcommunity.backend.controller;
 
 import com.ghostcommunity.backend.model.Block;
 import com.ghostcommunity.backend.model.Message;
+import com.ghostcommunity.backend.model.Post;
 import com.ghostcommunity.backend.model.Report;
 import com.ghostcommunity.backend.model.User;
 import com.ghostcommunity.backend.payload.MessageResponse;
 import com.ghostcommunity.backend.repository.BlockRepository;
 import com.ghostcommunity.backend.repository.DirectMessageRepository;
 import com.ghostcommunity.backend.repository.MessageRepository;
+import com.ghostcommunity.backend.repository.PostRepository;
 import com.ghostcommunity.backend.repository.ReportRepository;
 import com.ghostcommunity.backend.repository.UserRepository;
 import com.ghostcommunity.backend.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 @RequestMapping("/api/moderation")
@@ -28,10 +34,12 @@ public class ModerationController {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
     private final DirectMessageRepository directMessageRepository;
+    private final PostRepository postRepository;
     private final ReportRepository reportRepository;
     private final BlockRepository blockRepository;
 
     @PostMapping("/report")
+    @Transactional
     public ResponseEntity<?> reportAnyMessage(@RequestBody Map<String, Object> payload) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
@@ -50,12 +58,39 @@ public class ModerationController {
                 messageId = Long.valueOf(payload.get("messageId").toString());
             } catch (Exception ignored) {}
         }
+        if (messageId == null && payload.get("id") != null) {
+            try {
+                messageId = Long.valueOf(payload.get("id").toString());
+            } catch (Exception ignored) {}
+        }
 
         User reportedUser = null;
         Message reportedMessage = null;
         Long directMessageId = null;
 
-        if ("DIRECT".equalsIgnoreCase(chatType) || "GHOST".equalsIgnoreCase(chatType)) {
+        if ("POST".equalsIgnoreCase(chatType) || "FEED".equalsIgnoreCase(chatType)) {
+            chatType = "POST";
+            directMessageId = messageId;
+            if (messageId != null) {
+                var postOpt = postRepository.findById(messageId);
+                if (postOpt.isPresent()) {
+                    Post post = postOpt.get();
+                    reportedUser = post.getAuthor();
+                    if (content == null || content.isBlank()) {
+                        content = post.getContent();
+                    }
+                    if (mediaUrl == null) {
+                        mediaUrl = post.getImageUrl();
+                    }
+                    if (mediaUrl != null && !mediaUrl.isBlank()) {
+                        mediaType = "IMAGE";
+                    }
+                    if (sectionName == null && post.getCollege() != null) {
+                        sectionName = post.getCollege().getName();
+                    }
+                }
+            }
+        } else if ("DIRECT".equalsIgnoreCase(chatType) || "GHOST".equalsIgnoreCase(chatType)) {
             directMessageId = messageId;
             if (messageId != null) {
                 var dmOpt = directMessageRepository.findById(messageId);
@@ -95,14 +130,13 @@ public class ModerationController {
             if (reporter.getCollege() != null) {
                 reportedUser = userRepository.findByGhostNameAndCollegeId(gName, reporter.getCollege().getId()).orElse(null);
             }
+            if (reportedUser == null) {
+                reportedUser = userRepository.findFirstByGhostName(gName).orElse(null);
+            }
         }
 
         if (reportedUser == null) {
             return ResponseEntity.badRequest().body(new MessageResponse("Could not identify the message sender."));
-        }
-
-        if (reporter.getId().equals(reportedUser.getId())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("You cannot report your own message."));
         }
 
         Report report = Report.builder()
@@ -114,28 +148,33 @@ public class ModerationController {
                 .messageContent(content)
                 .mediaUrl(mediaUrl)
                 .mediaType(mediaType)
-                .sectionName(sectionName)
+                .sectionName(sectionName != null ? sectionName : "General")
                 .reason(reason)
                 .status("PENDING")
                 .adminAction("NONE")
                 .build();
 
-        reportRepository.save(report);
+        report = reportRepository.save(report);
+        log.info("Report #{} created by user #{} against user #{} (chatType={})",
+                report.getId(), reporter.getId(), reportedUser.getId(), chatType);
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Report submitted successfully. Campus Admins will review the message.",
-                "reportId", report.getId()
-        ));
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("message", "Report submitted successfully. Campus Admins will review the message.");
+        resp.put("reportId", report.getId());
+        return ResponseEntity.ok(resp);
     }
 
     @PostMapping("/report/message/{messageId}")
-    public ResponseEntity<?> reportMessage(@PathVariable Long messageId, @RequestBody Map<String, String> payload) {
+    @Transactional
+    public ResponseEntity<?> reportMessage(@PathVariable Long messageId, @RequestBody(required = false) Map<String, String> payload) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User reporter = userRepository.findById(userDetails.getId()).orElseThrow();
 
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Message not found"));
+
+        String reason = (payload != null && payload.containsKey("reason")) ? payload.get("reason") : "Inappropriate content";
 
         Report report = Report.builder()
                 .reporter(reporter)
@@ -145,7 +184,7 @@ public class ModerationController {
                 .messageContent(message.getContent())
                 .mediaType(message.getMessageType())
                 .sectionName(message.getDestinationSection() != null ? message.getDestinationSection().getName() : "All College")
-                .reason(payload.getOrDefault("reason", "Inappropriate content"))
+                .reason(reason)
                 .status("PENDING")
                 .adminAction("NONE")
                 .build();

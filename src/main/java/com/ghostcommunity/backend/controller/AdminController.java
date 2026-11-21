@@ -164,13 +164,14 @@ public class AdminController {
 
     // 2. View all Reports with unmasked real & ghost names
     @GetMapping("/reports")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAllReports(@RequestParam(required = false) String status) {
         checkAdminAccess();
         List<Report> reports;
         if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
-            reports = reportRepository.findByStatusOrderByCreatedAtDesc(status.toUpperCase());
+            reports = reportRepository.findByStatusWithUsersAndColleges(status.toUpperCase());
         } else {
-            reports = reportRepository.findAllByOrderByCreatedAtDesc();
+            reports = reportRepository.findAllWithUsersAndColleges();
         }
 
         List<Map<String, Object>> result = new ArrayList<>();
@@ -194,9 +195,9 @@ public class AdminController {
                 User u = r.getReportedUser();
                 Map<String, Object> reportedMap = new HashMap<>();
                 reportedMap.put("id", u.getId());
-                reportedMap.put("realName", u.getRealName());
-                reportedMap.put("ghostName", u.getGhostName());
-                reportedMap.put("email", u.getEmail());
+                reportedMap.put("realName", u.getRealName() != null ? u.getRealName() : "Unknown");
+                reportedMap.put("ghostName", u.getGhostName() != null ? u.getGhostName() : "Unknown");
+                reportedMap.put("email", u.getEmail() != null ? u.getEmail() : "");
                 reportedMap.put("status", u.getStatus() != null ? u.getStatus().name() : "ACTIVE");
                 reportedMap.put("collegeName", u.getCollege() != null ? u.getCollege().getName() : "N/A");
                 reportedMap.put("sectionName", u.getPrimarySection() != null ? u.getPrimarySection().getName() : "N/A");
@@ -208,9 +209,9 @@ public class AdminController {
                 User rep = r.getReporter();
                 Map<String, Object> reporterMap = new HashMap<>();
                 reporterMap.put("id", rep.getId());
-                reporterMap.put("realName", rep.getRealName());
-                reporterMap.put("ghostName", rep.getGhostName());
-                reporterMap.put("email", rep.getEmail());
+                reporterMap.put("realName", rep.getRealName() != null ? rep.getRealName() : "Anonymous");
+                reporterMap.put("ghostName", rep.getGhostName() != null ? rep.getGhostName() : "Ghost");
+                reporterMap.put("email", rep.getEmail() != null ? rep.getEmail() : "");
                 map.put("reporter", reporterMap);
             }
 
@@ -222,6 +223,7 @@ public class AdminController {
 
     // 3. Action on a Report (Dismiss, Delete Message, Ban User)
     @PostMapping("/reports/{reportId}/action")
+    @Transactional
     public ResponseEntity<?> actionReport(@PathVariable Long reportId, @RequestBody Map<String, String> body) {
         checkAdminAccess();
         Report report = reportRepository.findById(reportId)
@@ -243,6 +245,12 @@ public class AdminController {
                     messageRepository.save(m);
                 } catch (Exception e) {
                     log.error("Failed to mask reported message: {}", e.getMessage());
+                }
+            } else if ("POST".equalsIgnoreCase(report.getChatType()) && report.getDirectMessageId() != null) {
+                try {
+                    postRepository.deleteById(report.getDirectMessageId());
+                } catch (Exception e) {
+                    log.error("Failed to delete reported post: {}", e.getMessage());
                 }
             } else if (report.getDirectMessageId() != null) {
                 try {

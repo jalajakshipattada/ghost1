@@ -221,7 +221,7 @@ public class AdminController {
         return ResponseEntity.ok(result);
     }
 
-    // 3. Action on a Report (Dismiss, Delete Message, Ban User)
+    // 3. Action on a Report (Dismiss, Delete Message, Warn User, Ban User, Revert Suspension)
     @PostMapping("/reports/{reportId}/action")
     @Transactional
     public ResponseEntity<?> actionReport(@PathVariable Long reportId, @RequestBody Map<String, String> body) {
@@ -235,45 +235,47 @@ public class AdminController {
         report.setAdminNotes(notes);
         report.setResolvedAt(LocalDateTime.now());
 
-        if ("DELETE_MESSAGE".equalsIgnoreCase(action)) {
-            // Delete community message if exists
-            if (report.getReportedMessage() != null) {
-                try {
-                    Message m = report.getReportedMessage();
-                    m.setContent("[This message was removed by Campus Moderation]");
-                    m.setMessageType("TEXT");
-                    messageRepository.save(m);
-                } catch (Exception e) {
-                    log.error("Failed to mask reported message: {}", e.getMessage());
+        if ("WARN_USER".equalsIgnoreCase(action)) {
+            User reportedUser = report.getReportedUser();
+            if (reportedUser != null) {
+                String warningText = body.getOrDefault("warningMessage", notes);
+                if (warningText == null || warningText.isBlank()) {
+                    warningText = "Your content was reported and removed for violating campus community guidelines. Further violations will result in account suspension.";
                 }
-            } else if ("POST".equalsIgnoreCase(report.getChatType()) && report.getDirectMessageId() != null) {
-                try {
-                    postRepository.deleteById(report.getDirectMessageId());
-                } catch (Exception e) {
-                    log.error("Failed to delete reported post: {}", e.getMessage());
-                }
-            } else if (report.getDirectMessageId() != null) {
-                try {
-                    directMessageRepository.findById(report.getDirectMessageId()).ifPresent(dm -> {
-                        dm.setContent("[This message was removed by Campus Moderation]");
-                        dm.setMessageType("TEXT");
-                        directMessageRepository.save(dm);
-                    });
-                } catch (Exception e) {
-                    log.error("Failed to mask reported DM: {}", e.getMessage());
-                }
+                reportedUser.setWarningMessage(warningText);
+                reportedUser.setWarningCount((reportedUser.getWarningCount() != null ? reportedUser.getWarningCount() : 0) + 1);
+                userRepository.save(reportedUser);
             }
+            maskOrDeleteReportedContent(report);
+            report.setStatus("RESOLVED");
+            report.setAdminAction("WARNED_USER");
+
+        } else if ("DELETE_MESSAGE".equalsIgnoreCase(action) || "DELETE_CONTENT".equalsIgnoreCase(action)) {
+            maskOrDeleteReportedContent(report);
             report.setStatus("RESOLVED");
             report.setAdminAction("DELETED_MESSAGE");
 
-        } else if ("BAN_USER".equalsIgnoreCase(action)) {
+        } else if ("BAN_USER".equalsIgnoreCase(action) || "SUSPEND_USER".equalsIgnoreCase(action)) {
             User reportedUser = report.getReportedUser();
             if (reportedUser != null) {
                 reportedUser.setStatus(UserStatus.SUSPENDED);
+                String reason = notes != null && !notes.isBlank() ? notes : "Suspended by campus moderation for community guideline violations.";
+                reportedUser.setSuspensionReason(reason);
+                userRepository.save(reportedUser);
+            }
+            maskOrDeleteReportedContent(report);
+            report.setStatus("RESOLVED");
+            report.setAdminAction("BANNED_USER");
+
+        } else if ("UNBAN_USER".equalsIgnoreCase(action) || "UNSUSPEND".equalsIgnoreCase(action) || "REVERT_SUSPENSION".equalsIgnoreCase(action)) {
+            User reportedUser = report.getReportedUser();
+            if (reportedUser != null) {
+                reportedUser.setStatus(UserStatus.ACTIVE);
+                reportedUser.setSuspensionReason(null);
                 userRepository.save(reportedUser);
             }
             report.setStatus("RESOLVED");
-            report.setAdminAction("BANNED_USER");
+            report.setAdminAction("UNBANNED_USER");
 
         } else {
             // Dismiss
@@ -288,6 +290,35 @@ public class AdminController {
                 "status", report.getStatus(),
                 "adminAction", report.getAdminAction()
         ));
+    }
+
+    private void maskOrDeleteReportedContent(Report report) {
+        if (report.getReportedMessage() != null) {
+            try {
+                Message m = report.getReportedMessage();
+                m.setContent("[This message was removed by Campus Moderation]");
+                m.setMessageType("TEXT");
+                messageRepository.save(m);
+            } catch (Exception e) {
+                log.error("Failed to mask reported message: {}", e.getMessage());
+            }
+        } else if ("POST".equalsIgnoreCase(report.getChatType()) && report.getDirectMessageId() != null) {
+            try {
+                postRepository.deleteById(report.getDirectMessageId());
+            } catch (Exception e) {
+                log.error("Failed to delete reported post: {}", e.getMessage());
+            }
+        } else if (report.getDirectMessageId() != null) {
+            try {
+                directMessageRepository.findById(report.getDirectMessageId()).ifPresent(dm -> {
+                    dm.setContent("[This message was removed by Campus Moderation]");
+                    dm.setMessageType("TEXT");
+                    directMessageRepository.save(dm);
+                });
+            } catch (Exception e) {
+                log.error("Failed to mask reported DM: {}", e.getMessage());
+            }
+        }
     }
 
     // 4. Colleges & Sections Management
@@ -665,8 +696,10 @@ public class AdminController {
 
         if (user.getStatus() == UserStatus.SUSPENDED || user.getStatus() == UserStatus.BANNED) {
             user.setStatus(UserStatus.ACTIVE);
+            user.setSuspensionReason(null);
         } else {
             user.setStatus(UserStatus.SUSPENDED);
+            user.setSuspensionReason("Suspended by campus administration.");
         }
         userRepository.save(user);
 

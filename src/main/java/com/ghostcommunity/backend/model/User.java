@@ -70,6 +70,16 @@ public class User {
     @Column(name = "token_expiry")
     private LocalDateTime tokenExpiry;
 
+    @Column(name = "warning_message", length = 500)
+    private String warningMessage;
+
+    @Column(name = "warning_count")
+    @Builder.Default
+    private Integer warningCount = 0;
+
+    @Column(name = "suspension_reason", length = 500)
+    private String suspensionReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

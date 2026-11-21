@@ -404,4 +404,65 @@ class ReportModerationTest {
         verify(userRepository, times(1)).save(reportedUser);
         verify(reportRepository, times(1)).save(r);
     }
+
+    @Test
+    void testAdminActionReport_WarnUser() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+
+        Message msg = Message.builder()
+                .id(101L)
+                .content("Questionable remark")
+                .messageType("TEXT")
+                .build();
+
+        Report r = Report.builder()
+                .id(9L)
+                .reportedUser(reportedUser)
+                .reportedMessage(msg)
+                .status("PENDING")
+                .adminAction("NONE")
+                .build();
+        when(reportRepository.findById(9L)).thenReturn(Optional.of(r));
+
+        ResponseEntity<?> response = adminController.actionReport(9L, Map.of(
+                "action", "WARN_USER",
+                "warningMessage", "Please review campus guidelines regarding respectful speech."
+        ));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("RESOLVED", r.getStatus());
+        assertEquals("WARNED_USER", r.getAdminAction());
+        assertEquals("Please review campus guidelines regarding respectful speech.", reportedUser.getWarningMessage());
+        assertEquals(1, reportedUser.getWarningCount());
+        assertEquals("[This message was removed by Campus Moderation]", msg.getContent());
+        verify(userRepository, times(1)).save(reportedUser);
+        verify(messageRepository, times(1)).save(msg);
+        verify(reportRepository, times(1)).save(r);
+    }
+
+    @Test
+    void testAdminActionReport_RevertSuspension() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(reporter));
+
+        reportedUser.setStatus(UserStatus.SUSPENDED);
+        reportedUser.setSuspensionReason("Prior offense");
+
+        Report r = Report.builder()
+                .id(10L)
+                .reportedUser(reportedUser)
+                .status("RESOLVED")
+                .adminAction("BANNED_USER")
+                .build();
+        when(reportRepository.findById(10L)).thenReturn(Optional.of(r));
+
+        ResponseEntity<?> response = adminController.actionReport(10L, Map.of("action", "REVERT_SUSPENSION"));
+
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals("RESOLVED", r.getStatus());
+        assertEquals("UNBANNED_USER", r.getAdminAction());
+        assertEquals(UserStatus.ACTIVE, reportedUser.getStatus());
+        assertNull(reportedUser.getSuspensionReason());
+        verify(userRepository, times(1)).save(reportedUser);
+        verify(reportRepository, times(1)).save(r);
+    }
 }

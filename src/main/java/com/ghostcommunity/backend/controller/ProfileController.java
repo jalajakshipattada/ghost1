@@ -18,7 +18,22 @@ public class ProfileController {
     private final UserRepository userRepository;
 
     // DTO for the user's OWN private profile screen (Contains EVERYTHING)
-    record PrivateProfileDto(Long id, String email, String realName, String ghostName, Long collegeId, String collegeName, String primarySection, String profileImageUrl, String gender, boolean isAdmin) {}
+    record PrivateProfileDto(
+            Long id,
+            String email,
+            String realName,
+            String ghostName,
+            Long collegeId,
+            String collegeName,
+            String primarySection,
+            String profileImageUrl,
+            String gender,
+            boolean isAdmin,
+            String status,
+            String warningMessage,
+            Integer warningCount,
+            String suspensionReason
+    ) {}
 
     // DTO for when you tap on someone's Ghost Name in the chat (Strictly Anonymous)
     record PublicRealProfileDto(Long id, String realName, String collegeName, String primarySection, String profileImageUrl, String gender) {}
@@ -43,10 +58,26 @@ public class ProfileController {
                 user.getPrimarySection() != null ? user.getPrimarySection().getName() : "Not Selected",
                 user.getProfileImageUrl(),
                 user.getGender(),
-                user.isAdmin()
+                user.isAdmin(),
+                user.getStatus() != null ? user.getStatus().name() : "ACTIVE",
+                user.getWarningMessage(),
+                user.getWarningCount() != null ? user.getWarningCount() : 0,
+                user.getSuspensionReason()
         );
 
         return ResponseEntity.ok(profile);
+    }
+
+    @PostMapping("/warning/acknowledge")
+    public ResponseEntity<?> acknowledgeWarning() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(userDetails.getId()).orElseThrow();
+
+        user.setWarningMessage(null);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Warning acknowledged"));
     }
 
     @PostMapping("/me/image")

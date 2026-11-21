@@ -95,9 +95,16 @@ public class ModerationController {
             if (messageId != null) {
                 var dmOpt = directMessageRepository.findById(messageId);
                 if (dmOpt.isPresent()) {
-                    reportedUser = dmOpt.get().getSender();
+                    var dm = dmOpt.get();
+                    reportedUser = dm.getSender();
                     if (content == null || content.isBlank()) {
-                        content = dmOpt.get().getContent();
+                        content = dm.getContent();
+                    }
+                    if (mediaType == null || "TEXT".equalsIgnoreCase(mediaType)) {
+                        mediaType = dm.getMessageType();
+                    }
+                    if (mediaUrl == null && content != null && content.startsWith("http")) {
+                        mediaUrl = content;
                     }
                 }
             }
@@ -111,10 +118,29 @@ public class ModerationController {
                     if (content == null || content.isBlank()) {
                         content = msgOpt.get().getContent();
                     }
+                    if (mediaType == null || "TEXT".equalsIgnoreCase(mediaType)) {
+                        mediaType = reportedMessage.getMessageType();
+                    }
+                    if (mediaUrl == null && content != null && content.startsWith("http")) {
+                        mediaUrl = content;
+                    }
                     if (sectionName == null && reportedMessage.getDestinationSection() != null) {
                         sectionName = reportedMessage.getDestinationSection().getName();
                     }
                 }
+            }
+        }
+
+        // Auto-detect media type and url from content if URL provided
+        if (content != null && content.startsWith("http")) {
+            if (mediaUrl == null) mediaUrl = content;
+            String lower = content.toLowerCase();
+            if (lower.contains(".mp4") || lower.contains(".mov") || lower.contains(".webm") || lower.contains("/video/")) {
+                mediaType = "VIDEO";
+            } else if (lower.contains(".mp3") || lower.contains(".wav") || lower.contains(".m4a") || lower.contains(".ogg") || lower.contains("audio")) {
+                mediaType = "AUDIO";
+            } else if (lower.contains(".jpg") || lower.contains(".jpeg") || lower.contains(".png") || lower.contains(".webp") || lower.contains(".gif") || lower.contains("/image/")) {
+                mediaType = "IMAGE";
             }
         }
 

@@ -139,7 +139,11 @@
     .btn-sm { padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
     .btn-dismiss { background: #262444; color: #fff; }
     .btn-delete { background: var(--warning); color: #000; }
+    .btn-warn { background: #EAB308; color: #000; }
+    .btn-warn:hover { opacity: 0.9; }
     .btn-ban { background: var(--danger); color: #fff; }
+    .btn-unban { background: var(--success); color: #fff; }
+    .btn-unban:hover { opacity: 0.9; }
 
     /* Tables */
     .data-table {
@@ -414,6 +418,54 @@
       }
     }
 
+    function renderReportedMedia(r) {
+      const raw = (r.mediaUrl || r.messageContent || '').trim();
+      const type = (r.mediaType || '').toUpperCase();
+      const isHttp = raw.startsWith('http://') || raw.startsWith('https://');
+
+      let isVideo = type === 'VIDEO' || raw.includes('.mp4') || raw.includes('.mov') || raw.includes('.webm') || raw.includes('/video/upload/');
+      let isAudio = type === 'AUDIO' || raw.includes('.mp3') || raw.includes('.wav') || raw.includes('.m4a') || raw.includes('.ogg') || raw.includes('/raw/upload/') || raw.toLowerCase().includes('audio');
+      let isImage = type === 'IMAGE' || raw.includes('.jpg') || raw.includes('.jpeg') || raw.includes('.png') || raw.includes('.webp') || raw.includes('.gif') || (!isVideo && !isAudio && raw.includes('/image/upload/'));
+
+      let mediaHtml = '';
+      if (isHttp) {
+        if (isVideo) {
+          mediaHtml = `
+            <div style="margin-top: 10px;">
+              <span style="display: block; font-size: 11px; color: var(--accent-cyan); font-weight: 700; margin-bottom: 4px;">📹 REPORTED VIDEO:</span>
+              <video src="${raw}" controls playsinline preload="metadata" style="max-width: 100%; max-height: 280px; border-radius: 10px; background: #000; border: 1px solid var(--border); display: block;"></video>
+            </div>`;
+        } else if (isAudio) {
+          mediaHtml = `
+            <div style="margin-top: 10px;">
+              <span style="display: block; font-size: 11px; color: var(--accent-cyan); font-weight: 700; margin-bottom: 4px;">🎙️ REPORTED AUDIO / VOICE NOTE:</span>
+              <audio src="${raw}" controls preload="metadata" style="width: 100%; max-width: 440px; outline: none;"></audio>
+            </div>`;
+        } else if (isImage) {
+          mediaHtml = `
+            <div style="margin-top: 10px;">
+              <span style="display: block; font-size: 11px; color: var(--accent-cyan); font-weight: 700; margin-bottom: 4px;">🖼️ REPORTED IMAGE (click to view full):</span>
+              <a href="${raw}" target="_blank" title="Click to view full image">
+                <img src="${raw}" alt="Reported content" style="max-width: 100%; max-height: 280px; border-radius: 10px; border: 1px solid var(--border); object-fit: contain; cursor: pointer; display: block;" />
+              </a>
+            </div>`;
+        }
+      }
+
+      let textContent = '';
+      if (r.messageContent) {
+        if (!r.messageContent.startsWith('http') || (!isVideo && !isAudio && !isImage)) {
+          textContent = `<div style="font-size: 14px; color: #fff; line-height: 1.4; word-break: break-word;">${r.messageContent}</div>`;
+        }
+      }
+
+      if (!mediaHtml && !textContent) {
+        return '<div style="color: var(--muted); font-style: italic;">[No content preview]</div>';
+      }
+
+      return `${textContent}${mediaHtml}`;
+    }
+
     async function loadReports() {
       const res = await fetch('/api/admin/reports', { headers: { 'Authorization': 'Bearer ' + token } });
       const el = document.getElementById('reportsList');
@@ -429,6 +481,7 @@
       }
       el.innerHTML = reports.map(r => {
         const isPending = r.status === 'PENDING';
+        const isSuspended = r.reportedUser && (r.reportedUser.status === 'SUSPENDED' || r.reportedUser.status === 'BANNED');
         return `
           <div class="report-card">
             <div class="report-header">
@@ -440,13 +493,14 @@
             </div>
             <div class="msg-preview">
               <span style="color: var(--muted); font-size: 11px; font-weight: 800; display: block; margin-bottom: 4px;">REPORTED CONTENT:</span>
-              ${r.messageContent || '[No text message]'}
+              ${renderReportedMedia(r)}
             </div>
             <div class="unmasked-box">
               <div>
                 <div class="unmask-title">Reported Sender (Unmasked):</div>
                 <div class="unmask-name">${r.reportedUser ? r.reportedUser.realName : 'Unknown'}</div>
                 <div class="unmask-ghost">@${r.reportedUser ? r.reportedUser.ghostName : 'N/A'} · ${r.reportedUser ? r.reportedUser.sectionName : ''}</div>
+                <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">User Status: <strong style="color: ${isSuspended ? 'var(--danger)' : 'var(--success)'};">${r.reportedUser ? r.reportedUser.status : 'N/A'}</strong></div>
               </div>
               <div>
                 <div class="unmask-title">Reported By:</div>
@@ -454,16 +508,45 @@
                 <div class="unmask-ghost">@${r.reporter ? r.reporter.ghostName : 'N/A'}</div>
               </div>
             </div>
-            ${isPending ? `
-              <div class="action-row">
+            <div class="action-row" style="flex-wrap: wrap;">
+              ${isPending ? `
                 <button class="btn-sm btn-dismiss" onclick="actReport(${r.id}, 'DISMISS')">Dismiss</button>
-                <button class="btn-sm btn-delete" onclick="actReport(${r.id}, 'DELETE_MESSAGE')">Delete Message</button>
-                <button class="btn-sm btn-ban" onclick="actReport(${r.id}, 'BAN_USER')">Ban Offender</button>
-              </div>
-            ` : `<div style="font-size: 12px; color: var(--muted);">Action Taken: ${r.adminAction}</div>`}
+                <button class="btn-sm btn-delete" onclick="actReport(${r.id}, 'DELETE_MESSAGE')">🗑️ Delete Content</button>
+                <button class="btn-sm btn-warn" onclick="promptWarnUser(${r.id})">⚠️ Send Warning</button>
+                <button class="btn-sm btn-ban" onclick="promptSuspendUser(${r.id})">🚫 Suspend User</button>
+              ` : `<div style="font-size: 12px; color: var(--muted); align-self: center; margin-right: auto;">Action Taken: <strong style="color: #fff;">${r.adminAction}</strong></div>`}
+              ${isSuspended ? `
+                <button class="btn-sm btn-unban" onclick="actReport(${r.id}, 'REVERT_SUSPENSION')">🟢 Revert Suspension</button>
+              ` : ''}
+            </div>
           </div>
         `;
       }).join('');
+    }
+
+    async function promptWarnUser(id) {
+      const defaultWarn = "Your content was reported and removed for violating campus community guidelines. Continued violations will result in account suspension.";
+      const msg = prompt("Enter official warning message to send to user:", defaultWarn);
+      if (msg === null) return;
+      await fetch(`/api/admin/reports/${id}/action`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'WARN_USER', warningMessage: msg.trim() })
+      });
+      loadReports();
+      loadStats();
+    }
+
+    async function promptSuspendUser(id) {
+      const reason = prompt("Enter reason for suspension:", "Suspended by campus moderation for community guideline violations.");
+      if (reason === null) return;
+      await fetch(`/api/admin/reports/${id}/action`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'BAN_USER', notes: reason.trim() })
+      });
+      loadReports();
+      loadStats();
     }
 
     async function actReport(id, action) {
@@ -658,7 +741,7 @@
           <td>${u.isAdmin ? '<span class="pill" style="background: rgba(245,158,11,0.2); color: var(--warning);">ADMIN</span>' : 'Student'}</td>
           <td>
             <button class="btn-sm" style="background: ${u.status === 'SUSPENDED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;" onclick="toggleStatus(${u.id})">
-              ${u.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
+              ${u.status === 'SUSPENDED' ? '🟢 Revert Suspension' : '🚫 Suspend'}
             </button>
           </td>
         </tr>

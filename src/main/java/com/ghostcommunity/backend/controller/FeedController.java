@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,6 +110,17 @@ public class FeedController {
         map.put("sharesCount", post.getSharesCount() != null ? post.getSharesCount() : 0);
         map.put("isLikedByMe", myVote == 1);
         map.put("isSavedByMe", savedPostRepository.existsByUserIdAndPostId(user.getId(), post.getId()));
+
+        String actionUrl = post.getActionUrl() != null ? post.getActionUrl() : "";
+        if (actionUrl.isBlank() && post.getContent() != null && post.getContent().contains("🔗 ")) {
+            int idx = post.getContent().indexOf("🔗 ");
+            actionUrl = post.getContent().substring(idx + 2).trim();
+            if (actionUrl.contains("\n")) {
+                actionUrl = actionUrl.substring(0, actionUrl.indexOf("\n")).trim();
+            }
+        }
+        map.put("actionUrl", actionUrl);
+
         return map;
     }
 
@@ -315,11 +327,17 @@ public class FeedController {
             return ResponseEntity.badRequest().body("Content cannot be empty");
         }
         String imageUrl = request.get("imageUrl");
+        String videoUrl = request.get("videoUrl");
+        String mediaType = request.get("mediaType");
+        String actionUrl = request.get("actionUrl");
         Post post = Post.builder()
                 .author(user)
                 .college(user.getCollege())
                 .content(content)
-                .imageUrl(imageUrl != null && !imageUrl.trim().isEmpty() ? imageUrl : null)
+                .imageUrl(imageUrl != null && !imageUrl.trim().isEmpty() ? imageUrl.trim() : null)
+                .videoUrl(videoUrl != null && !videoUrl.trim().isEmpty() ? videoUrl.trim() : null)
+                .mediaType(mediaType)
+                .actionUrl(actionUrl != null && !actionUrl.trim().isEmpty() ? actionUrl.trim() : null)
                 .build();
         postRepository.save(post);
         return ResponseEntity.ok("Post created successfully");
@@ -578,20 +596,40 @@ public class FeedController {
         User user = getCurrentUser();
         Long collegeId = user.getCollege() != null ? user.getCollege().getId() : null;
         String q = query.trim();
+        String[] tokens = q.split("\\s+");
 
-        // 1. Search posts across all colleges for discovery
-        Page<Post> postsPage = postRepository.searchAllByQuery(q, PageRequest.of(0, 30));
-        List<Map<String, Object>> posts = postsPage.stream()
+        // 1. Search posts across all colleges for discovery (high accuracy, multi-word fallback)
+        LinkedHashSet<Post> matchedPosts = new LinkedHashSet<>();
+        matchedPosts.addAll(postRepository.searchAllByQuery(q, PageRequest.of(0, 30)).getContent());
+        if (tokens.length > 1) {
+            for (String token : tokens) {
+                if (token.length() >= 2) {
+                    matchedPosts.addAll(postRepository.searchAllByQuery(token, PageRequest.of(0, 20)).getContent());
+                }
+            }
+        }
+        List<Map<String, Object>> posts = matchedPosts.stream()
+                .limit(40)
                 .map(p -> formatPostMap(p, user))
                 .collect(Collectors.toList());
 
-        // 2. Search cross-college real users (strictly by realName across ANY college, Instagram-style)
-        List<User> usersList = userRepository.searchAllByRealName(q);
-        List<Map<String, Object>> users = usersList.stream()
+        // 2. Search cross-college real users (strictly by realName/ghostName/college/section across ANY college, Instagram-style)
+        LinkedHashSet<User> matchedUsers = new LinkedHashSet<>();
+        matchedUsers.addAll(userRepository.searchAllByRealName(q));
+        if (tokens.length > 1) {
+            for (String token : tokens) {
+                if (token.length() >= 2) {
+                    matchedUsers.addAll(userRepository.searchAllByRealName(token));
+                }
+            }
+        }
+        List<Map<String, Object>> users = matchedUsers.stream()
+                .limit(40)
                 .map(u -> {
                     Map<String, Object> m = new HashMap<>();
                     m.put("id", u.getId());
                     m.put("realName", u.getRealName() != null ? u.getRealName() : "Student");
+                    m.put("ghostName", u.getGhostName() != null ? u.getGhostName() : "Ghost");
                     m.put("collegeName", u.getCollege() != null ? u.getCollege().getName() : "Campus Member");
                     m.put("collegeId", u.getCollege() != null ? u.getCollege().getId() : null);
                     m.put("profileImageUrl", u.getProfileImageUrl() != null ? u.getProfileImageUrl() : "");
@@ -602,10 +640,19 @@ public class FeedController {
                 .collect(Collectors.toList());
 
         // 3. Search college sections
-        List<Section> sectionsList = (collegeId != null)
-                ? sectionRepository.findByCollegeIdAndNameContainingIgnoreCase(collegeId, q)
-                : List.of();
-        List<Map<String, Object>> sections = sectionsList.stream()
+        LinkedHashSet<Section> matchedSections = new LinkedHashSet<>();
+        if (collegeId != null) {
+            matchedSections.addAll(sectionRepository.findByCollegeIdAndNameContainingIgnoreCase(collegeId, q));
+            if (tokens.length > 1) {
+                for (String token : tokens) {
+                    if (token.length() >= 2) {
+                        matchedSections.addAll(sectionRepository.findByCollegeIdAndNameContainingIgnoreCase(collegeId, token));
+                    }
+                }
+            }
+        }
+        List<Map<String, Object>> sections = matchedSections.stream()
+                .limit(30)
                 .map(s -> {
                     Map<String, Object> m = new HashMap<>();
                     m.put("id", s.getId());

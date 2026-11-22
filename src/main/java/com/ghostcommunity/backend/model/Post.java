@@ -36,6 +36,9 @@ public class Post {
     @Builder.Default
     private Boolean isPinned = false;
 
+    @Column(name = "action_url", length = 500)
+    private String actionUrl;
+
     @Column(name = "shares_count", columnDefinition = "integer default 0")
     @Builder.Default
     private Integer sharesCount = 0;

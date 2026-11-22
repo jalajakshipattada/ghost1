@@ -53,6 +53,7 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS video_url varchar(500);");
             jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type varchar(20);");
             jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_pinned boolean DEFAULT false;");
+            jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS action_url varchar(500);");
 
             log.info("Schema self-healing completed successfully!");
         } catch (Exception e) {

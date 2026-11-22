@@ -495,26 +495,50 @@ public class FeedController {
             return ResponseEntity.badRequest().body("Security Violation");
         }
 
+        boolean asDirect = Boolean.TRUE.equals(request.get("asDirect"))
+                || "DIRECT".equalsIgnoreCase((String) request.get("chatMode"));
+
         // Create a chat message referencing the post (Instagram-style rich share card)
         boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
         String authorName = isDirect
                 ? (post.getAuthor().getRealName() != null ? post.getAuthor().getRealName() : post.getAuthor().getGhostName())
                 : post.getAuthor().getGhostName();
         String imageUrl = post.getImageUrl() != null ? post.getImageUrl() : "";
-        String postText = post.getContent() != null ? post.getContent().replaceAll("\\[DIRECT[^\\]]*\\]", "").trim() : "";
+        String videoUrl = post.getVideoUrl() != null ? post.getVideoUrl() : "";
+        String mediaType = post.getMediaType() != null ? post.getMediaType() : "";
+        if (mediaType.isBlank()) {
+            if (!videoUrl.isBlank()) mediaType = "VIDEO";
+            else if (!imageUrl.isBlank()) mediaType = "IMAGE";
+            else mediaType = "NONE";
+        }
+
+        String postText = post.getContent() != null ? post.getContent()
+                .replaceAll("\\[DIRECT[^\\]]*\\]", "")
+                .replaceAll("\\[DIRECT\\]", "")
+                .replaceAll("\\[GHOST\\]", "")
+                .replaceAll("\\[OFFICIAL ADMIN\\]", "")
+                .trim() : "";
         String authorPhoto = isDirect && post.getAuthor().getProfileImageUrl() != null ? post.getAuthor().getProfileImageUrl() : "";
 
         String escapedAuthor = authorName.replace("\"", "\\\"");
         String escapedPhoto = authorPhoto.replace("\"", "\\\"");
         String escapedImage = imageUrl.replace("\"", "\\\"");
+        String escapedVideo = videoUrl.replace("\"", "\\\"");
         String escapedText = postText.replace("\"", "\\\"").replace("\n", " ");
+
+        String senderDisplayName = asDirect
+                ? (user.getRealName() != null && !user.getRealName().isBlank() ? user.getRealName() : user.getGhostName())
+                : user.getGhostName();
 
         String shareContent = "[POST_SHARE]{\"postId\":" + post.getId() +
                 ",\"authorName\":\"" + escapedAuthor + "\"" +
                 ",\"authorPhoto\":\"" + escapedPhoto + "\"" +
-                ",\"isDirect\":" + isDirect +
                 ",\"imageUrl\":\"" + escapedImage + "\"" +
-                ",\"caption\":\"" + escapedText + "\"}";
+                ",\"videoUrl\":\"" + escapedVideo + "\"" +
+                ",\"mediaType\":\"" + mediaType + "\"" +
+                ",\"caption\":\"" + escapedText + "\"" +
+                ",\"sharedByDirect\":" + asDirect +
+                ",\"sharedByName\":\"" + senderDisplayName.replace("\"", "\\\"") + "\"}";
 
         Message message = Message.builder()
                 .author(user)
@@ -537,13 +561,13 @@ public class FeedController {
             sectionReadRepository.save(sr);
         } catch (Exception ignored) {}
 
-        // Broadcast to WebSocket
+        // Broadcast to WebSocket with chosen sender identity
         com.ghostcommunity.backend.payload.ChatResponsePayload response = com.ghostcommunity.backend.payload.ChatResponsePayload.builder()
                 .messageId(message.getId())
                 .senderId(user.getId())
                 .content(message.getContent())
                 .messageType(message.getMessageType())
-                .ghostName(user.getGhostName())
+                .ghostName(senderDisplayName)
                 .primarySection(user.getPrimarySection() != null ? user.getPrimarySection().getName() : " ")
                 .gender(user.getGender())
                 .createdAt(message.getCreatedAt())

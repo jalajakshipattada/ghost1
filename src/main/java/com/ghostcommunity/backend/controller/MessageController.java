@@ -133,6 +133,12 @@ public class MessageController {
                     String ghost = (m.getAuthor().isAdmin())
                             ? "⚠️ ADMIN"
                             : (m.getAuthor().getGhostName() != null ? m.getAuthor().getGhostName() : "Ghost");
+                    if (m.getContent() != null && m.getContent().startsWith("[POST_SHARE]") && m.getContent().contains("\"sharedByDirect\":true")) {
+                        String rName = m.getAuthor().getRealName();
+                        if (rName != null && !rName.isBlank()) {
+                            ghost = rName;
+                        }
+                    }
                     return ChatResponsePayload.builder()
                             .messageId(m.getId())
                             .senderId(m.getAuthor().getId())

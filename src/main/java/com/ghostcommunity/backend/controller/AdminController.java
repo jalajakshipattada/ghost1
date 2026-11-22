@@ -747,18 +747,21 @@ public class AdminController {
             } catch (Exception ignored) {}
         }
 
-        if (mediaType.equals("NONE") || mediaType.isBlank()) {
-            if (videoUrl != null && !videoUrl.isBlank()) {
+        if (videoUrl != null && !videoUrl.isBlank()) {
+            mediaType = "VIDEO";
+        } else if (imageUrl != null && !imageUrl.isBlank()) {
+            if (imageUrl.contains("/video/") || imageUrl.toLowerCase().endsWith(".mp4") || imageUrl.toLowerCase().endsWith(".mov") || imageUrl.toLowerCase().endsWith(".webm") || imageUrl.toLowerCase().endsWith(".mkv")) {
                 mediaType = "VIDEO";
-            } else if (imageUrl != null && !imageUrl.isBlank()) {
-                if (imageUrl.toLowerCase().endsWith(".mp4") || imageUrl.toLowerCase().endsWith(".mov") || imageUrl.toLowerCase().endsWith(".webm")) {
-                    mediaType = "VIDEO";
-                    videoUrl = imageUrl;
-                    imageUrl = null;
-                } else {
-                    mediaType = "IMAGE";
-                }
+                videoUrl = imageUrl;
+                imageUrl = null;
+            } else {
+                mediaType = "IMAGE";
             }
+        }
+
+        if ("VIDEO".equalsIgnoreCase(mediaType) && (videoUrl == null || videoUrl.isBlank()) && (imageUrl != null && !imageUrl.isBlank())) {
+            videoUrl = imageUrl;
+            imageUrl = null;
         }
 
         // Prepare post text
@@ -838,12 +841,16 @@ public class AdminController {
         String messageType = body.getOrDefault("messageType", "TEXT").toString().trim();
 
         if (mediaUrl != null && !mediaUrl.isBlank()) {
-            if ("NONE".equalsIgnoreCase(messageType) || "TEXT".equalsIgnoreCase(messageType)) {
-                if (mediaUrl.toLowerCase().endsWith(".mp4") || mediaUrl.toLowerCase().endsWith(".mov") || mediaUrl.toLowerCase().endsWith(".webm")) {
-                    messageType = "VIDEO";
-                } else {
-                    messageType = "IMAGE";
-                }
+            boolean isVid = "VIDEO".equalsIgnoreCase(messageType)
+                    || mediaUrl.contains("/video/")
+                    || mediaUrl.toLowerCase().endsWith(".mp4")
+                    || mediaUrl.toLowerCase().endsWith(".mov")
+                    || mediaUrl.toLowerCase().endsWith(".webm")
+                    || mediaUrl.toLowerCase().endsWith(".mkv");
+            if (isVid) {
+                messageType = "VIDEO";
+            } else if ("IMAGE".equalsIgnoreCase(messageType) || "NONE".equalsIgnoreCase(messageType) || "TEXT".equalsIgnoreCase(messageType)) {
+                messageType = "IMAGE";
             }
         }
 
@@ -856,6 +863,11 @@ public class AdminController {
 
         Section section = sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new RuntimeException("Section not found"));
+
+        try {
+            section.setMessageCount(section.getMessageCount() + 1);
+            sectionRepository.save(section);
+        } catch (Exception ignored) {}
 
         Message message = Message.builder()
                 .author(admin)

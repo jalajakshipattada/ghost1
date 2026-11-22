@@ -51,6 +51,7 @@
 
     /* Layout */
     .container { max-width: 1280px; width: 100%; margin: 0 auto; padding: 24px; flex: 1; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     /* Auth Overlay */
     #authOverlay {
@@ -282,13 +283,55 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label>Media Type</label>
-          <select id="bcMediaType" class="input-field">
-            <option value="IMAGE">📷 Image Poster / Photo</option>
-            <option value="VIDEO">🎬 Video (MP4 / WebM / Cloudinary)</option>
-            <option value="TEXT">📝 Text Only (No Media)</option>
-          </select>
+        <!-- MEDIA ATTACHMENT BOX -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-weight: 700; color: #fff;">📸 Attach Photo or Video</span>
+            <span id="uploadStatusBadge" style="font-size: 12px; font-weight: bold; color: var(--accent);"></span>
+          </label>
+
+          <!-- Direct Device File Picker / Drag & Drop -->
+          <div id="bcDropZone" style="border: 2px dashed rgba(168,85,247,0.35); border-radius: 12px; padding: 22px 16px; text-align: center; cursor: pointer; transition: all 0.25s ease; background: rgba(168,85,247,0.03); margin-bottom: 12px;"
+               onclick="document.getElementById('bcFileInput').click()"
+               ondragover="event.preventDefault(); this.style.borderColor='var(--accent)'; this.style.background='rgba(168,85,247,0.1)';"
+               ondragleave="this.style.borderColor='rgba(168,85,247,0.35)'; this.style.background='rgba(168,85,247,0.03)';"
+               ondrop="handleBroadcastFileDrop(event)">
+            <input type="file" id="bcFileInput" accept="image/*,video/*" style="display: none;" onchange="handleBroadcastFileSelect(this.files)" />
+            <div id="bcUploadPrompt">
+              <div style="font-size: 34px; margin-bottom: 6px;">📸 🎬</div>
+              <div style="font-weight: 700; font-size: 14.5px; color: #fff;">Click to Choose Photo or Video from Device</div>
+              <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">Or Drag & Drop file here (JPG, PNG, WEBP, MP4, WebM, MOV) • Auto-uploads to Cloudinary</div>
+            </div>
+            <div id="bcUploadSpinner" style="display: none; padding: 10px 0;">
+              <div style="display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #00F0FF; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+              <div style="font-size: 13.5px; color: #00F0FF; font-weight: 700; margin-top: 8px;">Uploading media to cloud... Please wait...</div>
+            </div>
+          </div>
+
+          <!-- Live Visual Preview -->
+          <div id="bcPreviewContainer" style="display: none; margin-bottom: 14px; position: relative; border-radius: 12px; overflow: hidden; background: #07050f; border: 1px solid rgba(168,85,247,0.3); text-align: center; max-height: 320px;">
+            <img id="bcPreviewImg" src="" style="max-height: 290px; max-width: 100%; object-fit: contain; display: none; margin: 0 auto;" />
+            <video id="bcPreviewVid" src="" controls style="max-height: 290px; max-width: 100%; display: none; margin: 0 auto;"></video>
+            <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 8px;">
+              <span id="bcPreviewTypeTag" style="background: rgba(0,0,0,0.8); color: #00F0FF; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(0,240,255,0.4);"></span>
+              <button type="button" onclick="clearBroadcastMedia()" style="background: rgba(220,38,38,0.9); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-weight: bold;" title="Remove media">✕ Remove</button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 180px;">
+              <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Media Type</label>
+              <select id="bcMediaType" class="input-field" onchange="onMediaTypeSelectChange()">
+                <option value="IMAGE">📷 Photo / Image Poster</option>
+                <option value="VIDEO">🎬 Video (MP4 / WebM / Cloudinary)</option>
+                <option value="TEXT">📝 Text Only (No Media)</option>
+              </select>
+            </div>
+            <div style="flex: 2; min-width: 260px;">
+              <label style="font-size: 12px; color: var(--muted); margin-bottom: 4px; display: block;">Media URL / Link (Auto-filled on upload)</label>
+              <input type="text" id="bcMediaUrl" class="input-field" placeholder="https://... Cloudinary link or paste any web URL" oninput="onManualMediaUrlInput(this.value)" />
+            </div>
+          </div>
         </div>
 
         <div class="form-group" id="bcTitleGroup">
@@ -298,12 +341,7 @@
 
         <div class="form-group">
           <label>Description / Message Content</label>
-          <textarea id="bcContent" class="input-field" rows="3" placeholder="Write full announcement details..."></textarea>
-        </div>
-
-        <div class="form-group" id="bcMediaUrlGroup">
-          <label>Media URL (Image or Video Link)</label>
-          <input type="text" id="bcMediaUrl" class="input-field" placeholder="https://... Image or Video URL (e.g. Cloudinary)" />
+          <textarea id="bcContent" class="input-field" rows="3" placeholder="Write announcement details, description, or caption..."></textarea>
         </div>
 
         <div class="form-group" id="bcLinkGroup">
@@ -311,7 +349,9 @@
           <input type="text" id="bcLink" class="input-field" placeholder="https://registration-link.com" />
         </div>
 
-        <button class="btn-primary" onclick="submitBroadcast()">🚀 Publish Announcement</button>
+        <button id="bcSubmitBtn" class="btn-primary" onclick="submitBroadcast()" style="padding: 12px 24px; font-size: 15px; font-weight: 700; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>🚀 Publish Announcement</span>
+        </button>
       </div>
 
       <div style="margin-top: 32px; max-width: 800px;">
@@ -786,76 +826,226 @@
       }
     }
 
+    function handleBroadcastFileDrop(e) {
+      e.preventDefault();
+      const dropZone = document.getElementById('bcDropZone');
+      if (dropZone) {
+        dropZone.style.borderColor = 'rgba(168,85,247,0.35)';
+        dropZone.style.background = 'rgba(168,85,247,0.03)';
+      }
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        handleBroadcastFileSelect(e.dataTransfer.files);
+      }
+    }
+
+    async function handleBroadcastFileSelect(files) {
+      if (!files || files.length === 0) return;
+      const file = files[0];
+      const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|webm|mov|mkv)$/i);
+      const isImage = file.type.startsWith('image/') || file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+
+      if (!isImage && !isVideo) {
+        alert('Please choose an image (JPG, PNG, WEBP) or video (MP4, WebM, MOV) file.');
+        return;
+      }
+
+      // Show spinner
+      document.getElementById('bcUploadPrompt').style.display = 'none';
+      document.getElementById('bcUploadSpinner').style.display = 'block';
+      document.getElementById('uploadStatusBadge').innerText = '⏳ Uploading ' + (isVideo ? 'Video' : 'Photo') + '...';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch('/api/media/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          },
+          body: formData
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error('Upload failed (' + res.status + '): ' + errText);
+        }
+
+        const data = await res.json();
+        const uploadedUrl = data.url;
+
+        // Set URL and Type
+        document.getElementById('bcMediaUrl').value = uploadedUrl;
+        document.getElementById('bcMediaType').value = isVideo ? 'VIDEO' : 'IMAGE';
+
+        // Show Preview
+        showMediaPreview(uploadedUrl, isVideo ? 'VIDEO' : 'IMAGE');
+        document.getElementById('uploadStatusBadge').innerText = '✅ Attached & Uploaded to Cloud!';
+      } catch (err) {
+        alert('Upload failed: ' + err.message);
+        document.getElementById('uploadStatusBadge').innerText = '❌ Upload failed';
+      } finally {
+        document.getElementById('bcUploadPrompt').style.display = 'block';
+        document.getElementById('bcUploadSpinner').style.display = 'none';
+        document.getElementById('bcFileInput').value = '';
+      }
+    }
+
+    function showMediaPreview(url, type) {
+      const container = document.getElementById('bcPreviewContainer');
+      const img = document.getElementById('bcPreviewImg');
+      const vid = document.getElementById('bcPreviewVid');
+      const tag = document.getElementById('bcPreviewTypeTag');
+
+      if (!url) {
+        container.style.display = 'none';
+        img.style.display = 'none';
+        vid.style.display = 'none';
+        return;
+      }
+
+      const isVideo = type === 'VIDEO' || url.includes('/video/') || url.match(/\.(mp4|webm|mov|mkv)/i);
+      tag.innerText = isVideo ? '🎬 VIDEO ATTACHED' : '📷 PHOTO ATTACHED';
+
+      if (isVideo) {
+        img.style.display = 'none';
+        img.src = '';
+        vid.src = url;
+        vid.style.display = 'block';
+      } else {
+        vid.style.display = 'none';
+        vid.src = '';
+        img.src = url;
+        img.style.display = 'block';
+      }
+      container.style.display = 'block';
+    }
+
+    function clearBroadcastMedia() {
+      document.getElementById('bcMediaUrl').value = '';
+      document.getElementById('bcFileInput').value = '';
+      document.getElementById('bcMediaType').value = 'IMAGE';
+      document.getElementById('uploadStatusBadge').innerText = '';
+      showMediaPreview('', 'TEXT');
+    }
+
+    function onManualMediaUrlInput(url) {
+      url = (url || '').trim();
+      if (!url) {
+        showMediaPreview('', 'TEXT');
+        return;
+      }
+      const isVideo = url.includes('/video/') || url.match(/\.(mp4|webm|mov|mkv)/i);
+      document.getElementById('bcMediaType').value = isVideo ? 'VIDEO' : 'IMAGE';
+      showMediaPreview(url, isVideo ? 'VIDEO' : 'IMAGE');
+    }
+
+    function onMediaTypeSelectChange() {
+      const val = document.getElementById('bcMediaType').value;
+      const url = (document.getElementById('bcMediaUrl').value || '').trim();
+      if (val === 'TEXT') {
+        clearBroadcastMedia();
+      } else if (url) {
+        showMediaPreview(url, val);
+      }
+    }
+
     async function submitBroadcast() {
+      const submitBtn = document.getElementById('bcSubmitBtn') || document.querySelector('#broadcastTab .btn-primary');
+      const originalText = submitBtn.innerHTML;
+
       const targetType = document.querySelector('input[name="bcTargetType"]:checked').value;
       const mediaType = document.getElementById('bcMediaType').value;
       const content = document.getElementById('bcContent').value.trim();
       const mediaUrl = document.getElementById('bcMediaUrl').value.trim();
 
-      if (targetType === 'FEED') {
-        const title = document.getElementById('bcTitle').value.trim() || 'CAMPUS ANNOUNCEMENT';
-        const actionUrl = document.getElementById('bcLink').value.trim();
-        if (!content && !mediaUrl) {
-          alert('Please enter at least a message description or media URL');
-          return;
-        }
+      if (!content && !mediaUrl) {
+        alert('Please provide at least a photo/video or a description text to publish.');
+        return;
+      }
 
-        const res = await fetch('/api/admin/broadcast-feed', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title,
-            content,
-            mediaType,
-            imageUrl: (mediaType === 'IMAGE') ? mediaUrl : '',
-            videoUrl: (mediaType === 'VIDEO') ? mediaUrl : '',
-            actionUrl
-          })
-        });
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span>⏳ Publishing Announcement...</span>';
 
-        if (res.ok) {
-          alert('Announcement published to the top of the Feed!');
-          document.getElementById('bcTitle').value = '';
-          document.getElementById('bcContent').value = '';
-          document.getElementById('bcMediaUrl').value = '';
-          document.getElementById('bcLink').value = '';
-          loadBroadcastPosts();
-          loadStats();
+      try {
+        if (targetType === 'FEED') {
+          const title = document.getElementById('bcTitle').value.trim() || 'CAMPUS ANNOUNCEMENT';
+          const actionUrl = document.getElementById('bcLink').value.trim();
+
+          const isVideo = mediaType === 'VIDEO' || mediaUrl.includes('/video/') || mediaUrl.match(/\.(mp4|webm|mov|mkv)/i);
+
+          const res = await fetch('/api/admin/broadcast-feed', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title,
+              content,
+              mediaType: isVideo ? 'VIDEO' : (mediaUrl ? 'IMAGE' : 'NONE'),
+              imageUrl: isVideo ? '' : mediaUrl,
+              videoUrl: isVideo ? mediaUrl : '',
+              actionUrl
+            })
+          });
+
+          if (res.ok) {
+            alert('🎉 Announcement successfully published and pinned to the top of the Universal Feed across all colleges!');
+            document.getElementById('bcTitle').value = '';
+            document.getElementById('bcContent').value = '';
+            document.getElementById('bcLink').value = '';
+            clearBroadcastMedia();
+            loadBroadcastPosts();
+            loadStats();
+          } else {
+            let errMsg = 'Failed to publish to feed';
+            try {
+              const d = await res.json();
+              errMsg = d.error || d.message || errMsg;
+            } catch (_) {
+              errMsg = await res.text() || errMsg;
+            }
+            alert('❌ ' + errMsg);
+          }
         } else {
-          const d = await res.json();
-          alert(d.error || 'Failed to publish to feed');
-        }
-      } else {
-        // Section broadcast
-        const sectionId = document.getElementById('bcTargetSection').value;
-        if (!sectionId) {
-          alert('Please select a valid section');
-          return;
-        }
-        if (!content && !mediaUrl) {
-          alert('Please enter message text or media URL');
-          return;
-        }
+          // Section broadcast
+          const sectionId = document.getElementById('bcTargetSection').value;
+          if (!sectionId) {
+            alert('Please select a valid section from the dropdown.');
+            return;
+          }
 
-        const res = await fetch('/api/admin/broadcast-section', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            sectionId,
-            content,
-            mediaUrl,
-            messageType: mediaType
-          })
-        });
+          const res = await fetch('/api/admin/broadcast-section', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sectionId,
+              content,
+              mediaUrl,
+              messageType: mediaType
+            })
+          });
 
-        if (res.ok) {
-          alert('Message sent to section chat successfully!');
-          document.getElementById('bcContent').value = '';
-          document.getElementById('bcMediaUrl').value = '';
-        } else {
-          const d = await res.json();
-          alert(d.error || 'Failed to send to section');
+          if (res.ok) {
+            const secName = document.getElementById('bcTargetSection').selectedOptions[0]?.text || 'selected section';
+            alert('🎉 Official announcement sent directly to section chat (' + secName + ') as a message!');
+            document.getElementById('bcContent').value = '';
+            clearBroadcastMedia();
+            populateBroadcastColleges();
+          } else {
+            let errMsg = 'Failed to send to section';
+            try {
+              const d = await res.json();
+              errMsg = d.error || d.message || errMsg;
+            } catch (_) {
+              errMsg = await res.text() || errMsg;
+            }
+            alert('❌ ' + errMsg);
+          }
         }
+      } catch (err) {
+        alert('Network or server error: ' + err.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
       }
     }
 

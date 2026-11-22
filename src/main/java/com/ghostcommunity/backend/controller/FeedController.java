@@ -44,9 +44,10 @@ public class FeedController {
         map.put("isDirect", isDirect);
         map.put("isDirectName", isDirect);
 
+        User author = post.getAuthor();
         if (isDirect) {
             // Direct post: show author's real identity, strictly hide dummy/ghost name
-            String realName = post.getAuthor().getRealName();
+            String realName = author != null ? author.getRealName() : null;
             if ((realName == null || realName.trim().isEmpty()) && post.getContent() != null && post.getContent().contains("[DIRECT|")) {
                 int start = post.getContent().indexOf("[DIRECT|") + 8;
                 int end = post.getContent().indexOf("]", start);
@@ -55,20 +56,21 @@ public class FeedController {
                 }
             }
             map.put("authorRealName", realName != null && !realName.isEmpty() ? realName : "Student");
-            map.put("authorProfileImageUrl", post.getAuthor().getProfileImageUrl());
-            map.put("authorId", post.getAuthor().getId());
-            map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
+            map.put("authorProfileImageUrl", author != null ? author.getProfileImageUrl() : "");
+            map.put("authorId", author != null ? author.getId() : 0L);
+            map.put("authorPrimarySection", author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : "");
         } else {
             // Ghost post: show ghost name, strictly hide real name, email, and photo
-            map.put("authorGhostName", post.getAuthor().getGhostName());
-            map.put("authorPrimarySection", post.getAuthor().getPrimarySection() != null ? post.getAuthor().getPrimarySection().getName() : "");
+            String gName = author != null && author.getGhostName() != null ? author.getGhostName() : (author != null && author.isAdmin() ? "⚠️ ADMIN" : "Ghost");
+            map.put("authorGhostName", gName);
+            map.put("authorPrimarySection", author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : "");
         }
 
-        String colName = post.getCollege() != null ? post.getCollege().getName() : (post.getAuthor().getCollege() != null ? post.getAuthor().getCollege().getName() : "");
+        String colName = post.getCollege() != null ? post.getCollege().getName() : (author != null && author.getCollege() != null ? author.getCollege().getName() : "");
         map.put("authorCollegeName", colName);
         map.put("collegeName", colName);
 
-        map.put("gender", post.getAuthor().getGender());
+        map.put("gender", author != null && author.getGender() != null ? author.getGender() : "");
         map.put("content", post.getContent());
         map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");
         map.put("videoUrl", post.getVideoUrl() != null ? post.getVideoUrl() : "");

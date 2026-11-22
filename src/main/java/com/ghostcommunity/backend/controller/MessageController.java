@@ -125,19 +125,27 @@ public class MessageController {
         Long maxOthers = sectionReadRepository.findMaxLastReadMessageIdByOthers(sectionId, currentUser.getId());
 
         List<ChatResponsePayload> history = messages.stream()
-                .filter(m -> m.getAuthor() != null && m.getAuthor().getPrimarySection() != null)
-                .map(m -> ChatResponsePayload.builder()
-                        .messageId(m.getId())
-                        .senderId(m.getAuthor().getId())
-                        .content(m.getContent())
-                        .messageType(m.getMessageType())
-                        .ghostName(m.getAuthor().getGhostName())
-                        .primarySection(m.getAuthor().getPrimarySection().getName())
-                        .gender(m.getAuthor().getGender())
-                        .createdAt(m.getCreatedAt())
-                        .reactions(reactionMap.getOrDefault(m.getId(), Collections.emptyMap()))
-                        .isSeen(m.getAuthor().getId().equals(currentUser.getId()) && maxOthers != null && maxOthers >= m.getId())
-                        .build())
+                .filter(m -> m.getAuthor() != null)
+                .map(m -> {
+                    String secName = (m.getAuthor().getPrimarySection() != null)
+                            ? m.getAuthor().getPrimarySection().getName()
+                            : (m.getAuthor().isAdmin() ? "System" : "");
+                    String ghost = (m.getAuthor().isAdmin())
+                            ? "⚠️ ADMIN"
+                            : (m.getAuthor().getGhostName() != null ? m.getAuthor().getGhostName() : "Ghost");
+                    return ChatResponsePayload.builder()
+                            .messageId(m.getId())
+                            .senderId(m.getAuthor().getId())
+                            .content(m.getContent())
+                            .messageType(m.getMessageType())
+                            .ghostName(ghost)
+                            .primarySection(secName)
+                            .gender(m.getAuthor().getGender())
+                            .createdAt(m.getCreatedAt())
+                            .reactions(reactionMap.getOrDefault(m.getId(), Collections.emptyMap()))
+                            .isSeen(m.getAuthor().getId().equals(currentUser.getId()) && maxOthers != null && maxOthers >= m.getId())
+                            .build();
+                })
                 .toList();
 
         // Mark section read when entering room to view history

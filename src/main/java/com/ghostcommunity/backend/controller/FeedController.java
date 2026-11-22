@@ -499,10 +499,29 @@ public class FeedController {
                 || "DIRECT".equalsIgnoreCase((String) request.get("chatMode"));
 
         // Create a chat message referencing the post (Instagram-style rich share card)
+        boolean isPinned = Boolean.TRUE.equals(post.getIsPinned())
+                || (post.getAuthor() != null && post.getAuthor().isAdmin())
+                || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"));
+
         boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
-        String authorName = isDirect
-                ? (post.getAuthor().getRealName() != null ? post.getAuthor().getRealName() : post.getAuthor().getGhostName())
-                : post.getAuthor().getGhostName();
+        String authorName;
+        if (isPinned) {
+            authorName = "Campus Spotlight";
+        } else if (isDirect) {
+            String rName = (post.getAuthor() != null) ? post.getAuthor().getRealName() : null;
+            if ((rName == null || rName.isBlank()) && post.getContent() != null && post.getContent().contains("[DIRECT|")) {
+                int start = post.getContent().indexOf("[DIRECT|") + 8;
+                int end = post.getContent().indexOf("]", start);
+                if (end != -1) {
+                    rName = post.getContent().substring(start, end).trim();
+                }
+            }
+            authorName = (rName != null && !rName.isBlank()) ? rName : (post.getAuthor() != null && post.getAuthor().getRealName() != null ? post.getAuthor().getRealName() : "Student");
+        } else {
+            authorName = (post.getAuthor() != null && post.getAuthor().getGhostName() != null)
+                    ? post.getAuthor().getGhostName() : "Ghost";
+        }
+
         String imageUrl = post.getImageUrl() != null ? post.getImageUrl() : "";
         String videoUrl = post.getVideoUrl() != null ? post.getVideoUrl() : "";
         String mediaType = post.getMediaType() != null ? post.getMediaType() : "";
@@ -518,7 +537,7 @@ public class FeedController {
                 .replaceAll("\\[GHOST\\]", "")
                 .replaceAll("\\[OFFICIAL ADMIN\\]", "")
                 .trim() : "";
-        String authorPhoto = isDirect && post.getAuthor().getProfileImageUrl() != null ? post.getAuthor().getProfileImageUrl() : "";
+        String authorPhoto = (!isPinned && isDirect && post.getAuthor() != null && post.getAuthor().getProfileImageUrl() != null) ? post.getAuthor().getProfileImageUrl() : "";
 
         String escapedAuthor = authorName.replace("\"", "\\\"");
         String escapedPhoto = authorPhoto.replace("\"", "\\\"");

@@ -87,6 +87,9 @@ public class AuthController {
             user.setRealName(signUpRequest.getRealName());
             user.setTermsAccepted(true);
             user.setStatus(UserStatus.ONBOARDING_INCOMPLETE);
+            if (userRepository.count() == 0) {
+                user.setAdmin(true);
+            }
 
             user = userRepository.save(user);
 

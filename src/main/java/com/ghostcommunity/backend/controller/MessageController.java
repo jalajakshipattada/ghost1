@@ -133,10 +133,26 @@ public class MessageController {
                     String ghost = (m.getAuthor().isAdmin())
                             ? "⚠️ ADMIN"
                             : (m.getAuthor().getGhostName() != null ? m.getAuthor().getGhostName() : "Ghost");
-                    if (m.getContent() != null && m.getContent().startsWith("[POST_SHARE]") && m.getContent().contains("\"sharedByDirect\":true")) {
-                        String rName = m.getAuthor().getRealName();
-                        if (rName != null && !rName.isBlank()) {
-                            ghost = rName;
+                    if (m.getContent() != null && m.getContent().startsWith("[POST_SHARE]")) {
+                        if (m.getContent().contains("\"sharedByDirect\":true")) {
+                            String rName = m.getAuthor().getRealName();
+                            if (rName != null && !rName.isBlank()) {
+                                ghost = rName;
+                            } else if (m.getContent().contains("\"sharedByName\":\"")) {
+                                int s = m.getContent().indexOf("\"sharedByName\":\"") + 16;
+                                int e = m.getContent().indexOf("\"", s);
+                                if (e != -1) {
+                                    String n = m.getContent().substring(s, e).trim();
+                                    if (!n.isBlank()) ghost = n;
+                                }
+                            }
+                        } else if (m.getContent().contains("\"sharedByName\":\"")) {
+                            int s = m.getContent().indexOf("\"sharedByName\":\"") + 16;
+                            int e = m.getContent().indexOf("\"", s);
+                            if (e != -1) {
+                                String n = m.getContent().substring(s, e).trim();
+                                if (!n.isBlank()) ghost = n;
+                            }
                         }
                     }
                     return ChatResponsePayload.builder()

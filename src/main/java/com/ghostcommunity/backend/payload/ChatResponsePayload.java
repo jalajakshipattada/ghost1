@@ -23,5 +23,6 @@ public class ChatResponsePayload {
     private LocalDateTime createdAt;
     private Map<String, Long> reactions;
     private Boolean isSeen;
+    private Boolean isMe;
 }
 

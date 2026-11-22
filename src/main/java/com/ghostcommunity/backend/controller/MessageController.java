@@ -130,13 +130,13 @@ public class MessageController {
                     String secName = (m.getAuthor().getPrimarySection() != null)
                             ? m.getAuthor().getPrimarySection().getName()
                             : (m.getAuthor().isAdmin() ? "System" : "");
-                    String ghost = (m.getAuthor().isAdmin())
-                            ? "⚠️ ADMIN"
-                            : (m.getAuthor().getGhostName() != null ? m.getAuthor().getGhostName() : "Ghost");
-                    if (m.getContent() != null && m.getContent().startsWith("[POST_SHARE]")) {
+                    String ghost = (m.getAuthor().getGhostName() != null && !m.getAuthor().getGhostName().isBlank())
+                            ? m.getAuthor().getGhostName()
+                            : (m.getAuthor().isAdmin() ? "Campus Admin" : "Ghost");
+                    if ("POST_SHARE".equals(m.getMessageType()) || (m.getContent() != null && m.getContent().contains("[POST_SHARE]"))) {
                         // For post shares, NEVER force "⚠️ ADMIN" or "Student" as sharer name!
                         String extractedSharer = null;
-                        if (m.getContent().contains("\"sharedByName\":\"")) {
+                        if (m.getContent() != null && m.getContent().contains("\"sharedByName\":\"")) {
                             int s = m.getContent().indexOf("\"sharedByName\":\"") + 16;
                             int e = m.getContent().indexOf("\"", s);
                             if (e != -1) {
@@ -148,7 +148,7 @@ public class MessageController {
                         }
                         if (extractedSharer != null) {
                             ghost = extractedSharer;
-                        } else if (m.getContent().contains("\"sharedByDirect\":true")) {
+                        } else if (m.getContent() != null && m.getContent().contains("\"sharedByDirect\":true")) {
                             String rName = m.getAuthor().getRealName();
                             if (rName != null && !rName.isBlank() && !rName.equalsIgnoreCase("Student")) {
                                 ghost = rName;
@@ -161,6 +161,7 @@ public class MessageController {
                                     ? m.getAuthor().getGhostName() : "Ghost";
                         }
                     }
+                    boolean isMeMsg = m.getAuthor().getId().equals(currentUser.getId());
                     return ChatResponsePayload.builder()
                             .messageId(m.getId())
                             .senderId(m.getAuthor().getId())
@@ -171,7 +172,8 @@ public class MessageController {
                             .gender(m.getAuthor().getGender())
                             .createdAt(m.getCreatedAt())
                             .reactions(reactionMap.getOrDefault(m.getId(), Collections.emptyMap()))
-                            .isSeen(m.getAuthor().getId().equals(currentUser.getId()) && maxOthers != null && maxOthers >= m.getId())
+                            .isSeen(isMeMsg && maxOthers != null && maxOthers >= m.getId())
+                            .isMe(isMeMsg)
                             .build();
                 })
                 .toList();

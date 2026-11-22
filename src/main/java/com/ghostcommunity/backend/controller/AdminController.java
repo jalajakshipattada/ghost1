@@ -130,6 +130,7 @@ public class AdminController {
 
         return ResponseEntity.ok(Map.of(
                 "token", jwt,
+                "id", admin.getId(),
                 "isAdmin", true,
                 "realName", admin.getRealName() != null ? admin.getRealName() : "Campus Admin",
                 "ghostName", admin.getGhostName() != null ? admin.getGhostName() : "AdminGhost"

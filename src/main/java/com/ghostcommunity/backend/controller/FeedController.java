@@ -501,7 +501,8 @@ public class FeedController {
         // Create a chat message referencing the post (Instagram-style rich share card)
         boolean isPinned = Boolean.TRUE.equals(post.getIsPinned())
                 || (post.getAuthor() != null && post.getAuthor().isAdmin())
-                || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"));
+                || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"))
+                || (post.getContent() != null && post.getContent().toUpperCase().contains("ANNOUNCEMENT"));
 
         boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
         String authorName;
@@ -545,17 +546,19 @@ public class FeedController {
         String escapedVideo = videoUrl.replace("\"", "\\\"");
         String escapedText = postText.replace("\"", "\\\"").replace("\n", " ");
 
+        String customSharedByName = request.get("sharedByName") != null ? request.get("sharedByName").toString().trim() : "";
         String senderDisplayName = asDirect
-                ? (user.getRealName() != null && !user.getRealName().isBlank() ? user.getRealName() : user.getGhostName())
-                : user.getGhostName();
+                ? (user.getRealName() != null && !user.getRealName().isBlank() ? user.getRealName() : (!customSharedByName.isBlank() ? customSharedByName : user.getGhostName()))
+                : (!customSharedByName.isBlank() ? customSharedByName : user.getGhostName());
 
         String shareContent = "[POST_SHARE]{\"postId\":" + post.getId() +
                 ",\"authorName\":\"" + escapedAuthor + "\"" +
                 ",\"authorPhoto\":\"" + escapedPhoto + "\"" +
                 ",\"imageUrl\":\"" + escapedImage + "\"" +
                 ",\"videoUrl\":\"" + escapedVideo + "\"" +
-                ",\"mediaType\":\"" + mediaType + "\"" +
+                ",\"mediaType\":\"" + (mediaType.equals("NONE") && isPinned ? "ANNOUNCEMENT" : mediaType) + "\"" +
                 ",\"caption\":\"" + escapedText + "\"" +
+                ",\"isPinned\":" + isPinned +
                 ",\"sharedByDirect\":" + asDirect +
                 ",\"sharedByName\":\"" + senderDisplayName.replace("\"", "\\\"") + "\"}";
 

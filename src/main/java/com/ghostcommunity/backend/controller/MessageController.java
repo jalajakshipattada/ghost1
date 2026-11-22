@@ -83,12 +83,38 @@ public class MessageController {
         author.setWarPoints(author.getWarPoints() + 10);
         userRepository.save(author);
 
+        String broadcastGhost = author.getGhostName() != null ? author.getGhostName() : "Ghost";
+        if ("POST_SHARE".equals(message.getMessageType()) || (message.getContent() != null && message.getContent().contains("[POST_SHARE]"))) {
+            if (message.getContent() != null && message.getContent().contains("\"sharedByName\":\"")) {
+                int s = message.getContent().indexOf("\"sharedByName\":\"") + 16;
+                int e = message.getContent().indexOf("\"", s);
+                if (e != -1) {
+                    String n = message.getContent().substring(s, e).trim();
+                    if (!n.isBlank() && !n.equalsIgnoreCase("Student") && !n.contains("ADMIN")) {
+                        broadcastGhost = n;
+                    }
+                }
+            } else if (message.getContent() != null && message.getContent().contains("\"sharedByDirect\":true")) {
+                String rName = author.getRealName();
+                if (rName != null && !rName.isBlank() && !rName.equalsIgnoreCase("Student")) {
+                    broadcastGhost = rName;
+                } else if (author.getEmail() != null && author.getEmail().contains("@")) {
+                    String prefix = author.getEmail().split("@")[0];
+                    if (!prefix.isBlank()) {
+                        broadcastGhost = Character.toUpperCase(prefix.charAt(0)) + prefix.substring(1).toLowerCase();
+                    }
+                } else {
+                    broadcastGhost = "Member";
+                }
+            }
+        }
+
         ChatResponsePayload response = ChatResponsePayload.builder()
                 .messageId(message.getId())
                 .senderId(author.getId())
                 .content(message.getContent())
                 .messageType(message.getMessageType())
-                .ghostName(author.getGhostName())
+                .ghostName(broadcastGhost)
                 .primarySection(author.getPrimarySection() != null ? author.getPrimarySection().getName() : "")
                 .gender(author.getGender())
                 .createdAt(message.getCreatedAt())
@@ -152,9 +178,13 @@ public class MessageController {
                             String rName = m.getAuthor().getRealName();
                             if (rName != null && !rName.isBlank() && !rName.equalsIgnoreCase("Student")) {
                                 ghost = rName;
+                            } else if (m.getAuthor().getEmail() != null && m.getAuthor().getEmail().contains("@")) {
+                                String prefix = m.getAuthor().getEmail().split("@")[0];
+                                if (!prefix.isBlank()) {
+                                    ghost = Character.toUpperCase(prefix.charAt(0)) + prefix.substring(1).toLowerCase();
+                                }
                             } else {
-                                ghost = (m.getAuthor().getGhostName() != null && !m.getAuthor().getGhostName().isBlank())
-                                        ? m.getAuthor().getGhostName() : "Ghost";
+                                ghost = "Member";
                             }
                         } else {
                             ghost = (m.getAuthor().getGhostName() != null && !m.getAuthor().getGhostName().isBlank())

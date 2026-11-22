@@ -326,6 +326,11 @@ public class FeedController {
         if (content == null || content.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Content cannot be empty");
         }
+        if (content.startsWith("[DIRECT") && user.getRealName() != null && !user.getRealName().isBlank() && !user.getRealName().equalsIgnoreCase("Student")) {
+            if (content.startsWith("[DIRECT|Student]") || content.startsWith("[DIRECT]")) {
+                content = content.replaceFirst("\\[DIRECT(\\|Student)?\\]", "[DIRECT|" + user.getRealName().trim() + "]");
+            }
+        }
         String imageUrl = request.get("imageUrl");
         String videoUrl = request.get("videoUrl");
         String mediaType = request.get("mediaType");
@@ -496,31 +501,40 @@ public class FeedController {
         }
 
         boolean asDirect = Boolean.TRUE.equals(request.get("asDirect"))
-                || "DIRECT".equalsIgnoreCase((String) request.get("chatMode"));
+                || "true".equalsIgnoreCase(String.valueOf(request.get("asDirect")))
+                || "DIRECT".equalsIgnoreCase(String.valueOf(request.get("chatMode")));
 
         // Create a chat message referencing the post (Instagram-style rich share card)
         boolean isPinned = Boolean.TRUE.equals(post.getIsPinned())
+                || "AD".equalsIgnoreCase(post.getMediaType())
+                || "ANNOUNCEMENT".equalsIgnoreCase(post.getMediaType())
+                || (post.getActionUrl() != null && !post.getActionUrl().isBlank())
                 || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"))
-                || (post.getContent() != null && post.getContent().toUpperCase().contains("ANNOUNCEMENT"));
+                || (post.getContent() != null && post.getContent().toUpperCase().contains("ANNOUNCEMENT"))
+                || (post.getContent() != null && post.getContent().toUpperCase().contains("CAMPUS SPOTLIGHT"));
 
-        boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
+        boolean isDirect = !isPinned && post.getContent() != null && post.getContent().startsWith("[DIRECT");
         String authorName;
         if (isPinned) {
             authorName = "Campus Spotlight";
         } else if (isDirect) {
             String rName = (post.getAuthor() != null) ? post.getAuthor().getRealName() : null;
-            if ((rName == null || rName.isBlank()) && post.getContent() != null && post.getContent().contains("[DIRECT|")) {
+            if ((rName == null || rName.isBlank() || rName.equalsIgnoreCase("Student")) && post.getContent() != null && post.getContent().contains("[DIRECT|")) {
                 int start = post.getContent().indexOf("[DIRECT|") + 8;
                 int end = post.getContent().indexOf("]", start);
                 if (end != -1) {
                     rName = post.getContent().substring(start, end).trim();
                 }
             }
+            if ((rName == null || rName.isBlank() || rName.equalsIgnoreCase("Student")) && post.getAuthor() != null && post.getAuthor().getEmail() != null && post.getAuthor().getEmail().contains("@")) {
+                String prefix = post.getAuthor().getEmail().split("@")[0];
+                if (!prefix.isBlank()) {
+                    rName = Character.toUpperCase(prefix.charAt(0)) + prefix.substring(1).toLowerCase();
+                }
+            }
             authorName = (rName != null && !rName.isBlank() && !rName.equalsIgnoreCase("Student"))
                     ? rName
-                    : (post.getAuthor() != null && post.getAuthor().getRealName() != null && !post.getAuthor().getRealName().isBlank() && !post.getAuthor().getRealName().equalsIgnoreCase("Student")
-                        ? post.getAuthor().getRealName()
-                        : (post.getAuthor() != null && post.getAuthor().getGhostName() != null ? post.getAuthor().getGhostName() : "Ghost"));
+                    : "Member";
         } else {
             authorName = (post.getAuthor() != null && post.getAuthor().getGhostName() != null && !post.getAuthor().getGhostName().isBlank())
                     ? post.getAuthor().getGhostName() : "Ghost";
@@ -552,13 +566,18 @@ public class FeedController {
         String customSharedByName = request.get("sharedByName") != null ? request.get("sharedByName").toString().trim() : "";
         String senderDisplayName;
         if (asDirect) {
-            if (user.getRealName() != null && !user.getRealName().isBlank() && !user.getRealName().equalsIgnoreCase("Student")) {
-                senderDisplayName = user.getRealName().trim();
-            } else if (!customSharedByName.isBlank() && !customSharedByName.equalsIgnoreCase("Student") && !customSharedByName.contains("ADMIN")) {
-                senderDisplayName = customSharedByName;
-            } else {
-                senderDisplayName = (user.getGhostName() != null && !user.getGhostName().isBlank()) ? user.getGhostName() : "Ghost";
+            String rName = user.getRealName();
+            if (rName == null || rName.isBlank() || rName.equalsIgnoreCase("Student")) {
+                if (!customSharedByName.isBlank() && !customSharedByName.equalsIgnoreCase("Student") && !customSharedByName.contains("ADMIN")) {
+                    rName = customSharedByName;
+                } else if (user.getEmail() != null && user.getEmail().contains("@")) {
+                    String prefix = user.getEmail().split("@")[0];
+                    if (!prefix.isBlank()) {
+                        rName = Character.toUpperCase(prefix.charAt(0)) + prefix.substring(1).toLowerCase();
+                    }
+                }
             }
+            senderDisplayName = (rName != null && !rName.isBlank()) ? rName : (!customSharedByName.isBlank() ? customSharedByName : "Member");
         } else {
             if (user.getGhostName() != null && !user.getGhostName().isBlank()) {
                 senderDisplayName = user.getGhostName().trim();

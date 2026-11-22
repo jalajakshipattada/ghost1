@@ -764,10 +764,19 @@ public class AdminController {
             imageUrl = null;
         }
 
-        // Prepare post text
-        String fullContent = "[OFFICIAL ADMIN] " + title + (content.isEmpty() ? "" : "\n\n" + content);
+        // Prepare clean post text (no clunky [OFFICIAL ADMIN] tags)
+        String fullContent = "";
+        if (!content.isBlank()) {
+            if (!title.isBlank() && !"CAMPUS ANNOUNCEMENT".equalsIgnoreCase(title)) {
+                fullContent = title + "\n\n" + content;
+            } else {
+                fullContent = content;
+            }
+        } else if (!title.isBlank() && !"CAMPUS ANNOUNCEMENT".equalsIgnoreCase(title)) {
+            fullContent = title;
+        }
         if (actionUrl != null && !actionUrl.isBlank()) {
-            fullContent += "\n\n🔗 Link: " + actionUrl.trim();
+            fullContent += (fullContent.isBlank() ? "" : "\n\n") + "🔗 " + actionUrl.trim();
         }
 
         List<College> targetColleges;

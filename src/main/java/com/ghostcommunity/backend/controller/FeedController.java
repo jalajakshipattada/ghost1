@@ -66,7 +66,13 @@ public class FeedController {
             map.put("authorPrimarySection", author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : "");
         }
 
-        String colName = post.getCollege() != null ? post.getCollege().getName() : (author != null && author.getCollege() != null ? author.getCollege().getName() : "");
+        boolean isPinned = Boolean.TRUE.equals(post.getIsPinned());
+        String colName = "";
+        if (!isPinned) {
+            colName = post.getCollege() != null ? post.getCollege().getName() : (author != null && author.getCollege() != null ? author.getCollege().getName() : "");
+        } else if (post.getCollege() != null) {
+            colName = post.getCollege().getName();
+        }
         map.put("authorCollegeName", colName);
         map.put("collegeName", colName);
 

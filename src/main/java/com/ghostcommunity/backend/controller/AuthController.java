@@ -62,6 +62,7 @@ public class AuthController {
             resp.setCollegeId(collegeId);
             resp.setCollegeName(collegeName);
             resp.setPrimarySection(primarySection);
+            resp.setRealName(user.getRealName());
 
             return ResponseEntity.ok(resp);
         } catch (Exception e) {

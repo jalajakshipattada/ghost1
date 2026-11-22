@@ -21,6 +21,7 @@ public class JwtResponse {
     private Long collegeId;
     private String collegeName;
     private String primarySection;
+    private String realName;
 
     public JwtResponse(String token, Long id, String email, UserStatus status, String ghostName) {
         this.token = token;

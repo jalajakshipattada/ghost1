@@ -500,7 +500,6 @@ public class FeedController {
 
         // Create a chat message referencing the post (Instagram-style rich share card)
         boolean isPinned = Boolean.TRUE.equals(post.getIsPinned())
-                || (post.getAuthor() != null && post.getAuthor().isAdmin())
                 || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"))
                 || (post.getContent() != null && post.getContent().toUpperCase().contains("ANNOUNCEMENT"));
 
@@ -517,9 +516,13 @@ public class FeedController {
                     rName = post.getContent().substring(start, end).trim();
                 }
             }
-            authorName = (rName != null && !rName.isBlank()) ? rName : (post.getAuthor() != null && post.getAuthor().getRealName() != null ? post.getAuthor().getRealName() : "Student");
+            authorName = (rName != null && !rName.isBlank() && !rName.equalsIgnoreCase("Student"))
+                    ? rName
+                    : (post.getAuthor() != null && post.getAuthor().getRealName() != null && !post.getAuthor().getRealName().isBlank() && !post.getAuthor().getRealName().equalsIgnoreCase("Student")
+                        ? post.getAuthor().getRealName()
+                        : (post.getAuthor() != null && post.getAuthor().getGhostName() != null ? post.getAuthor().getGhostName() : "Ghost"));
         } else {
-            authorName = (post.getAuthor() != null && post.getAuthor().getGhostName() != null)
+            authorName = (post.getAuthor() != null && post.getAuthor().getGhostName() != null && !post.getAuthor().getGhostName().isBlank())
                     ? post.getAuthor().getGhostName() : "Ghost";
         }
 
@@ -547,9 +550,24 @@ public class FeedController {
         String escapedText = postText.replace("\"", "\\\"").replace("\n", " ");
 
         String customSharedByName = request.get("sharedByName") != null ? request.get("sharedByName").toString().trim() : "";
-        String senderDisplayName = asDirect
-                ? (user.getRealName() != null && !user.getRealName().isBlank() ? user.getRealName() : (!customSharedByName.isBlank() ? customSharedByName : user.getGhostName()))
-                : (!customSharedByName.isBlank() ? customSharedByName : user.getGhostName());
+        String senderDisplayName;
+        if (asDirect) {
+            if (user.getRealName() != null && !user.getRealName().isBlank() && !user.getRealName().equalsIgnoreCase("Student")) {
+                senderDisplayName = user.getRealName().trim();
+            } else if (!customSharedByName.isBlank() && !customSharedByName.equalsIgnoreCase("Student") && !customSharedByName.contains("ADMIN")) {
+                senderDisplayName = customSharedByName;
+            } else {
+                senderDisplayName = (user.getGhostName() != null && !user.getGhostName().isBlank()) ? user.getGhostName() : "Ghost";
+            }
+        } else {
+            if (user.getGhostName() != null && !user.getGhostName().isBlank()) {
+                senderDisplayName = user.getGhostName().trim();
+            } else if (!customSharedByName.isBlank() && !customSharedByName.equalsIgnoreCase("Student") && !customSharedByName.contains("ADMIN")) {
+                senderDisplayName = customSharedByName;
+            } else {
+                senderDisplayName = "Ghost";
+            }
+        }
 
         String shareContent = "[POST_SHARE]{\"postId\":" + post.getId() +
                 ",\"authorName\":\"" + escapedAuthor + "\"" +

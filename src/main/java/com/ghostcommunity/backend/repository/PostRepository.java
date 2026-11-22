@@ -14,6 +14,7 @@ import java.util.List;
 public interface PostRepository extends JpaRepository<Post, Long> {
     Page<Post> findAllByOrderByCreatedAtDesc(Pageable pageable);
     List<Post> findTop200ByOrderByCreatedAtDesc();
+    List<Post> findByIsPinnedTrueOrderByCreatedAtDesc();
 
     Page<Post> findByCollegeIdOrderByCreatedAtDesc(Long collegeId, Pageable pageable);
     List<Post> findTop200ByCollegeIdOrderByCreatedAtDesc(Long collegeId);

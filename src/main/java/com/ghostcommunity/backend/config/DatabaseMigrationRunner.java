@@ -46,6 +46,14 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
                 jdbcTemplate.execute("UPDATE users SET is_admin = true WHERE id = (SELECT min(id) FROM users);");
             } catch (Exception ignored) {}
 
+            // 5. Posts table self-healing for video, media type, pinned admin posts, and nullable college
+            try {
+                jdbcTemplate.execute("ALTER TABLE posts ALTER COLUMN college_id DROP NOT NULL;");
+            } catch (Exception ignored) {}
+            jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS video_url varchar(500);");
+            jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_type varchar(20);");
+            jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_pinned boolean DEFAULT false;");
+
             log.info("Schema self-healing completed successfully!");
         } catch (Exception e) {
             log.warn("Schema self-healing migration message: {}", e.getMessage());

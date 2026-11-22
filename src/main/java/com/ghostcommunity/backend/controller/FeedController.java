@@ -11,9 +11,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -68,6 +71,23 @@ public class FeedController {
         map.put("gender", post.getAuthor().getGender());
         map.put("content", post.getContent());
         map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");
+        map.put("videoUrl", post.getVideoUrl() != null ? post.getVideoUrl() : "");
+        String mediaType = post.getMediaType();
+        if (mediaType == null || mediaType.isBlank()) {
+            if (post.getVideoUrl() != null && !post.getVideoUrl().isBlank()) {
+                mediaType = "VIDEO";
+            } else if (post.getImageUrl() != null && !post.getImageUrl().isBlank()) {
+                mediaType = "IMAGE";
+            } else {
+                mediaType = "NONE";
+            }
+        }
+        map.put("mediaType", mediaType);
+        map.put("isPinned", Boolean.TRUE.equals(post.getIsPinned()));
+        boolean isAdminPost = Boolean.TRUE.equals(post.getIsPinned())
+                || (post.getAuthor() != null && post.getAuthor().isAdmin())
+                || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"));
+        map.put("isAdminPost", isAdminPost);
         map.put("createdAt", post.getCreatedAt());
 
         int score = postLikeRepository.getScoreByPostId(post.getId());
@@ -86,14 +106,13 @@ public class FeedController {
 
     public static double calculateInstagramScore(Post post, Long viewerCollegeId, int likes, long commentsCount) {
         int shares = post.getSharesCount() != null ? post.getSharesCount() : 0;
-        boolean hasMedia = (post.getImageUrl() != null && !post.getImageUrl().trim().isEmpty());
+        boolean hasMedia = (post.getImageUrl() != null && !post.getImageUrl().trim().isEmpty())
+                || (post.getVideoUrl() != null && !post.getVideoUrl().trim().isEmpty());
 
         double baseWeight = (likes * 2.5) + (commentsCount * 4.0) + (shares * 5.0) + (hasMedia ? 10.0 : 0.0) + 1.0;
 
+        // Equal for all colleges - no campus bias
         double affinity = 1.0;
-        if (viewerCollegeId != null && post.getCollege() != null && viewerCollegeId.equals(post.getCollege().getId())) {
-            affinity = 1.35;
-        }
 
         double hoursElapsed = 0.0;
         if (post.getCreatedAt() != null) {
@@ -132,7 +151,10 @@ public class FeedController {
             return ResponseEntity.ok(response);
         }
 
-        // Instagram-style Feed Ranking Algorithm
+        // 1. Fetch pinned admin announcements (Always show at TOP of feed)
+        List<Post> pinnedPosts = postRepository.findByIsPinnedTrueOrderByCreatedAtDesc();
+
+        // 2. Fetch candidate feed posts
         List<Post> candidatePosts;
         if (allColleges || user.getCollege() == null) {
             candidatePosts = postRepository.findTop200ByOrderByCreatedAtDesc();
@@ -147,7 +169,13 @@ public class FeedController {
             }
         }
 
-        List<Long> postIds = candidatePosts.stream().map(Post::getId).collect(Collectors.toList());
+        // Filter out any already-pinned posts from algorithmic list
+        Set<Long> pinnedIds = pinnedPosts.stream().map(Post::getId).collect(Collectors.toSet());
+        List<Post> unpinnedCandidates = candidatePosts.stream()
+                .filter(p -> !pinnedIds.contains(p.getId()))
+                .collect(Collectors.toList());
+
+        List<Long> postIds = unpinnedCandidates.stream().map(Post::getId).collect(Collectors.toList());
         Map<Long, Long> commentCountMap = new HashMap<>();
         Map<Long, Integer> likeScoreMap = new HashMap<>();
         if (!postIds.isEmpty()) {
@@ -166,7 +194,7 @@ public class FeedController {
         }
 
         Long viewerCollegeId = (user.getCollege() != null) ? user.getCollege().getId() : null;
-        List<Post> sortedPosts = candidatePosts.stream()
+        List<Post> sortedPosts = unpinnedCandidates.stream()
                 .sorted((p1, p2) -> {
                     double s1 = calculateInstagramScore(p1, viewerCollegeId, likeScoreMap.getOrDefault(p1.getId(), 0), commentCountMap.getOrDefault(p1.getId(), 0L));
                     double s2 = calculateInstagramScore(p2, viewerCollegeId, likeScoreMap.getOrDefault(p2.getId(), 0), commentCountMap.getOrDefault(p2.getId(), 0L));
@@ -174,19 +202,24 @@ public class FeedController {
                 })
                 .collect(Collectors.toList());
 
-        int fromIndex = Math.min(page * size, sortedPosts.size());
-        int toIndex = Math.min(fromIndex + size, sortedPosts.size());
-        List<Post> pagedPosts = sortedPosts.subList(fromIndex, toIndex);
+        // Combine: Pinned Admin Announcements first, followed by Algorithmic Feed
+        List<Post> allRanked = new ArrayList<>();
+        allRanked.addAll(pinnedPosts);
+        allRanked.addAll(sortedPosts);
+
+        int fromIndex = Math.min(page * size, allRanked.size());
+        int toIndex = Math.min(fromIndex + size, allRanked.size());
+        List<Post> pagedPosts = allRanked.subList(fromIndex, toIndex);
 
         List<Map<String, Object>> feed = pagedPosts.stream()
                 .map(post -> formatPostMap(post, user))
                 .collect(Collectors.toList());
 
-        int totalPages = (int) Math.ceil((double) sortedPosts.size() / Math.max(1, size));
+        int totalPages = (int) Math.ceil((double) allRanked.size() / Math.max(1, size));
         Map<String, Object> response = new HashMap<>();
         response.put("content", feed);
         response.put("totalPages", totalPages);
-        response.put("totalElements", sortedPosts.size());
+        response.put("totalElements", allRanked.size());
         return ResponseEntity.ok(response);
     }
 

@@ -253,26 +253,71 @@
 
     <!-- TAB 3: BROADCAST -->
     <div id="broadcastTab" class="tab-content">
-      <div style="max-width: 600px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; padding: 24px;">
-        <h3 style="margin-bottom: 8px;">📢 Broadcast to College Feed</h3>
-        <p style="color: var(--muted); font-size: 13px; margin-bottom: 20px;">Publish official announcements or sponsorship posters visible to students.</p>
+      <div style="max-width: 680px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 18px; padding: 24px;">
+        <h3 style="margin-bottom: 8px;">📢 Broadcast & Media Publishing</h3>
+        <p style="color: var(--muted); font-size: 13px; margin-bottom: 20px;">Publish official announcements with images or videos into the Universal Feed or directly into a Section Chat.</p>
+        
         <div class="form-group">
-          <label>Campaign Title</label>
-          <input type="text" id="bcTitle" class="input-field" placeholder="e.g. CAMPUS HACKATHON 2026" />
+          <label>Target Destination</label>
+          <div style="display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="radio" name="bcTargetType" value="FEED" checked onchange="onBroadcastTargetChange()" />
+              <span style="font-weight: 600; color: #fff;">📌 Top of Feed (All Colleges)</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input type="radio" name="bcTargetType" value="SECTION" onchange="onBroadcastTargetChange()" />
+              <span style="font-weight: 600; color: #fff;">💬 Specific Section Chat</span>
+            </label>
+          </div>
         </div>
+
+        <div id="bcSectionPicker" style="display: none; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>Select College</label>
+            <select id="bcTargetCollege" class="input-field" onchange="onBroadcastCollegeChange()"></select>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label>Select Section</label>
+            <select id="bcTargetSection" class="input-field"></select>
+          </div>
+        </div>
+
         <div class="form-group">
-          <label>Content Body</label>
+          <label>Media Type</label>
+          <select id="bcMediaType" class="input-field">
+            <option value="IMAGE">📷 Image Poster / Photo</option>
+            <option value="VIDEO">🎬 Video (MP4 / WebM / Cloudinary)</option>
+            <option value="TEXT">📝 Text Only (No Media)</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="bcTitleGroup">
+          <label>Campaign Title / Headline</label>
+          <input type="text" id="bcTitle" class="input-field" placeholder="e.g. CAMPUS HACKATHON 2026 / OFFICIAL NOTICE" />
+        </div>
+
+        <div class="form-group">
+          <label>Description / Message Content</label>
           <textarea id="bcContent" class="input-field" rows="3" placeholder="Write full announcement details..."></textarea>
         </div>
-        <div class="form-group">
-          <label>Poster Image URL (Optional)</label>
-          <input type="text" id="bcImage" class="input-field" placeholder="https://... image URL" />
+
+        <div class="form-group" id="bcMediaUrlGroup">
+          <label>Media URL (Image or Video Link)</label>
+          <input type="text" id="bcMediaUrl" class="input-field" placeholder="https://... Image or Video URL (e.g. Cloudinary)" />
         </div>
-        <div class="form-group">
+
+        <div class="form-group" id="bcLinkGroup">
           <label>Call-to-Action Link (Optional)</label>
           <input type="text" id="bcLink" class="input-field" placeholder="https://registration-link.com" />
         </div>
-        <button class="btn-primary" onclick="broadcastFeed()">Post to College Feed</button>
+
+        <button class="btn-primary" onclick="submitBroadcast()">🚀 Publish Announcement</button>
+      </div>
+
+      <div style="margin-top: 32px; max-width: 800px;">
+        <h3 style="margin-bottom: 6px;">📋 Active Admin Broadcast Posts (Top of Feed)</h3>
+        <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px;">These posts appear pinned at the very top of the feed across all colleges. You can delete them at any time.</p>
+        <div id="broadcastPostsList">Loading active broadcasts...</div>
       </div>
     </div>
 
@@ -398,6 +443,10 @@
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
       el.classList.add('active');
+      if (tabId === 'broadcastTab') {
+        loadBroadcastPosts();
+        populateBroadcastColleges();
+      }
     }
 
     async function loadDashboard() {
@@ -405,6 +454,7 @@
       loadReports();
       loadColleges();
       loadUsers();
+      loadBroadcastPosts();
     }
 
     async function loadStats() {
@@ -702,24 +752,160 @@
       else { const d = await res.json(); alert(d.error || 'Failed'); }
     }
 
-    async function broadcastFeed() {
-      const title = document.getElementById('bcTitle').value.trim();
-      const content = document.getElementById('bcContent').value.trim();
-      const imageUrl = document.getElementById('bcImage').value.trim();
-      const actionUrl = document.getElementById('bcLink').value.trim();
-      if (!title || !content) { alert('Please enter title and content'); return; }
+    let broadcastCollegesData = [];
 
-      const res = await fetch('/api/admin/broadcast-feed', {
-        method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, content, imageUrl, actionUrl })
+    function onBroadcastTargetChange() {
+      const isSection = document.querySelector('input[name="bcTargetType"]:checked').value === 'SECTION';
+      document.getElementById('bcSectionPicker').style.display = isSection ? 'block' : 'none';
+      document.getElementById('bcTitleGroup').style.display = isSection ? 'none' : 'block';
+      document.getElementById('bcLinkGroup').style.display = isSection ? 'none' : 'block';
+      if (isSection && broadcastCollegesData.length === 0) {
+        populateBroadcastColleges();
+      }
+    }
+
+    async function populateBroadcastColleges() {
+      try {
+        const res = await fetch('/api/admin/colleges', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) return;
+        broadcastCollegesData = await res.json();
+        const colSel = document.getElementById('bcTargetCollege');
+        colSel.innerHTML = broadcastCollegesData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        onBroadcastCollegeChange();
+      } catch (e) {}
+    }
+
+    function onBroadcastCollegeChange() {
+      const colId = parseInt(document.getElementById('bcTargetCollege').value);
+      const col = broadcastCollegesData.find(c => c.id === colId);
+      const secSel = document.getElementById('bcTargetSection');
+      if (col && col.sections && col.sections.length > 0) {
+        secSel.innerHTML = col.sections.map(s => `<option value="${s.id}">${s.name} (${s.messageCount || 0} msgs)</option>`).join('');
+      } else {
+        secSel.innerHTML = '<option value="">No sections in this college</option>';
+      }
+    }
+
+    async function submitBroadcast() {
+      const targetType = document.querySelector('input[name="bcTargetType"]:checked').value;
+      const mediaType = document.getElementById('bcMediaType').value;
+      const content = document.getElementById('bcContent').value.trim();
+      const mediaUrl = document.getElementById('bcMediaUrl').value.trim();
+
+      if (targetType === 'FEED') {
+        const title = document.getElementById('bcTitle').value.trim() || 'CAMPUS ANNOUNCEMENT';
+        const actionUrl = document.getElementById('bcLink').value.trim();
+        if (!content && !mediaUrl) {
+          alert('Please enter at least a message description or media URL');
+          return;
+        }
+
+        const res = await fetch('/api/admin/broadcast-feed', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            content,
+            mediaType,
+            imageUrl: (mediaType === 'IMAGE') ? mediaUrl : '',
+            videoUrl: (mediaType === 'VIDEO') ? mediaUrl : '',
+            actionUrl
+          })
+        });
+
+        if (res.ok) {
+          alert('Announcement published to the top of the Feed!');
+          document.getElementById('bcTitle').value = '';
+          document.getElementById('bcContent').value = '';
+          document.getElementById('bcMediaUrl').value = '';
+          document.getElementById('bcLink').value = '';
+          loadBroadcastPosts();
+          loadStats();
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Failed to publish to feed');
+        }
+      } else {
+        // Section broadcast
+        const sectionId = document.getElementById('bcTargetSection').value;
+        if (!sectionId) {
+          alert('Please select a valid section');
+          return;
+        }
+        if (!content && !mediaUrl) {
+          alert('Please enter message text or media URL');
+          return;
+        }
+
+        const res = await fetch('/api/admin/broadcast-section', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sectionId,
+            content,
+            mediaUrl,
+            messageType: mediaType
+          })
+        });
+
+        if (res.ok) {
+          alert('Message sent to section chat successfully!');
+          document.getElementById('bcContent').value = '';
+          document.getElementById('bcMediaUrl').value = '';
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Failed to send to section');
+        }
+      }
+    }
+
+    async function loadBroadcastPosts() {
+      try {
+        const res = await fetch('/api/admin/broadcast-posts', { headers: { 'Authorization': 'Bearer ' + token } });
+        const list = document.getElementById('broadcastPostsList');
+        if (!res.ok) return;
+        const posts = await res.json();
+        if (!posts || posts.length === 0) {
+          list.innerHTML = '<div style="color: var(--muted); font-size: 13px;">No active pinned broadcast posts.</div>';
+          return;
+        }
+        list.innerHTML = posts.map(p => {
+          const isVid = p.mediaType === 'VIDEO' || (p.videoUrl && p.videoUrl.length > 0);
+          const mediaLink = p.videoUrl || p.imageUrl;
+          return `
+            <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 250px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                  <span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 6px;">PINNED AT TOP OF FEED</span>
+                  <span style="color: var(--muted); font-size: 12px;">${p.collegeName}</span>
+                  <span style="color: var(--muted); font-size: 11px;">• ${new Date(p.createdAt).toLocaleString()}</span>
+                </div>
+                <div style="font-size: 13.5px; color: #fff; margin-bottom: 6px; white-space: pre-wrap;">${p.content}</div>
+                ${isVid
+                  ? `<div style="font-size: 11.5px; color: #38bdf8;">🎬 Video: <a href="${mediaLink}" target="_blank" style="color: #38bdf8; text-decoration: underline;">Open Video Link</a></div>`
+                  : (mediaLink ? `<div style="font-size: 11.5px; color: #38bdf8;">📷 Image: <a href="${mediaLink}" target="_blank" style="color: #38bdf8; text-decoration: underline;">Open Image Link</a></div>` : '')}
+              </div>
+              <div>
+                <button class="btn-sm" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: bold; padding: 8px 14px; border-radius: 8px;" onclick="deleteBroadcastPost(${p.id})">🗑️ Delete</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {}
+    }
+
+    async function deleteBroadcastPost(id) {
+      if (!confirm('Are you sure you want to delete this admin post? It will be removed immediately from the feed.')) return;
+      const res = await fetch('/api/admin/broadcast-posts/' + id, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.ok) {
-        alert('Broadcast posted to College Feed!');
-        document.getElementById('bcTitle').value = '';
-        document.getElementById('bcContent').value = '';
-        document.getElementById('bcImage').value = '';
-        document.getElementById('bcLink').value = '';
+        alert('Admin post deleted successfully!');
+        loadBroadcastPosts();
+        loadStats();
+      } else {
+        alert('Failed to delete post');
       }
     }
 

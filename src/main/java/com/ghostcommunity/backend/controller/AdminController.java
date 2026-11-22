@@ -730,13 +730,15 @@ public class AdminController {
         ));
     }
 
-    // 6. Broadcast Feed Announcement / Poster / Sponsored Ad
+    // 6. Broadcast Feed Announcement / Poster / Video (Pinned to TOP of Feed)
     @PostMapping("/broadcast-feed")
     public ResponseEntity<?> broadcastToFeed(@RequestBody Map<String, String> body) {
         User admin = checkAdminAccess();
         String title = body.getOrDefault("title", "CAMPUS ANNOUNCEMENT").trim();
         String content = body.getOrDefault("content", "").trim();
         String imageUrl = body.get("imageUrl");
+        String videoUrl = body.get("videoUrl");
+        String mediaType = body.getOrDefault("mediaType", "NONE").trim();
         String actionUrl = body.get("actionUrl");
         Long collegeId = null;
         if (body.get("collegeId") != null && !body.get("collegeId").isBlank()) {
@@ -745,8 +747,22 @@ public class AdminController {
             } catch (Exception ignored) {}
         }
 
+        if (mediaType.equals("NONE") || mediaType.isBlank()) {
+            if (videoUrl != null && !videoUrl.isBlank()) {
+                mediaType = "VIDEO";
+            } else if (imageUrl != null && !imageUrl.isBlank()) {
+                if (imageUrl.toLowerCase().endsWith(".mp4") || imageUrl.toLowerCase().endsWith(".mov") || imageUrl.toLowerCase().endsWith(".webm")) {
+                    mediaType = "VIDEO";
+                    videoUrl = imageUrl;
+                    imageUrl = null;
+                } else {
+                    mediaType = "IMAGE";
+                }
+            }
+        }
+
         // Prepare post text
-        String fullContent = "[OFFICIAL ADMIN] " + title + "\n\n" + content;
+        String fullContent = "[OFFICIAL ADMIN] " + title + (content.isEmpty() ? "" : "\n\n" + content);
         if (actionUrl != null && !actionUrl.isBlank()) {
             fullContent += "\n\n🔗 Link: " + actionUrl.trim();
         }
@@ -759,39 +775,84 @@ public class AdminController {
         }
 
         List<Long> postIds = new ArrayList<>();
-        for (College col : targetColleges) {
+        // If collegeId is null, create one universal post with college = null so it displays equally for ALL colleges
+        if (collegeId == null) {
             Post post = Post.builder()
                     .author(admin)
-                    .college(col)
+                    .college(null)
                     .content(fullContent)
                     .imageUrl(imageUrl != null && !imageUrl.isBlank() ? imageUrl.trim() : null)
+                    .videoUrl(videoUrl != null && !videoUrl.isBlank() ? videoUrl.trim() : null)
+                    .mediaType(mediaType)
+                    .isPinned(true)
                     .sharesCount(0)
                     .build();
             post = postRepository.save(post);
             postIds.add(post.getId());
 
-            // Real-time broadcast to college feed topic
-            messagingTemplate.convertAndSend("/topic/feed/" + col.getId(), (Object) Map.of(
-                    "type", "NEW_POST",
-                    "postId", post.getId(),
-                    "title", title,
-                    "isAdmin", true
-            ));
+            for (College col : targetColleges) {
+                messagingTemplate.convertAndSend("/topic/feed/" + col.getId(), (Object) Map.of(
+                        "type", "NEW_POST",
+                        "postId", post.getId(),
+                        "title", title,
+                        "isAdmin", true
+                ));
+            }
+        } else {
+            for (College col : targetColleges) {
+                Post post = Post.builder()
+                        .author(admin)
+                        .college(col)
+                        .content(fullContent)
+                        .imageUrl(imageUrl != null && !imageUrl.isBlank() ? imageUrl.trim() : null)
+                        .videoUrl(videoUrl != null && !videoUrl.isBlank() ? videoUrl.trim() : null)
+                        .mediaType(mediaType)
+                        .isPinned(true)
+                        .sharesCount(0)
+                        .build();
+                post = postRepository.save(post);
+                postIds.add(post.getId());
+
+                messagingTemplate.convertAndSend("/topic/feed/" + col.getId(), (Object) Map.of(
+                        "type", "NEW_POST",
+                        "postId", post.getId(),
+                        "title", title,
+                        "isAdmin", true
+                ));
+            }
         }
 
         return ResponseEntity.ok(Map.of(
-                "message", "Broadcasted to " + targetColleges.size() + " colleges successfully!",
+                "message", "Broadcasted to feed successfully!",
                 "postIds", postIds
         ));
     }
 
-    // 7. Broadcast Announcement to a Specific Section Chat
+    // 7. Broadcast Announcement to a Specific Section Chat (Normal chat message)
     @PostMapping("/broadcast-section")
     public ResponseEntity<?> broadcastToSection(@RequestBody Map<String, Object> body) {
         User admin = checkAdminAccess();
         Long sectionId = Long.valueOf(body.get("sectionId").toString());
-        String content = (String) body.getOrDefault("content", "");
-        String messageType = (String) body.getOrDefault("messageType", "TEXT");
+        String content = body.getOrDefault("content", "").toString().trim();
+        String mediaUrl = body.get("mediaUrl") != null ? body.get("mediaUrl").toString().trim() : null;
+        String messageType = body.getOrDefault("messageType", "TEXT").toString().trim();
+
+        if (mediaUrl != null && !mediaUrl.isBlank()) {
+            if ("NONE".equalsIgnoreCase(messageType) || "TEXT".equalsIgnoreCase(messageType)) {
+                if (mediaUrl.toLowerCase().endsWith(".mp4") || mediaUrl.toLowerCase().endsWith(".mov") || mediaUrl.toLowerCase().endsWith(".webm")) {
+                    messageType = "VIDEO";
+                } else {
+                    messageType = "IMAGE";
+                }
+            }
+        }
+
+        String finalContent = content;
+        if (mediaUrl != null && !mediaUrl.isBlank()) {
+            finalContent = content.isBlank() ? mediaUrl : (mediaUrl + "\n" + content);
+        } else if (finalContent.isBlank()) {
+            finalContent = "[OFFICIAL ANNOUNCEMENT]";
+        }
 
         Section section = sectionRepository.findById(sectionId)
                 .orElseThrow(() -> new RuntimeException("Section not found"));
@@ -800,7 +861,7 @@ public class AdminController {
                 .author(admin)
                 .college(section.getCollege())
                 .destinationSection(section)
-                .content("[OFFICIAL ANNOUNCEMENT] " + content)
+                .content(finalContent)
                 .messageType(messageType)
                 .build();
         message = messageRepository.save(message);
@@ -821,5 +882,46 @@ public class AdminController {
                 "message", "Section announcement broadcasted to " + section.getName(),
                 "messageId", message.getId()
         ));
+    }
+
+    // 8. List all Admin Broadcast Posts for management & deletion
+    @GetMapping("/broadcast-posts")
+    public ResponseEntity<?> getBroadcastPosts() {
+        checkAdminAccess();
+        List<Post> posts = postRepository.findByIsPinnedTrueOrderByCreatedAtDesc();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Post p : posts) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", p.getId());
+            m.put("content", p.getContent());
+            m.put("imageUrl", p.getImageUrl());
+            m.put("videoUrl", p.getVideoUrl());
+            m.put("mediaType", p.getMediaType());
+            m.put("isPinned", Boolean.TRUE.equals(p.getIsPinned()));
+            m.put("collegeName", p.getCollege() != null ? p.getCollege().getName() : "All Colleges");
+            m.put("createdAt", p.getCreatedAt());
+            result.add(m);
+        }
+        return ResponseEntity.ok(result);
+    }
+
+    // 9. Delete Admin Broadcast Post
+    @DeleteMapping("/broadcast-posts/{id}")
+    public ResponseEntity<?> deleteBroadcastPost(@PathVariable Long id) {
+        checkAdminAccess();
+        postRepository.findById(id).ifPresent(post -> {
+            postRepository.delete(post);
+        });
+        return ResponseEntity.ok(Map.of("message", "Post deleted successfully", "id", id));
+    }
+
+    // 10. Delete Section Message
+    @DeleteMapping("/messages/{id}")
+    public ResponseEntity<?> deleteMessage(@PathVariable Long id) {
+        checkAdminAccess();
+        messageRepository.findById(id).ifPresent(msg -> {
+            messageRepository.delete(msg);
+        });
+        return ResponseEntity.ok(Map.of("message", "Message deleted successfully", "id", id));
     }
 }

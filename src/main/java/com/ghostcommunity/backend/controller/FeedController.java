@@ -4,6 +4,7 @@ import com.ghostcommunity.backend.model.*;
 import com.ghostcommunity.backend.repository.*;
 import com.ghostcommunity.backend.security.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/feed")
 @RequiredArgsConstructor
+@Slf4j
 public class FeedController {
 
     private final PostRepository postRepository;
@@ -36,6 +38,7 @@ public class FeedController {
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
     private final MessageRepository messageRepository;
     private final com.ghostcommunity.backend.repository.SectionReadRepository sectionReadRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     public Map<String, Object> formatPostMap(Post post, User user) {
         Map<String, Object> map = new HashMap<>();
@@ -318,7 +321,7 @@ public class FeedController {
         if (post == null) {
             return ResponseEntity.notFound().build();
         }
-        if (!post.getAuthor().getId().equals(user.getId())) {
+        if (!post.getAuthor().getId().equals(user.getId()) && !user.isAdmin()) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
                     .body("You are not authorized to delete this post");
         }
@@ -327,6 +330,45 @@ public class FeedController {
         postLikeRepository.deleteByPostId(postId);
         savedPostRepository.deleteByPostId(postId);
         postRepository.delete(post);
+
+        // Invalidate all shared post cards in community section messages and direct messages
+        String unavailablePayload = "[POST_UNAVAILABLE]{\"postId\":" + postId + ",\"message\":\"This post is unavailable because it has been deleted.\"}";
+        try {
+            if (jdbcTemplate != null) {
+                // Find all section IDs that have this post shared to notify active WebSocket clients
+                List<Long> sectionIds = jdbcTemplate.queryForList(
+                        "SELECT DISTINCT destination_section_id FROM messages WHERE (message_type = 'POST_SHARE' OR content LIKE '%[POST_SHARE]%') AND (content LIKE ? OR content LIKE ?)",
+                        Long.class,
+                        "%\"postId\":" + postId + ",%", "%\"postId\":" + postId + "}%"
+                );
+
+                jdbcTemplate.update(
+                        "UPDATE messages SET content = ?, message_type = 'POST_UNAVAILABLE' WHERE (message_type = 'POST_SHARE' OR content LIKE '%[POST_SHARE]%') AND (content LIKE ? OR content LIKE ?)",
+                        unavailablePayload, "%\"postId\":" + postId + ",%", "%\"postId\":" + postId + "}%"
+                );
+                jdbcTemplate.update(
+                        "UPDATE direct_messages SET content = ?, message_type = 'POST_UNAVAILABLE' WHERE (message_type = 'POST_SHARE' OR content LIKE '%[POST_SHARE]%') AND (content LIKE ? OR content LIKE ?)",
+                        unavailablePayload, "%\"postId\":" + postId + ",%", "%\"postId\":" + postId + "}%"
+                );
+
+                // Broadcast live update to affected sections
+                if (messagingTemplate != null && sectionIds != null) {
+                    for (Long secId : sectionIds) {
+                        if (secId != null) {
+                            try {
+                                messagingTemplate.convertAndSend("/topic/section/" + secId, (Object) Map.of(
+                                        "action", "POST_UNAVAILABLE",
+                                        "postId", postId
+                                ));
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update post shares for deleted post {}: {}", postId, e.getMessage());
+        }
+
         return ResponseEntity.ok(Map.of("message", "Post deleted successfully", "deletedPostId", postId));
     }
 

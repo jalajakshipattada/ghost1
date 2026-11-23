@@ -792,7 +792,25 @@ public class AdminController {
             jdbcTemplate.execute("DELETE FROM post_likes WHERE user_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
             jdbcTemplate.execute("DELETE FROM saved_posts WHERE user_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
 
-            // 5. Delete user's posts
+            // 5. Invalidate shared post cards for user's posts, then delete posts
+            try {
+                List<Long> userPostIds = jdbcTemplate.queryForList("SELECT id FROM posts WHERE author_id = " + userId, Long.class);
+                if (userPostIds != null) {
+                    for (Long pid : userPostIds) {
+                        String unavailablePayload = "[POST_UNAVAILABLE]{\"postId\":" + pid + ",\"message\":\"This post is unavailable because it has been deleted.\"}";
+                        jdbcTemplate.update(
+                                "UPDATE messages SET content = ?, message_type = 'POST_UNAVAILABLE' WHERE (message_type = 'POST_SHARE' OR content LIKE '%[POST_SHARE]%') AND (content LIKE ? OR content LIKE ?)",
+                                unavailablePayload, "%\"postId\":" + pid + ",%", "%\"postId\":" + pid + "}%"
+                        );
+                        jdbcTemplate.update(
+                                "UPDATE direct_messages SET content = ?, message_type = 'POST_UNAVAILABLE' WHERE (message_type = 'POST_SHARE' OR content LIKE '%[POST_SHARE]%') AND (content LIKE ? OR content LIKE ?)",
+                                unavailablePayload, "%\"postId\":" + pid + ",%", "%\"postId\":" + pid + "}%"
+                        );
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to invalidate post shares for user {}: {}", userId, e.getMessage());
+            }
             jdbcTemplate.execute("DELETE FROM posts WHERE author_id = " + userId);
 
             // 6. Delete direct messages where user was sender or receiver
@@ -1025,11 +1043,56 @@ public class AdminController {
 
     // 9. Delete Admin Broadcast Post
     @DeleteMapping("/broadcast-posts/{id}")
+    @org.springframework.transaction.annotation.Transactional
     public ResponseEntity<?> deleteBroadcastPost(@PathVariable Long id) {
         checkAdminAccess();
         postRepository.findById(id).ifPresent(post -> {
+            try {
+                if (jdbcTemplate != null) {
+                    jdbcTemplate.execute("DELETE FROM comment_likes WHERE comment_id IN (SELECT id FROM comments WHERE post_id = " + id + ")");
+                    jdbcTemplate.execute("DELETE FROM comments WHERE post_id = " + id);
+                    jdbcTemplate.execute("DELETE FROM post_likes WHERE post_id = " + id);
+                    jdbcTemplate.execute("DELETE FROM saved_posts WHERE post_id = " + id);
+                }
+            } catch (Exception ignored) {}
             postRepository.delete(post);
         });
+
+        String unavailablePayload = "[POST_UNAVAILABLE]{\"postId\":" + id + ",\"message\":\"This post is unavailable because it has been deleted.\"}";
+        try {
+            if (jdbcTemplate != null) {
+                List<Long> sectionIds = jdbcTemplate.queryForList(
+                        "SELECT DISTINCT destination_section_id FROM messages WHERE (message_type = 'POST_SHARE' OR content LIKE '%[POST_SHARE]%') AND (content LIKE ? OR content LIKE ?)",
+                        Long.class,
+                        "%\"postId\":" + id + ",%", "%\"postId\":" + id + "}%"
+                );
+
+                jdbcTemplate.update(
+                        "UPDATE messages SET content = ?, message_type = 'POST_UNAVAILABLE' WHERE (message_type = 'POST_SHARE' OR content LIKE '%[POST_SHARE]%') AND (content LIKE ? OR content LIKE ?)",
+                        unavailablePayload, "%\"postId\":" + id + ",%", "%\"postId\":" + id + "}%"
+                );
+                jdbcTemplate.update(
+                        "UPDATE direct_messages SET content = ?, message_type = 'POST_UNAVAILABLE' WHERE (message_type = 'POST_SHARE' OR content LIKE '%[POST_SHARE]%') AND (content LIKE ? OR content LIKE ?)",
+                        unavailablePayload, "%\"postId\":" + id + ",%", "%\"postId\":" + id + "}%"
+                );
+
+                if (messagingTemplate != null && sectionIds != null) {
+                    for (Long secId : sectionIds) {
+                        if (secId != null) {
+                            try {
+                                messagingTemplate.convertAndSend("/topic/section/" + secId, (Object) Map.of(
+                                        "action", "POST_UNAVAILABLE",
+                                        "postId", id
+                                ));
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update post shares for deleted broadcast post {}: {}", id, e.getMessage());
+        }
+
         return ResponseEntity.ok(Map.of("message", "Post deleted successfully", "id", id));
     }
 

@@ -53,10 +53,16 @@ class PostShareFlowTest {
     private CommentRepository commentRepository;
 
     @Mock
+    private CommentLikeRepository commentLikeRepository;
+
+    @Mock
     private SavedPostRepository savedPostRepository;
 
     @Mock
     private SimpMessagingTemplate messagingTemplate;
+
+    @Mock
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     @Mock
     private Authentication authentication;
@@ -438,5 +444,69 @@ class PostShareFlowTest {
         assertNull(item.getGender());
         assertTrue(item.getIsAdmin());
         assertFalse(item.getGhostName().equals("hirag"));
+    }
+
+    @Test
+    void testDeletePost_ByAuthor_InvalidatesSharedMessagesInSectionsAndDMs() {
+        UserDetailsImpl userDetails = UserDetailsImpl.build(authorA);
+        when(authentication.getPrincipal()).thenReturn(userDetails);
+        when(userRepository.findById(authorA.getId())).thenReturn(Optional.of(authorA));
+        when(userRepository.findByIdWithSectionAndCollege(authorA.getId())).thenReturn(Optional.of(authorA));
+
+        Post post = Post.builder()
+                .id(999L)
+                .author(authorA)
+                .content("My Graduation Post")
+                .college(testCollege)
+                .build();
+        when(postRepository.findById(999L)).thenReturn(Optional.of(post));
+        when(jdbcTemplate.queryForList(anyString(), eq(Long.class), any(), any()))
+                .thenReturn(List.of(10L));
+
+        ResponseEntity<?> response = feedController.deletePost(999L);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        verify(commentRepository).deleteByPostId(999L);
+        verify(commentLikeRepository).deleteByPostId(999L);
+        verify(postLikeRepository).deleteByPostId(999L);
+        verify(savedPostRepository).deleteByPostId(999L);
+        verify(postRepository).delete(post);
+
+        // Verify shared messages in both messages and direct_messages tables are invalidated
+        ArgumentCaptor<String> sqlCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Object> argCaptor = ArgumentCaptor.forClass(Object.class);
+
+        verify(jdbcTemplate, atLeast(2)).update(sqlCaptor.capture(), argCaptor.capture(), any(), any());
+        assertTrue(sqlCaptor.getAllValues().get(0).contains("UPDATE messages SET content = ?, message_type = 'POST_UNAVAILABLE'"));
+        assertTrue(sqlCaptor.getAllValues().get(1).contains("UPDATE direct_messages SET content = ?, message_type = 'POST_UNAVAILABLE'"));
+
+        String payload = (String) argCaptor.getAllValues().get(0);
+        assertTrue(payload.startsWith("[POST_UNAVAILABLE]"));
+        assertTrue(payload.contains("\"postId\":999"));
+        assertTrue(payload.contains("This post is unavailable because it has been deleted."));
+
+        // Verify WebSocket notification sent to affected section
+        verify(messagingTemplate).convertAndSend(eq("/topic/section/10"), any(Object.class));
+    }
+
+    @Test
+    void testDeletePost_ByUnauthorizedUser_ReturnsForbidden() {
+        // Logged in as sharerB (not author)
+        UserDetailsImpl userDetails = UserDetailsImpl.build(sharerB);
+        when(authentication.getPrincipal()).thenReturn(userDetails);
+        when(userRepository.findById(sharerB.getId())).thenReturn(Optional.of(sharerB));
+
+        Post post = Post.builder()
+                .id(888L)
+                .author(authorA)
+                .content("Alice's Secret Post")
+                .college(testCollege)
+                .build();
+        when(postRepository.findById(888L)).thenReturn(Optional.of(post));
+
+        ResponseEntity<?> response = feedController.deletePost(888L);
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        verify(postRepository, never()).delete(any());
+        verify(jdbcTemplate, never()).update(anyString(), any(Object[].class));
     }
 }

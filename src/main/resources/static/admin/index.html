@@ -1099,6 +1099,8 @@
       }
     }
 
+    let allLoadedUsers = [];
+
     async function loadUsers() {
       const q = document.getElementById('userSearch') ? document.getElementById('userSearch').value.trim() : '';
       const url = q ? `/api/admin/users?query=${encodeURIComponent(q)}` : '/api/admin/users';
@@ -1106,6 +1108,7 @@
       const tbody = document.getElementById('usersTbody');
       if (!res.ok) return;
       const users = await res.json();
+      allLoadedUsers = users;
       tbody.innerHTML = users.map(u => `
         <tr>
           <td><strong>${u.realName || 'N/A'}</strong></td>
@@ -1120,7 +1123,7 @@
               <button class="btn-sm" style="background: ${u.status === 'SUSPENDED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;" onclick="toggleStatus(${u.id})">
                 ${u.status === 'SUSPENDED' ? '🟢 Revert Suspension' : '🚫 Suspend'}
               </button>
-              <button class="btn-sm" style="background: #ef4444; color: #fff;" onclick="deleteUserAccount(${u.id}, ${JSON.stringify(u.realName || u.ghostName || 'User')})">
+              <button class="btn-sm" style="background: #ef4444; color: #fff; cursor: pointer;" onclick="deleteUserAccount(${u.id})">
                 🗑️ Delete Account
               </button>
             </div>
@@ -1138,7 +1141,9 @@
       loadStats();
     }
 
-    async function deleteUserAccount(id, name) {
+    async function deleteUserAccount(id) {
+      const u = allLoadedUsers.find(x => x.id === id);
+      const name = u ? (u.realName || u.ghostName || 'User #' + id) : ('User #' + id);
       if (!confirm(`Are you sure you want to permanently delete the account for "${name}"?\n\n• All posts, comments, likes, and saved items will be deleted.\n• All chat messages and profile data will be permanently wiped.\n• This action is irreversible and cannot be undone.`)) {
         return;
       }

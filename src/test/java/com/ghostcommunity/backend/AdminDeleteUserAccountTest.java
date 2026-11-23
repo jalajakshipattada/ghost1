@@ -104,10 +104,13 @@ class AdminDeleteUserAccountTest {
 
         // Verify full cascade execution matching user's delete account feature
         verify(jdbcTemplate, atLeastOnce()).execute(contains("DELETE FROM message_reactions WHERE user_id = 200"));
+        verify(jdbcTemplate, atLeastOnce()).execute(contains("UPDATE reports SET reported_message_id = NULL"));
+        verify(jdbcTemplate, atLeastOnce()).execute(contains("UPDATE comments SET parent_comment_id = NULL"));
         verify(jdbcTemplate, atLeastOnce()).execute(contains("DELETE FROM comments WHERE author_id = 200"));
         verify(jdbcTemplate, atLeastOnce()).execute(contains("DELETE FROM posts WHERE author_id = 200"));
         verify(jdbcTemplate, atLeastOnce()).execute(contains("DELETE FROM direct_messages WHERE sender_id = 200 OR receiver_id = 200"));
         verify(jdbcTemplate, atLeastOnce()).execute(contains("DELETE FROM messages WHERE author_id = 200"));
+        verify(jdbcTemplate, atLeastOnce()).execute(contains("DELETE FROM poll_votes WHERE user_id = 200"));
         verify(jdbcTemplate, atLeastOnce()).execute(contains("DELETE FROM polls WHERE author_id = 200"));
         verify(jdbcTemplate, atLeastOnce()).execute(contains("DELETE FROM users WHERE id = 200"));
     }

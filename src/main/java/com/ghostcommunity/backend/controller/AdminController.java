@@ -776,39 +776,42 @@ public class AdminController {
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
         try {
-            // 1. Delete message reactions by user
-            jdbcTemplate.execute("DELETE FROM message_reactions WHERE user_id = " + userId);
+            // 1. Delete message reactions by user OR on user's messages
+            jdbcTemplate.execute("DELETE FROM message_reactions WHERE user_id = " + userId + " OR message_id IN (SELECT id FROM messages WHERE author_id = " + userId + ")");
 
-            // 2. Delete comments & comment likes on user's posts, and user's own comments & likes
+            // 2. Unlink reports pointing to user's messages, and delete reports involving user
+            jdbcTemplate.execute("UPDATE reports SET reported_message_id = NULL WHERE reported_message_id IN (SELECT id FROM messages WHERE author_id = " + userId + ")");
+            jdbcTemplate.execute("DELETE FROM reports WHERE reporter_id = " + userId + " OR reported_user_id = " + userId);
+
+            // 3. Delete comments & comment likes on user's posts, and user's own comments & likes (unlink parent comments first)
             jdbcTemplate.execute("DELETE FROM comment_likes WHERE user_id = " + userId + " OR comment_id IN (SELECT id FROM comments WHERE author_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + "))");
+            jdbcTemplate.execute("UPDATE comments SET parent_comment_id = NULL WHERE parent_comment_id IN (SELECT id FROM comments WHERE author_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + "))");
             jdbcTemplate.execute("DELETE FROM comments WHERE author_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
 
-            // 3. Delete post likes & saved posts for user's posts or by user
+            // 4. Delete post likes & saved posts for user's posts or by user
             jdbcTemplate.execute("DELETE FROM post_likes WHERE user_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
             jdbcTemplate.execute("DELETE FROM saved_posts WHERE user_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
 
-            // 4. Delete user's posts
+            // 5. Delete user's posts
             jdbcTemplate.execute("DELETE FROM posts WHERE author_id = " + userId);
 
-            // 5. Delete direct messages where user was sender or receiver
+            // 6. Delete direct messages where user was sender or receiver
             jdbcTemplate.execute("DELETE FROM direct_messages WHERE sender_id = " + userId + " OR receiver_id = " + userId);
 
-            // 6. Delete section messages authored by user (and reactions to those messages)
-            jdbcTemplate.execute("DELETE FROM message_reactions WHERE message_id IN (SELECT id FROM messages WHERE author_id = " + userId + ")");
+            // 7. Delete section messages authored by user
             jdbcTemplate.execute("DELETE FROM messages WHERE author_id = " + userId);
 
-            // 7. Delete polls and poll votes
-            jdbcTemplate.execute("DELETE FROM poll_votes WHERE user_id = " + userId);
+            // 8. Delete poll votes on user's polls OR cast by user, then options, then polls
+            jdbcTemplate.execute("DELETE FROM poll_votes WHERE user_id = " + userId + " OR poll_id IN (SELECT id FROM polls WHERE author_id = " + userId + ")");
             jdbcTemplate.execute("DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE author_id = " + userId + ")");
             jdbcTemplate.execute("DELETE FROM polls WHERE author_id = " + userId);
 
-            // 8. Delete reports, blocks, section reads, password reset tokens
-            jdbcTemplate.execute("DELETE FROM reports WHERE reporter_id = " + userId + " OR reported_user_id = " + userId);
+            // 9. Delete blocks, section reads, password reset tokens
             jdbcTemplate.execute("DELETE FROM blocks WHERE blocker_id = " + userId + " OR blocked_id = " + userId);
             jdbcTemplate.execute("DELETE FROM section_reads WHERE user_id = " + userId);
             jdbcTemplate.execute("DELETE FROM password_reset_tokens WHERE user_id = " + userId);
 
-            // 9. Delete user record
+            // 10. Delete user record
             jdbcTemplate.execute("DELETE FROM users WHERE id = " + userId);
 
             return ResponseEntity.ok(Map.of(

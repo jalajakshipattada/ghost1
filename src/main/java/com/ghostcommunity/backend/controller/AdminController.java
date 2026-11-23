@@ -763,6 +763,64 @@ public class AdminController {
         ));
     }
 
+    // 5c. Delete User Account permanently (same cascade as user's own delete account)
+    @DeleteMapping("/users/{userId}")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> deleteUserAccount(@PathVariable Long userId) {
+        User admin = checkAdminAccess();
+        if (admin.getId().equals(userId)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "You cannot delete your own admin account."));
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        try {
+            // 1. Delete message reactions by user
+            jdbcTemplate.execute("DELETE FROM message_reactions WHERE user_id = " + userId);
+
+            // 2. Delete comments & comment likes on user's posts, and user's own comments & likes
+            jdbcTemplate.execute("DELETE FROM comment_likes WHERE user_id = " + userId + " OR comment_id IN (SELECT id FROM comments WHERE author_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + "))");
+            jdbcTemplate.execute("DELETE FROM comments WHERE author_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
+
+            // 3. Delete post likes & saved posts for user's posts or by user
+            jdbcTemplate.execute("DELETE FROM post_likes WHERE user_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
+            jdbcTemplate.execute("DELETE FROM saved_posts WHERE user_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
+
+            // 4. Delete user's posts
+            jdbcTemplate.execute("DELETE FROM posts WHERE author_id = " + userId);
+
+            // 5. Delete direct messages where user was sender or receiver
+            jdbcTemplate.execute("DELETE FROM direct_messages WHERE sender_id = " + userId + " OR receiver_id = " + userId);
+
+            // 6. Delete section messages authored by user (and reactions to those messages)
+            jdbcTemplate.execute("DELETE FROM message_reactions WHERE message_id IN (SELECT id FROM messages WHERE author_id = " + userId + ")");
+            jdbcTemplate.execute("DELETE FROM messages WHERE author_id = " + userId);
+
+            // 7. Delete polls and poll votes
+            jdbcTemplate.execute("DELETE FROM poll_votes WHERE user_id = " + userId);
+            jdbcTemplate.execute("DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE author_id = " + userId + ")");
+            jdbcTemplate.execute("DELETE FROM polls WHERE author_id = " + userId);
+
+            // 8. Delete reports, blocks, section reads, password reset tokens
+            jdbcTemplate.execute("DELETE FROM reports WHERE reporter_id = " + userId + " OR reported_user_id = " + userId);
+            jdbcTemplate.execute("DELETE FROM blocks WHERE blocker_id = " + userId + " OR blocked_id = " + userId);
+            jdbcTemplate.execute("DELETE FROM section_reads WHERE user_id = " + userId);
+            jdbcTemplate.execute("DELETE FROM password_reset_tokens WHERE user_id = " + userId);
+
+            // 9. Delete user record
+            jdbcTemplate.execute("DELETE FROM users WHERE id = " + userId);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "User account deleted successfully",
+                    "userId", userId,
+                    "deletedUser", user.getRealName() != null ? user.getRealName() : user.getGhostName()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to delete user account: " + e.getMessage()));
+        }
+    }
+
     // 6. Broadcast Feed Announcement / Poster / Video (Pinned to TOP of Feed)
     @PostMapping("/broadcast-feed")
     public ResponseEntity<?> broadcastToFeed(@RequestBody Map<String, String> body) {

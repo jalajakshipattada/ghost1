@@ -1116,9 +1116,14 @@
           <td><span class="pill ${u.status === 'ACTIVE' ? 'pill-resolved' : 'pill-pending'}">${u.status}</span></td>
           <td>${u.isAdmin ? '<span class="pill" style="background: rgba(245,158,11,0.2); color: var(--warning);">ADMIN</span>' : 'Student'}</td>
           <td>
-            <button class="btn-sm" style="background: ${u.status === 'SUSPENDED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;" onclick="toggleStatus(${u.id})">
-              ${u.status === 'SUSPENDED' ? '🟢 Revert Suspension' : '🚫 Suspend'}
-            </button>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button class="btn-sm" style="background: ${u.status === 'SUSPENDED' ? 'var(--success)' : 'var(--danger)'}; color: #fff;" onclick="toggleStatus(${u.id})">
+                ${u.status === 'SUSPENDED' ? '🟢 Revert Suspension' : '🚫 Suspend'}
+              </button>
+              <button class="btn-sm" style="background: #ef4444; color: #fff;" onclick="deleteUserAccount(${u.id}, ${JSON.stringify(u.realName || u.ghostName || 'User')})">
+                🗑️ Delete Account
+              </button>
+            </div>
           </td>
         </tr>
       `).join('');
@@ -1131,6 +1136,28 @@
       });
       loadUsers();
       loadStats();
+    }
+
+    async function deleteUserAccount(id, name) {
+      if (!confirm(`Are you sure you want to permanently delete the account for "${name}"?\n\n• All posts, comments, likes, and saved items will be deleted.\n• All chat messages and profile data will be permanently wiped.\n• This action is irreversible and cannot be undone.`)) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/admin/users/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+          alert(`Account for "${name}" deleted permanently.`);
+          loadUsers();
+          loadStats();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Failed to delete user account');
+        }
+      } catch (err) {
+        alert('Error deleting user: ' + err.message);
+      }
     }
   </script>
 </body>

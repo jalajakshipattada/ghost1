@@ -47,6 +47,15 @@ class PostShareFlowTest {
     private MessageReactionRepository messageReactionRepository;
 
     @Mock
+    private PostLikeRepository postLikeRepository;
+
+    @Mock
+    private CommentRepository commentRepository;
+
+    @Mock
+    private SavedPostRepository savedPostRepository;
+
+    @Mock
     private SimpMessagingTemplate messagingTemplate;
 
     @Mock
@@ -305,6 +314,7 @@ class PostShareFlowTest {
                 .content("Special Promotional Fest Announcement")
                 .mediaType("VIDEO")
                 .videoUrl("https://cloudinary.com/video.mp4")
+                .isPinned(true)
                 .build();
 
         when(postRepository.findById(55L)).thenReturn(Optional.of(adminPost));
@@ -330,6 +340,63 @@ class PostShareFlowTest {
         assertTrue(saved.getContent().contains("\"authorName\":\"Campus Spotlight\""));
         assertTrue(saved.getContent().contains("\"isPinned\":true"));
         assertFalse(saved.getContent().contains("hirag"));
+    }
+
+    @Test
+    void testAdminUserPostsThroughDirect_UsesRealNameNotCampusSpotlight() {
+        User adminUser = User.builder()
+                .id(999L)
+                .realName("Chirag")
+                .ghostName("PhantomChirag")
+                .profileImageUrl("https://example.com/chirag.jpg")
+                .isAdmin(true)
+                .college(testCollege)
+                .primarySection(testSection)
+                .build();
+
+        Post directPost = Post.builder()
+                .id(66L)
+                .author(adminUser)
+                .college(testCollege)
+                .content("[DIRECT|Chirag] My personal project photo")
+                .imageUrl("https://example.com/photo.jpg")
+                .mediaType("IMAGE")
+                .isPinned(false)
+                .build();
+
+        Map<String, Object> mapped = feedController.formatPostMap(directPost, adminUser);
+        assertEquals("Chirag", mapped.get("authorRealName"));
+        assertEquals("https://example.com/chirag.jpg", mapped.get("authorProfileImageUrl"));
+        assertEquals(false, mapped.get("isPinned"));
+        assertEquals(false, mapped.get("isAdminPost"));
+    }
+
+    @Test
+    void testAdminUserPostsThroughGhost_UsesGhostNameNotCampusSpotlight() {
+        User adminUser = User.builder()
+                .id(999L)
+                .realName("Chirag")
+                .ghostName("PhantomChirag")
+                .isAdmin(true)
+                .college(testCollege)
+                .primarySection(testSection)
+                .build();
+
+        Post ghostPost = Post.builder()
+                .id(67L)
+                .author(adminUser)
+                .college(testCollege)
+                .content("Casual campus thought")
+                .mediaType("NONE")
+                .isPinned(false)
+                .build();
+
+        Map<String, Object> mapped = feedController.formatPostMap(ghostPost, adminUser);
+        assertEquals("PhantomChirag", mapped.get("authorGhostName"));
+        assertNotEquals("Campus Spotlight", mapped.get("authorGhostName"));
+        assertNotEquals("⚠️ ADMIN", mapped.get("authorGhostName"));
+        assertEquals(false, mapped.get("isPinned"));
+        assertEquals(false, mapped.get("isAdminPost"));
     }
 
     @Test

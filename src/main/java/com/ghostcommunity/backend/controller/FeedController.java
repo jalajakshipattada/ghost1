@@ -37,7 +37,7 @@ public class FeedController {
     private final MessageRepository messageRepository;
     private final com.ghostcommunity.backend.repository.SectionReadRepository sectionReadRepository;
 
-    private Map<String, Object> formatPostMap(Post post, User user) {
+    public Map<String, Object> formatPostMap(Post post, User user) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", post.getId());
 
@@ -62,15 +62,20 @@ public class FeedController {
             map.put("authorPrimarySection", author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : "");
         } else {
             // Ghost post: show ghost name, strictly hide real name, email, and photo
-            boolean isAuthAdmin = author != null && author.isAdmin();
+            boolean isOfficialBroadcast = Boolean.TRUE.equals(post.getIsPinned())
+                    || "AD".equalsIgnoreCase(post.getMediaType())
+                    || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"));
+
             String gName;
-            if (isAuthAdmin) {
-                gName = Boolean.TRUE.equals(post.getIsPinned()) || "AD".equalsIgnoreCase(post.getMediaType()) ? "Campus Spotlight" : "⚠️ ADMIN";
+            if (isOfficialBroadcast) {
+                gName = "Campus Spotlight";
             } else {
-                gName = author != null && author.getGhostName() != null ? author.getGhostName() : "Ghost";
+                gName = (author != null && author.getGhostName() != null && !author.getGhostName().isBlank())
+                        ? author.getGhostName()
+                        : "Ghost";
             }
             map.put("authorGhostName", gName);
-            map.put("authorPrimarySection", isAuthAdmin ? "" : (author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : ""));
+            map.put("authorPrimarySection", isOfficialBroadcast ? "" : (author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : ""));
         }
 
         boolean isPinned = Boolean.TRUE.equals(post.getIsPinned());
@@ -83,7 +88,7 @@ public class FeedController {
         map.put("authorCollegeName", colName);
         map.put("collegeName", colName);
 
-        map.put("gender", (author != null && author.isAdmin()) ? "" : (author != null && author.getGender() != null ? author.getGender() : ""));
+        map.put("gender", (author != null && author.getGender() != null) ? author.getGender() : "");
         map.put("content", post.getContent());
         map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");
         map.put("videoUrl", post.getVideoUrl() != null ? post.getVideoUrl() : "");
@@ -98,9 +103,9 @@ public class FeedController {
             }
         }
         map.put("mediaType", mediaType);
-        map.put("isPinned", Boolean.TRUE.equals(post.getIsPinned()));
-        boolean isAdminPost = Boolean.TRUE.equals(post.getIsPinned())
-                || (post.getAuthor() != null && post.getAuthor().isAdmin())
+        map.put("isPinned", isPinned);
+        boolean isAdminPost = isPinned
+                || "AD".equalsIgnoreCase(post.getMediaType())
                 || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"));
         map.put("isAdminPost", isAdminPost);
         map.put("createdAt", post.getCreatedAt());
@@ -511,16 +516,12 @@ public class FeedController {
                 || "DIRECT".equalsIgnoreCase(String.valueOf(request.get("chatMode")));
 
         // Create a chat message referencing the post (Instagram-style rich share card)
-        boolean isPinned = Boolean.TRUE.equals(post.getIsPinned())
+        boolean isDirect = post.getContent() != null && post.getContent().startsWith("[DIRECT");
+        boolean isPinned = !isDirect && (Boolean.TRUE.equals(post.getIsPinned())
                 || "AD".equalsIgnoreCase(post.getMediaType())
                 || "ANNOUNCEMENT".equalsIgnoreCase(post.getMediaType())
-                || (post.getActionUrl() != null && !post.getActionUrl().isBlank())
-                || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"))
-                || (post.getContent() != null && post.getContent().toUpperCase().contains("ANNOUNCEMENT"))
-                || (post.getContent() != null && post.getContent().toUpperCase().contains("CAMPUS SPOTLIGHT"))
-                || (post.getAuthor() != null && post.getAuthor().isAdmin());
+                || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]")));
 
-        boolean isDirect = !isPinned && post.getContent() != null && post.getContent().startsWith("[DIRECT");
         String authorName;
         if (isPinned) {
             authorName = "Campus Spotlight";

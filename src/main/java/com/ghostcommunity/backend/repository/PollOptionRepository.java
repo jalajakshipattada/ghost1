@@ -3,6 +3,9 @@ package com.ghostcommunity.backend.repository;
 import com.ghostcommunity.backend.model.PollOption;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 @Repository
-public interface PollOptionRepository extends JpaRepository<PollOption, Long> {}
+public interface PollOptionRepository extends JpaRepository<PollOption, Long> {
+    List<PollOption> findByPollIdOrderByIdAsc(Long pollId);
+}

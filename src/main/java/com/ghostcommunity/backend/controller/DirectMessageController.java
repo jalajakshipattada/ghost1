@@ -210,6 +210,42 @@ public class DirectMessageController {
         return ResponseEntity.ok(payload);
     }
 
+    // POST /api/dm/{userId}/reject-reveal
+    @PostMapping("/{userId}/reject-reveal")
+    public ResponseEntity<?> rejectReveal(@PathVariable Long userId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User me = userRepository.findById(userDetails.getId()).orElseThrow();
+        User partner = userRepository.findById(userId).orElseThrow();
+
+        // 1. Insert a SYSTEM message notifying that the reveal was declined so the REVEAL_REQUEST unread badge disappears
+        DirectMessage sysMsg = DirectMessage.builder()
+                .sender(me)
+                .receiver(partner)
+                .content("Identity reveal request was declined.")
+                .messageType("SYSTEM")
+                .chatMode("GHOST")
+                .build();
+        dmRepository.save(sysMsg);
+
+        // 2. Broadcast to WebSockets to force UI update for both users
+        ChatResponsePayload payload = ChatResponsePayload.builder()
+                .messageId(sysMsg.getId())
+                .senderId(me.getId())
+                .content(sysMsg.getContent())
+                .messageType("SYSTEM")
+                .ghostName("SYSTEM")
+                .primarySection("")
+                .gender("")
+                .createdAt(sysMsg.getCreatedAt())
+                .build();
+
+        messagingTemplate.convertAndSend("/topic/user/" + partner.getId(), payload);
+        messagingTemplate.convertAndSend("/topic/user/" + me.getId(), payload);
+
+        return ResponseEntity.ok(payload);
+    }
+
     // DELETE /api/dm/message/{messageId}?forEveryone=true|false
     @DeleteMapping("/message/{messageId}")
     public ResponseEntity<?> deleteMessage(

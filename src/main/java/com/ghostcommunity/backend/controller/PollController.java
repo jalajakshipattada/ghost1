@@ -27,6 +27,52 @@ public class PollController {
     // Lightweight DTO for creating a poll
     public record CreatePollRequest(String question, List<String> options) {}
 
+    // 1. Fetch live poll data with current user vote status
+    @GetMapping("/{pollId}")
+    public ResponseEntity<?> getPoll(@PathVariable Long pollId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long myId = null;
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl u) {
+            myId = u.getId();
+        }
+
+        Poll poll = pollRepository.findById(pollId).orElse(null);
+        if (poll == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<PollOption> options = pollOptionRepository.findByPollIdOrderByIdAsc(pollId);
+        Long votedOptionId = null;
+        boolean hasVoted = false;
+        if (myId != null) {
+            var voteOpt = pollVoteRepository.findByPollIdAndUserId(pollId, myId);
+            if (voteOpt.isPresent()) {
+                hasVoted = true;
+                votedOptionId = voteOpt.get().getOption() != null ? voteOpt.get().getOption().getId() : null;
+            }
+        }
+
+        int totalVotes = options.stream().mapToInt(PollOption::getVoteCount).sum();
+
+        List<Map<String, Object>> optionMaps = options.stream().map(o -> {
+            Map<String, Object> om = new java.util.HashMap<>();
+            om.put("id", o.getId());
+            om.put("text", o.getText());
+            om.put("voteCount", o.getVoteCount());
+            return om;
+        }).toList();
+
+        Map<String, Object> res = new java.util.HashMap<>();
+        res.put("id", poll.getId());
+        res.put("question", poll.getQuestion());
+        res.put("options", optionMaps);
+        res.put("totalVotes", totalVotes);
+        res.put("hasVoted", hasVoted);
+        res.put("votedOptionId", votedOptionId);
+
+        return ResponseEntity.ok(res);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<?> createPoll(@RequestBody CreatePollRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -45,18 +91,22 @@ public class PollController {
         poll = pollRepository.save(poll);
 
         // 2. Save the Options dynamically
+        List<Map<String, Object>> savedOptions = new java.util.ArrayList<>();
         for (String optionText : request.options()) {
             PollOption option = PollOption.builder()
                     .text(optionText)
                     .poll(poll)
                     .voteCount(0)
                     .build();
-            pollOptionRepository.save(option);
+            option = pollOptionRepository.save(option);
+            savedOptions.add(Map.of("id", option.getId(), "text", option.getText(), "voteCount", 0));
         }
 
-        // Return the Poll ID to the mobile app so it can broadcast it via WebSocket
+        // Return the Poll ID and options to the mobile app
         return ResponseEntity.ok(Map.of(
-                "pollId", poll.getId(), 
+                "pollId", poll.getId(),
+                "question", poll.getQuestion(),
+                "options", savedOptions,
                 "message", "Poll created successfully"
         ));
     }
@@ -77,12 +127,27 @@ public class PollController {
             return ResponseEntity.badRequest().body(new MessageResponse("Invalid option for this poll."));
         }
 
-        // The Ultimate Database Security Check: Has this user already voted?
-        if (pollVoteRepository.existsByPollIdAndUserId(poll.getId(), user.getId())) {
-            return ResponseEntity.badRequest().body(new MessageResponse("You have already voted on this poll!"));
+        // WhatsApp Style: Allow changing / switching vote
+        var existingVoteOpt = pollVoteRepository.findByPollIdAndUserId(poll.getId(), user.getId());
+        if (existingVoteOpt.isPresent()) {
+            PollVote existing = existingVoteOpt.get();
+            if (existing.getOption().getId().equals(option.getId())) {
+                return ResponseEntity.ok(new MessageResponse("Vote already recorded"));
+            }
+            PollOption prevOpt = existing.getOption();
+            prevOpt.setVoteCount(Math.max(0, prevOpt.getVoteCount() - 1));
+            pollOptionRepository.save(prevOpt);
+
+            existing.setOption(option);
+            pollVoteRepository.save(existing);
+
+            option.setVoteCount(option.getVoteCount() + 1);
+            pollOptionRepository.save(option);
+
+            return ResponseEntity.ok(new MessageResponse("Vote switched successfully!"));
         }
 
-        // Record the secret vote privately
+        // Record the new vote
         PollVote vote = PollVote.builder()
                 .poll(poll)
                 .option(option)

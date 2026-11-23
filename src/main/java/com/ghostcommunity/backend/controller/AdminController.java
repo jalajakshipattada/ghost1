@@ -39,6 +39,7 @@ public class AdminController {
     private final PostRepository postRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final JwtUtils jwtUtils;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     // Helper method to guarantee ONLY Admins can execute these actions
     private User checkAdminAccess() {
@@ -135,6 +136,37 @@ public class AdminController {
                 "realName", admin.getRealName() != null ? admin.getRealName() : "Campus Admin",
                 "ghostName", admin.getGhostName() != null ? admin.getGhostName() : "AdminGhost"
         ));
+    }
+
+    // 0d. Purge All User Data with Master Key
+    @PostMapping("/system/purge-all-user-data")
+    public ResponseEntity<?> purgeAllUserData(@RequestBody Map<String, String> request) {
+        String key = request.get("key");
+        if (key == null || !key.trim().equals("admin123")) {
+            return ResponseEntity.status(403).body(Map.of("error", "Invalid admin master key. Use 'admin123'"));
+        }
+        log.warn("ADMIN TRIGGERED FULL DATABASE PURGE - WIPING ALL USERS AND GENERATED DATA!");
+        try {
+            jdbcTemplate.execute("TRUNCATE TABLE message_reactions, direct_messages, messages, comment_likes, comments, post_likes, saved_posts, reports, poll_votes, poll_options, polls, posts, blocks, password_reset_tokens, section_reads, users CASCADE;");
+            try {
+                jdbcTemplate.execute("TRUNCATE TABLE campus_structures, fortress_raid_logs, fortresses CASCADE;");
+            } catch (Exception ignored) {}
+            try {
+                jdbcTemplate.execute("UPDATE sections SET message_count = 0;");
+            } catch (Exception ignored) {}
+
+            log.info("FULL DATABASE CLEANUP COMPLETED SUCCESSFULLY!");
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "All users, messages, posts, and related data have been completely cleaned up from the database."
+            ));
+        } catch (Exception e) {
+            log.error("Failed to purge database: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(
+                    "success", false,
+                    "error", e.getMessage()
+            ));
+        }
     }
 
     // 1. Dashboard Statistics

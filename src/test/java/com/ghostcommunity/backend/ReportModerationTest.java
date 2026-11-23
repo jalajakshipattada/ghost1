@@ -66,6 +66,9 @@ class ReportModerationTest {
     @Mock
     private JwtUtils jwtUtils;
 
+    @Mock
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private ModerationController moderationController;
     private AdminController adminController;
 
@@ -97,7 +100,8 @@ class ReportModerationTest {
                 messageReactionRepository,
                 postRepository,
                 messagingTemplate,
-                jwtUtils
+                jwtUtils,
+                jdbcTemplate
         );
 
         testCollege = College.builder().id(1L).name("Test University").build();
@@ -489,5 +493,19 @@ class ReportModerationTest {
         double s2 = com.ghostcommunity.backend.controller.FeedController.calculateInstagramScore(p2, testCollege.getId(), 5, 0);
 
         assertTrue(s1 > s2, "Fresh viral post with media should score significantly higher than old low-engagement post");
+    }
+
+    @Test
+    void testPurgeAllUserData_InvalidKey() {
+        ResponseEntity<?> res = adminController.purgeAllUserData(Map.of("key", "wrongKey"));
+        assertEquals(403, res.getStatusCode().value());
+        verify(jdbcTemplate, never()).execute(anyString());
+    }
+
+    @Test
+    void testPurgeAllUserData_Success() {
+        ResponseEntity<?> res = adminController.purgeAllUserData(Map.of("key", "admin123"));
+        assertEquals(200, res.getStatusCode().value());
+        verify(jdbcTemplate, atLeastOnce()).execute(contains("TRUNCATE TABLE"));
     }
 }

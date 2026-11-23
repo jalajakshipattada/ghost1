@@ -24,5 +24,6 @@ public class ChatResponsePayload {
     private Map<String, Long> reactions;
     private Boolean isSeen;
     private Boolean isMe;
+    private Boolean isAdmin;
 }
 

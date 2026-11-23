@@ -929,6 +929,7 @@ public class AdminController {
                 .messageType(message.getMessageType())
                 .ghostName("⚠️ ADMIN")
                 .primarySection("System")
+                .isAdmin(true)
                 .createdAt(message.getCreatedAt())
                 .build();
 

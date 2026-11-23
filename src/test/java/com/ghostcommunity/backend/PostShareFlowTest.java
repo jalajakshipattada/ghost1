@@ -285,4 +285,91 @@ class PostShareFlowTest {
         assertFalse(historyForAlice.get(0).getIsMe()); // Not Alice's message
         assertEquals("Bob", historyForAlice.get(0).getGhostName()); // Sharer name is Bob
     }
+
+    @Test
+    void testAdminPostSharedAlwaysUsesCampusSpotlight() {
+        User adminUser = User.builder()
+                .id(999L)
+                .realName("Chirag")
+                .ghostName("hirag")
+                .isAdmin(true)
+                .college(testCollege)
+                .primarySection(testSection)
+                .gender("FEMALE")
+                .build();
+
+        Post adminPost = Post.builder()
+                .id(55L)
+                .author(adminUser)
+                .college(testCollege)
+                .content("Special Promotional Fest Announcement")
+                .mediaType("VIDEO")
+                .videoUrl("https://cloudinary.com/video.mp4")
+                .build();
+
+        when(postRepository.findById(55L)).thenReturn(Optional.of(adminPost));
+        when(messageRepository.save(any(Message.class))).thenAnswer(invocation -> {
+            Message m = invocation.getArgument(0);
+            m.setId(555L);
+            return m;
+        });
+
+        Map<String, Object> shareReq = new HashMap<>();
+        shareReq.put("sectionId", 10L);
+        shareReq.put("asDirect", false);
+        shareReq.put("chatMode", "GHOST");
+        shareReq.put("sharedByName", "GhostBob");
+
+        ResponseEntity<?> response = feedController.sharePost(55L, shareReq);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        ArgumentCaptor<Message> messageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(messageRepository).save(messageCaptor.capture());
+        Message saved = messageCaptor.getValue();
+
+        assertTrue(saved.getContent().contains("\"authorName\":\"Campus Spotlight\""));
+        assertTrue(saved.getContent().contains("\"isPinned\":true"));
+        assertFalse(saved.getContent().contains("hirag"));
+    }
+
+    @Test
+    void testSectionHistoryForAdminMessageReturnsCampusAdminAndSystem() {
+        User adminUser = User.builder()
+                .id(999L)
+                .realName("Chirag")
+                .ghostName("hirag")
+                .isAdmin(true)
+                .college(testCollege)
+                .primarySection(testSection)
+                .gender("FEMALE")
+                .build();
+
+        Message adminMsg = Message.builder()
+                .id(2001L)
+                .author(adminUser)
+                .college(testCollege)
+                .destinationSection(testSection)
+                .content("Official Announcement from Admin")
+                .messageType("TEXT")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(messageRepository.findByDestinationSectionIdOrderByCreatedAtAsc(10L))
+                .thenReturn(List.of(adminMsg));
+        when(messageReactionRepository.countReactionsBySectionId(10L))
+                .thenReturn(Collections.emptyList());
+
+        ResponseEntity<?> response = messageController.getSectionHistory(10L);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        List<ChatResponsePayload> history = (List<ChatResponsePayload>) response.getBody();
+        assertNotNull(history);
+        assertEquals(1, history.size());
+        ChatResponsePayload item = history.get(0);
+
+        assertEquals("Campus Admin", item.getGhostName());
+        assertEquals("System", item.getPrimarySection());
+        assertNull(item.getGender());
+        assertTrue(item.getIsAdmin());
+        assertFalse(item.getGhostName().equals("hirag"));
+    }
 }

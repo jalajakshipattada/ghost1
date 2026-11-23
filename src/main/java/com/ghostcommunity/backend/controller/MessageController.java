@@ -153,12 +153,17 @@ public class MessageController {
         List<ChatResponsePayload> history = messages.stream()
                 .filter(m -> m.getAuthor() != null)
                 .map(m -> {
-                    String secName = (m.getAuthor().getPrimarySection() != null)
-                            ? m.getAuthor().getPrimarySection().getName()
-                            : (m.getAuthor().isAdmin() ? "System" : "");
-                    String ghost = (m.getAuthor().getGhostName() != null && !m.getAuthor().getGhostName().isBlank())
-                            ? m.getAuthor().getGhostName()
-                            : (m.getAuthor().isAdmin() ? "Campus Admin" : "Ghost");
+                    boolean isAuthorAdmin = m.getAuthor().isAdmin();
+                    String secName = isAuthorAdmin
+                            ? "System"
+                            : ((m.getAuthor().getPrimarySection() != null)
+                                    ? m.getAuthor().getPrimarySection().getName()
+                                    : "");
+                    String ghost = isAuthorAdmin
+                            ? "Campus Admin"
+                            : ((m.getAuthor().getGhostName() != null && !m.getAuthor().getGhostName().isBlank())
+                                    ? m.getAuthor().getGhostName()
+                                    : "Ghost");
                     if ("POST_SHARE".equals(m.getMessageType()) || (m.getContent() != null && m.getContent().contains("[POST_SHARE]"))) {
                         // For post shares, NEVER force "⚠️ ADMIN" or "Student" as sharer name!
                         String extractedSharer = null;
@@ -188,7 +193,7 @@ public class MessageController {
                             }
                         } else {
                             ghost = (m.getAuthor().getGhostName() != null && !m.getAuthor().getGhostName().isBlank())
-                                    ? m.getAuthor().getGhostName() : "Ghost";
+                                    ? m.getAuthor().getGhostName() : (isAuthorAdmin ? "Campus Admin" : "Ghost");
                         }
                     }
                     boolean isMeMsg = m.getAuthor().getId().equals(currentUser.getId());
@@ -199,7 +204,8 @@ public class MessageController {
                             .messageType(m.getMessageType())
                             .ghostName(ghost)
                             .primarySection(secName)
-                            .gender(m.getAuthor().getGender())
+                            .gender(isAuthorAdmin ? null : m.getAuthor().getGender())
+                            .isAdmin(isAuthorAdmin)
                             .createdAt(m.getCreatedAt())
                             .reactions(reactionMap.getOrDefault(m.getId(), Collections.emptyMap()))
                             .isSeen(isMeMsg && maxOthers != null && maxOthers >= m.getId())

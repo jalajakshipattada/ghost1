@@ -62,9 +62,15 @@ public class FeedController {
             map.put("authorPrimarySection", author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : "");
         } else {
             // Ghost post: show ghost name, strictly hide real name, email, and photo
-            String gName = author != null && author.getGhostName() != null ? author.getGhostName() : (author != null && author.isAdmin() ? "⚠️ ADMIN" : "Ghost");
+            boolean isAuthAdmin = author != null && author.isAdmin();
+            String gName;
+            if (isAuthAdmin) {
+                gName = Boolean.TRUE.equals(post.getIsPinned()) || "AD".equalsIgnoreCase(post.getMediaType()) ? "Campus Spotlight" : "⚠️ ADMIN";
+            } else {
+                gName = author != null && author.getGhostName() != null ? author.getGhostName() : "Ghost";
+            }
             map.put("authorGhostName", gName);
-            map.put("authorPrimarySection", author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : "");
+            map.put("authorPrimarySection", isAuthAdmin ? "" : (author != null && author.getPrimarySection() != null ? author.getPrimarySection().getName() : ""));
         }
 
         boolean isPinned = Boolean.TRUE.equals(post.getIsPinned());
@@ -77,7 +83,7 @@ public class FeedController {
         map.put("authorCollegeName", colName);
         map.put("collegeName", colName);
 
-        map.put("gender", author != null && author.getGender() != null ? author.getGender() : "");
+        map.put("gender", (author != null && author.isAdmin()) ? "" : (author != null && author.getGender() != null ? author.getGender() : ""));
         map.put("content", post.getContent());
         map.put("imageUrl", post.getImageUrl() != null ? post.getImageUrl() : "");
         map.put("videoUrl", post.getVideoUrl() != null ? post.getVideoUrl() : "");
@@ -511,7 +517,8 @@ public class FeedController {
                 || (post.getActionUrl() != null && !post.getActionUrl().isBlank())
                 || (post.getContent() != null && post.getContent().startsWith("[OFFICIAL ADMIN]"))
                 || (post.getContent() != null && post.getContent().toUpperCase().contains("ANNOUNCEMENT"))
-                || (post.getContent() != null && post.getContent().toUpperCase().contains("CAMPUS SPOTLIGHT"));
+                || (post.getContent() != null && post.getContent().toUpperCase().contains("CAMPUS SPOTLIGHT"))
+                || (post.getAuthor() != null && post.getAuthor().isAdmin());
 
         boolean isDirect = !isPinned && post.getContent() != null && post.getContent().startsWith("[DIRECT");
         String authorName;
@@ -628,7 +635,8 @@ public class FeedController {
                 .messageType(message.getMessageType())
                 .ghostName(senderDisplayName)
                 .primarySection(user.getPrimarySection() != null ? user.getPrimarySection().getName() : " ")
-                .gender(user.getGender())
+                .gender(user.isAdmin() ? null : user.getGender())
+                .isAdmin(user.isAdmin())
                 .createdAt(message.getCreatedAt())
                 .build();
 

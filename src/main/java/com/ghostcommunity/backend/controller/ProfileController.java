@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class ProfileController {
 
     private final UserRepository userRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     // DTO for the user's OWN private profile screen (Contains EVERYTHING)
     record PrivateProfileDto(
@@ -91,6 +92,58 @@ public class ProfileController {
         userRepository.save(user);
 
         return ResponseEntity.ok("Profile image updated");
+    }
+
+    // 1b. Delete user's own account permanently
+    @DeleteMapping("/me")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<?> deleteMyAccount() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetailsImpl userDetails)) {
+            return ResponseEntity.status(401).body(java.util.Map.of("error", "Unauthorized"));
+        }
+        Long userId = userDetails.getId();
+
+        try {
+            // 1. Delete message reactions by user
+            jdbcTemplate.execute("DELETE FROM message_reactions WHERE user_id = " + userId);
+
+            // 2. Delete comments & comment likes on user's posts, and user's own comments & likes
+            jdbcTemplate.execute("DELETE FROM comment_likes WHERE user_id = " + userId + " OR comment_id IN (SELECT id FROM comments WHERE author_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + "))");
+            jdbcTemplate.execute("DELETE FROM comments WHERE author_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
+
+            // 3. Delete post likes & saved posts for user's posts or by user
+            jdbcTemplate.execute("DELETE FROM post_likes WHERE user_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
+            jdbcTemplate.execute("DELETE FROM saved_posts WHERE user_id = " + userId + " OR post_id IN (SELECT id FROM posts WHERE author_id = " + userId + ")");
+
+            // 4. Delete user's posts
+            jdbcTemplate.execute("DELETE FROM posts WHERE author_id = " + userId);
+
+            // 5. Delete direct messages where user was sender or receiver
+            jdbcTemplate.execute("DELETE FROM direct_messages WHERE sender_id = " + userId + " OR receiver_id = " + userId);
+
+            // 6. Delete section messages authored by user (and reactions to those messages)
+            jdbcTemplate.execute("DELETE FROM message_reactions WHERE message_id IN (SELECT id FROM messages WHERE author_id = " + userId + ")");
+            jdbcTemplate.execute("DELETE FROM messages WHERE author_id = " + userId);
+
+            // 7. Delete polls and poll votes
+            jdbcTemplate.execute("DELETE FROM poll_votes WHERE user_id = " + userId);
+            jdbcTemplate.execute("DELETE FROM poll_options WHERE poll_id IN (SELECT id FROM polls WHERE author_id = " + userId + ")");
+            jdbcTemplate.execute("DELETE FROM polls WHERE author_id = " + userId);
+
+            // 8. Delete reports, blocks, section reads, password reset tokens
+            jdbcTemplate.execute("DELETE FROM reports WHERE reporter_id = " + userId + " OR reported_user_id = " + userId);
+            jdbcTemplate.execute("DELETE FROM blocks WHERE blocker_id = " + userId + " OR blocked_id = " + userId);
+            jdbcTemplate.execute("DELETE FROM section_reads WHERE user_id = " + userId);
+            jdbcTemplate.execute("DELETE FROM password_reset_tokens WHERE user_id = " + userId);
+
+            // 9. Delete user record
+            jdbcTemplate.execute("DELETE FROM users WHERE id = " + userId);
+
+            return ResponseEntity.ok(java.util.Map.of("message", "Account deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(java.util.Map.of("error", "Failed to delete account: " + e.getMessage()));
+        }
     }
 
     // 2. Endpoint to view someone else's public anonymous profile

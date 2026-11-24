@@ -34,4 +34,18 @@ public interface DirectMessageRepository extends JpaRepository<DirectMessage, Lo
            "(m.sender.id = :senderId AND m.receiver.id = :receiverId AND m.chatMode = 'DIRECT') OR " +
            "(((m.sender.id = :senderId AND m.receiver.id = :receiverId) OR (m.sender.id = :receiverId AND m.receiver.id = :senderId)) AND m.messageType = 'SYSTEM' AND m.content LIKE 'Identities Revealed%')")
     boolean hasUserRevealedTo(@Param("senderId") Long senderId, @Param("receiverId") Long receiverId);
+
+    @Query("SELECT COUNT(m) FROM DirectMessage m WHERE m.receiver.id = :myId AND m.sender.id = :partnerId AND m.chatMode = :mode AND (m.isRead = false OR m.isRead IS NULL) AND (m.deletedByReceiver = false OR m.deletedByReceiver IS NULL)")
+    long countUnreadMessagesFromPartner(@Param("myId") Long myId, @Param("partnerId") Long partnerId, @Param("mode") String mode);
+
+    @Query("SELECT COUNT(m) FROM DirectMessage m WHERE m.receiver.id = :myId AND m.chatMode = :mode AND (m.isRead = false OR m.isRead IS NULL) AND (m.deletedByReceiver = false OR m.deletedByReceiver IS NULL)")
+    long countTotalUnreadByMode(@Param("myId") Long myId, @Param("mode") String mode);
+
+    @Query("SELECT COUNT(m) FROM DirectMessage m WHERE m.receiver.id = :myId AND (m.isRead = false OR m.isRead IS NULL) AND (m.deletedByReceiver = false OR m.deletedByReceiver IS NULL)")
+    long countTotalUnread(@Param("myId") Long myId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE DirectMessage m SET m.isRead = true WHERE m.receiver.id = :myId AND m.sender.id = :partnerId AND m.chatMode = :mode AND (m.isRead = false OR m.isRead IS NULL)")
+    int markMessagesAsRead(@Param("myId") Long myId, @Param("partnerId") Long partnerId, @Param("mode") String mode);
 }

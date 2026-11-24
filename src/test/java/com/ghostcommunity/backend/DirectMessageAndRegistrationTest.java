@@ -230,4 +230,56 @@ class DirectMessageAndRegistrationTest {
         verify(userRepository).save(captor.capture());
         assertEquals("Dhanush Raj", captor.getValue().getRealName());
     }
+
+    @Test
+    void testGetUnreadCounts_ReturnsDirectGhostAndTotalCounts() {
+        when(dmRepository.countTotalUnreadByMode(1L, "DIRECT")).thenReturn(4L);
+        when(dmRepository.countTotalUnreadByMode(1L, "GHOST")).thenReturn(2L);
+
+        ResponseEntity<?> response = dmController.getUnreadCounts();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        Map<?, ?> map = (Map<?, ?>) response.getBody();
+        assertNotNull(map);
+        assertEquals(6L, map.get("totalUnread"));
+        assertEquals(4L, map.get("directUnread"));
+        assertEquals(2L, map.get("ghostUnread"));
+    }
+
+    @Test
+    void testMarkAsRead_MarksPartnerMessagesRead() {
+        when(dmRepository.markMessagesAsRead(1L, 2L, "DIRECT")).thenReturn(3);
+
+        ResponseEntity<?> response = dmController.markAsRead(2L, "DIRECT");
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        Map<?, ?> map = (Map<?, ?>) response.getBody();
+        assertNotNull(map);
+        assertEquals(true, map.get("success"));
+        assertEquals(3, map.get("markedCount"));
+        verify(dmRepository).markMessagesAsRead(1L, 2L, "DIRECT");
+    }
+
+    @Test
+    void testGetInbox_IncludesUnreadCountPerPartner() {
+        DirectMessage dm = DirectMessage.builder()
+                .id(400L)
+                .sender(partnerUser)
+                .receiver(currentUser)
+                .content("Hey there, unread message!")
+                .chatMode("DIRECT")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(dmRepository.findAllUserMessagesByMode(1L, "DIRECT")).thenReturn(List.of(dm));
+        when(dmRepository.countUnreadMessagesFromPartner(1L, 2L, "DIRECT")).thenReturn(5L);
+
+        ResponseEntity<?> response = dmController.getInbox("DIRECT");
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        List<?> list = (List<?>) response.getBody();
+        assertNotNull(list);
+        assertEquals(1, list.size());
+        assertTrue(list.get(0).toString().contains("unreadCount=5"));
+    }
 }

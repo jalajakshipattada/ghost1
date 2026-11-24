@@ -37,6 +37,10 @@ public class DirectMessage {
     @Builder.Default
     private Boolean deletedByReceiver = false;
 
+    @Column(name = "is_read")
+    @Builder.Default
+    private Boolean isRead = false;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -47,5 +51,6 @@ public class DirectMessage {
         if (chatMode == null) chatMode = "DIRECT";
         if (deletedBySender == null) deletedBySender = false;
         if (deletedByReceiver == null) deletedByReceiver = false;
+        if (isRead == null) isRead = false;
     }
 }

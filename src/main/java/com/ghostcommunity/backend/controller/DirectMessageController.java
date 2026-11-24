@@ -34,8 +34,40 @@ public class DirectMessageController {
         String partnerGender,
         String lastMessage,
         java.time.LocalDateTime lastMessageTime,
-        String chatMode
+        String chatMode,
+        long unreadCount
     ) {}
+
+    // GET /api/dm/unread-count
+    @GetMapping("/unread-count")
+    public ResponseEntity<?> getUnreadCounts() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        Long myId = userDetails.getId();
+
+        long directUnread = dmRepository.countTotalUnreadByMode(myId, "DIRECT");
+        long ghostUnread = dmRepository.countTotalUnreadByMode(myId, "GHOST");
+        long totalUnread = directUnread + ghostUnread;
+
+        return ResponseEntity.ok(Map.of(
+                "totalUnread", totalUnread,
+                "directUnread", directUnread,
+                "ghostUnread", ghostUnread
+        ));
+    }
+
+    // POST /api/dm/{userId}/read?mode=DIRECT or ?mode=GHOST
+    @PostMapping("/{userId}/read")
+    public ResponseEntity<?> markAsRead(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "DIRECT") String mode) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        Long myId = userDetails.getId();
+
+        int marked = dmRepository.markMessagesAsRead(myId, userId, mode);
+        return ResponseEntity.ok(Map.of("success", true, "markedCount", marked));
+    }
 
     // GET /api/dm/inbox?mode=DIRECT or ?mode=GHOST
     @GetMapping("/inbox")
@@ -59,11 +91,13 @@ public class DirectMessageController {
             DirectMessage m = entry.getValue();
             User partner = m.getSender().getId().equals(partnerId) ? m.getSender() : m.getReceiver();
 
-            boolean isGhostMode = "GHOST".equalsIgnoreCase(mode) || "GHOST".equalsIgnoreCase(m.getChatMode());
+            boolean isGhostMode = "GHOST".equalsIgnoreCase(mode);
             String realName = (partner.getRealName() != null && !partner.getRealName().isBlank() && !partner.getRealName().equalsIgnoreCase("Student"))
                     ? partner.getRealName()
                     : partner.getGhostName();
             String profilePic = partner.getProfileImageUrl() != null ? partner.getProfileImageUrl() : "";
+
+            long unread = dmRepository.countUnreadMessagesFromPartner(myId, partnerId, mode);
 
             inbox.add(new InboxDto(
                     partner.getId(),
@@ -74,7 +108,8 @@ public class DirectMessageController {
                     partner.getGender(),
                     m.getContent(),
                     m.getCreatedAt(),
-                    m.getChatMode()
+                    m.getChatMode(),
+                    unread
             ));
         }
 
@@ -90,6 +125,9 @@ public class DirectMessageController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         Long myId = userDetails.getId();
+
+        // Mark messages as read automatically upon opening history
+        dmRepository.markMessagesAsRead(myId, userId, mode);
 
         List<DirectMessage> history = dmRepository.findChatHistoryByMode(myId, userId, mode);
 

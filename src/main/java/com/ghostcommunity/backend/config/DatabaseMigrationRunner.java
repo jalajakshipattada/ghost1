@@ -55,6 +55,10 @@ public class DatabaseMigrationRunner implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_pinned boolean DEFAULT false;");
             jdbcTemplate.execute("ALTER TABLE posts ADD COLUMN IF NOT EXISTS action_url varchar(500);");
 
+            // 6. Direct messages is_read flag
+            jdbcTemplate.execute("ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS is_read boolean DEFAULT false;");
+            jdbcTemplate.execute("UPDATE direct_messages SET is_read = false WHERE is_read IS NULL;");
+
             log.info("Schema self-healing completed successfully!");
         } catch (Exception e) {
             log.warn("Schema self-healing migration message: {}", e.getMessage());

@@ -47,7 +47,10 @@ public class DirectMessageController {
 
         long directUnread = dmRepository.countTotalUnreadByMode(myId, "DIRECT");
         long ghostUnread = dmRepository.countTotalUnreadByMode(myId, "GHOST");
-        long totalUnread = directUnread + ghostUnread;
+        long totalUnread = dmRepository.countTotalUnread(myId);
+        if (totalUnread < directUnread + ghostUnread) {
+            totalUnread = directUnread + ghostUnread;
+        }
 
         return ResponseEntity.ok(Map.of(
                 "totalUnread", totalUnread,
@@ -165,17 +168,19 @@ public class DirectMessageController {
         User sender = userRepository.findById(userDetails.getId()).orElseThrow();
         User receiver = userRepository.findById(userId).orElseThrow();
 
+        String cleanMode = (mode != null && mode.equalsIgnoreCase("GHOST")) ? "GHOST" : "DIRECT";
+
         DirectMessage dm = DirectMessage.builder()
                 .sender(sender)
                 .receiver(receiver)
                 .content(request.get("content"))
                 .messageType(request.getOrDefault("messageType", "TEXT"))
-                .chatMode(mode)
+                .chatMode(cleanMode)
                 .build();
 
         dmRepository.save(dm);
 
-        boolean isGhost = "GHOST".equalsIgnoreCase(mode);
+        boolean isGhost = "GHOST".equalsIgnoreCase(cleanMode);
 
         String senderDisplayName = isGhost
                 ? sender.getGhostName()

@@ -233,6 +233,7 @@ class DirectMessageAndRegistrationTest {
 
     @Test
     void testGetUnreadCounts_ReturnsDirectGhostAndTotalCounts() {
+        when(dmRepository.countTotalUnread(1L)).thenReturn(6L);
         when(dmRepository.countTotalUnreadByMode(1L, "DIRECT")).thenReturn(4L);
         when(dmRepository.countTotalUnreadByMode(1L, "GHOST")).thenReturn(2L);
 

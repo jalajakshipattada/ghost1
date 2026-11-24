@@ -48,9 +48,22 @@ public class DirectMessage {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (messageType == null) messageType = "TEXT";
-        if (chatMode == null) chatMode = "DIRECT";
+        if (chatMode == null || chatMode.isBlank()) {
+            chatMode = "DIRECT";
+        } else {
+            chatMode = chatMode.trim().toUpperCase();
+        }
         if (deletedBySender == null) deletedBySender = false;
         if (deletedByReceiver == null) deletedByReceiver = false;
         if (isRead == null) isRead = false;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        if (chatMode == null || chatMode.isBlank()) {
+            chatMode = "DIRECT";
+        } else {
+            chatMode = chatMode.trim().toUpperCase();
+        }
     }
 }

@@ -59,15 +59,17 @@ public class DirectMessageController {
             DirectMessage m = entry.getValue();
             User partner = m.getSender().getId().equals(partnerId) ? m.getSender() : m.getReceiver();
 
-            boolean isGhostMode = "GHOST".equals(m.getChatMode());
-            // Partner's real identity is ONLY visible to currentUser if partner revealed to currentUser!
-            boolean partnerRevealedToMe = !isGhostMode && dmRepository.hasUserRevealedTo(partner.getId(), myId);
+            boolean isGhostMode = "GHOST".equalsIgnoreCase(mode) || "GHOST".equalsIgnoreCase(m.getChatMode());
+            String realName = (partner.getRealName() != null && !partner.getRealName().isBlank() && !partner.getRealName().equalsIgnoreCase("Student"))
+                    ? partner.getRealName()
+                    : partner.getGhostName();
+            String profilePic = partner.getProfileImageUrl() != null ? partner.getProfileImageUrl() : "";
 
             inbox.add(new InboxDto(
                     partner.getId(),
                     partner.getGhostName(),
-                    partnerRevealedToMe ? partner.getRealName() : partner.getGhostName(),
-                    partnerRevealedToMe ? (partner.getProfileImageUrl() != null ? partner.getProfileImageUrl() : "") : "",
+                    isGhostMode ? partner.getGhostName() : realName,
+                    isGhostMode ? "" : profilePic,
                     partner.getPrimarySection() != null ? partner.getPrimarySection().getName() : "",
                     partner.getGender(),
                     m.getContent(),
@@ -91,18 +93,13 @@ public class DirectMessageController {
 
         List<DirectMessage> history = dmRepository.findChatHistoryByMode(myId, userId, mode);
 
-        boolean partnerRevealedToMe = "DIRECT".equals(mode) && dmRepository.hasUserRevealedTo(userId, myId);
-
         List<ChatResponsePayload> payloads = history.stream().map(m -> {
-            boolean isGhost = "GHOST".equals(m.getChatMode());
+            boolean isGhost = "GHOST".equalsIgnoreCase(m.getChatMode()) || "GHOST".equalsIgnoreCase(mode);
             User sender = m.getSender();
-            boolean isMe = sender.getId().equals(myId);
-            String displayName;
-            if (isMe) {
-                displayName = isGhost ? sender.getGhostName() : sender.getRealName();
-            } else {
-                displayName = partnerRevealedToMe ? sender.getRealName() : sender.getGhostName();
-            }
+            String realName = (sender.getRealName() != null && !sender.getRealName().isBlank() && !sender.getRealName().equalsIgnoreCase("Student"))
+                    ? sender.getRealName()
+                    : sender.getGhostName();
+            String displayName = isGhost ? sender.getGhostName() : realName;
             return ChatResponsePayload.builder()
                     .messageId(m.getId())
                     .senderId(sender.getId())
@@ -140,14 +137,20 @@ public class DirectMessageController {
 
         dmRepository.save(dm);
 
-        boolean isGhost = "GHOST".equals(mode);
+        boolean isGhost = "GHOST".equalsIgnoreCase(mode);
+
+        String senderDisplayName = isGhost
+                ? sender.getGhostName()
+                : (sender.getRealName() != null && !sender.getRealName().isBlank() && !sender.getRealName().equalsIgnoreCase("Student")
+                        ? sender.getRealName()
+                        : sender.getGhostName());
 
         ChatResponsePayload senderPayload = ChatResponsePayload.builder()
                 .messageId(dm.getId())
                 .senderId(sender.getId())
                 .content(dm.getContent())
                 .messageType(dm.getMessageType())
-                .ghostName(isGhost ? sender.getGhostName() : sender.getRealName())
+                .ghostName(senderDisplayName)
                 .primarySection(sender.getPrimarySection() != null ? sender.getPrimarySection().getName() : "")
                 .gender(sender.getGender())
                 .createdAt(dm.getCreatedAt())
@@ -158,7 +161,7 @@ public class DirectMessageController {
                 .senderId(sender.getId())
                 .content(dm.getContent())
                 .messageType(dm.getMessageType())
-                .ghostName(isGhost ? sender.getGhostName() : sender.getRealName())
+                .ghostName(senderDisplayName)
                 .primarySection(sender.getPrimarySection() != null ? sender.getPrimarySection().getName() : "")
                 .gender(sender.getGender())
                 .createdAt(dm.getCreatedAt())

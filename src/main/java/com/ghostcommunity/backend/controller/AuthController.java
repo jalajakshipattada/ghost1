@@ -85,7 +85,14 @@ public class AuthController {
             User user = new User();
             user.setEmail(signUpRequest.getEmail().trim().toLowerCase());
             user.setPasswordHash(encoder.encode(signUpRequest.getPassword()));
-            user.setRealName(signUpRequest.getRealName());
+            String reqRealName = signUpRequest.getRealName();
+            if (reqRealName == null || reqRealName.trim().isEmpty() || reqRealName.trim().equalsIgnoreCase("Student")) {
+                String prefix = signUpRequest.getEmail().split("@")[0];
+                reqRealName = prefix.substring(0, 1).toUpperCase() + prefix.substring(1);
+            } else {
+                reqRealName = reqRealName.trim();
+            }
+            user.setRealName(reqRealName);
             user.setTermsAccepted(true);
             user.setStatus(UserStatus.ONBOARDING_INCOMPLETE);
             if (userRepository.count() == 0) {

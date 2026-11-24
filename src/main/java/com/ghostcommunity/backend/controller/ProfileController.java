@@ -94,6 +94,27 @@ public class ProfileController {
         return ResponseEntity.ok("Profile image updated");
     }
 
+    @PutMapping("/me")
+    public ResponseEntity<?> updateProfile(@RequestBody java.util.Map<String, String> request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        User user = userRepository.findById(userDetails.getId()).orElseThrow();
+
+        if (request.containsKey("realName")) {
+            String newRealName = request.get("realName");
+            if (newRealName != null && !newRealName.trim().isEmpty() && !newRealName.trim().equalsIgnoreCase("Student")) {
+                user.setRealName(newRealName.trim());
+            }
+        }
+        if (request.containsKey("imageUrl")) {
+            String imageUrl = request.get("imageUrl");
+            user.setProfileImageUrl(imageUrl);
+        }
+        userRepository.save(user);
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Profile updated successfully", "realName", user.getRealName() != null ? user.getRealName() : ""));
+    }
+
     // 1b. Delete user's own account permanently
     @DeleteMapping("/me")
     @org.springframework.transaction.annotation.Transactional

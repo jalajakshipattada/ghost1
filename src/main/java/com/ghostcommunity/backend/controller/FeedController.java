@@ -646,6 +646,7 @@ public class FeedController {
                 ",\"mediaType\":\"" + (mediaType.equals("NONE") && isPinned ? "ANNOUNCEMENT" : mediaType) + "\"" +
                 ",\"caption\":\"" + escapedText + "\"" +
                 ",\"isPinned\":" + isPinned +
+                ",\"isDirect\":" + isDirect +
                 ",\"sharedByDirect\":" + asDirect +
                 ",\"sharedByName\":\"" + senderDisplayName.replace("\"", "\\\"") + "\"}";
 

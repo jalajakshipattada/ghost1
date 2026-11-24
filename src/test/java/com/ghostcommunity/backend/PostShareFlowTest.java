@@ -150,6 +150,7 @@ class PostShareFlowTest {
         assertTrue(saved.getContent().contains("\"sharedByDirect\":true"));
         assertTrue(saved.getContent().contains("\"sharedByName\":\"Bob\""));
         assertTrue(saved.getContent().contains("\"authorName\":\"Alice\""));
+        assertTrue(saved.getContent().contains("\"isDirect\":true"));
         assertFalse(saved.getContent().contains("⚠️ ADMIN"));
         assertFalse(saved.getContent().contains("GhostBob"));
     }
